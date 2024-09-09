@@ -149,7 +149,7 @@ public class LittleTileBlock extends LittleTile {
 
     @Override
     public boolean canBlockBeThreaded() {
-        // return false;
+        if (LittleTiles.isAngelicaLoaded) return false;
         return block.getRenderType() == 0 && !(block instanceof BlockGrass);
     }
 

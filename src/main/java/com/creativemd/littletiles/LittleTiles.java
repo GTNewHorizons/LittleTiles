@@ -29,6 +29,7 @@ import com.creativemd.littletiles.common.utils.LittleTileTileEntity;
 import com.creativemd.littletiles.server.LittleTilesServer;
 
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
@@ -65,6 +66,8 @@ public class LittleTiles {
     public static Item chisel = new ItemLittleChisel().setUnlocalizedName("LTChisel");
     public static Item colorTube = new ItemColorTube().setUnlocalizedName("LTColorTube");
     public static Item rubberMallet = new ItemRubberMallet().setUnlocalizedName("LTRubberMallet");
+
+    public static boolean isAngelicaLoaded;
 
     @EventHandler
     public void Init(FMLInitializationEvent event) {
@@ -128,6 +131,7 @@ public class LittleTiles {
                 new ItemStack(colorTube),
                 new Object[] { "XXX", "XLX", "XXX", 'X', Items.dye, 'L', Items.iron_ingot });
 
+        isAngelicaLoaded = Loader.isModLoaded("angelica");
     }
 
     @EventHandler

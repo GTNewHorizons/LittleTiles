@@ -46,6 +46,7 @@ public class TileEntityLittleTiles extends TileEntity {
     public ArrayList<LittleTile> customRenderingTiles = new ArrayList<>();
 
     public boolean needFullUpdate = false;
+    public boolean needsLightUpdate = true;
 
     public boolean removeTile(LittleTile tile) {
         boolean result = tiles.remove(tile);
@@ -294,6 +295,7 @@ public class TileEntityLittleTiles extends TileEntity {
 
     @SideOnly(Side.CLIENT)
     public void updateRender() {
+        needsLightUpdate = true;
         worldObj.markBlockRangeForRenderUpdate(xCoord, yCoord, zCoord, xCoord, yCoord, zCoord);
     }
 
@@ -382,4 +384,23 @@ public class TileEntityLittleTiles extends TileEntity {
         update();
     }
 
+    private boolean first = true;
+    private int lastMaxLightValue;
+
+    public int getMaxLightValue() {
+        if (!needsLightUpdate) {
+            return lastMaxLightValue;
+        }
+        if (!first) return 0;
+        int light = 0;
+        for (LittleTile tile : getTiles()) {
+            first = false;
+            int tempLight = tile.getLightValue(worldObj, xCoord, yCoord, zCoord);
+            first = true;
+            if (tempLight > light) light = tempLight;
+        }
+        lastMaxLightValue = light;
+        needsLightUpdate = false;
+        return light;
+    }
 }

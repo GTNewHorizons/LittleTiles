@@ -22,9 +22,9 @@ import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
+import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
-import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import com.creativemd.littletiles.utils.PreviewTile;
 import com.creativemd.littletiles.utils.ShiftHandler;
 
@@ -43,39 +43,12 @@ public class PreviewRenderer {
         PacketHandler.sendPacketToServer(packet);
     }
 
-    public static MovingObjectPosition markedHit = null;
+    public static LittleTileBlockPos markedHit = null;
 
     public static void moveMarkedHit(ForgeDirection direction) {
-        int posX = (int) markedHit.hitVec.xCoord;
-        int posY = (int) markedHit.hitVec.yCoord;
-        int posZ = (int) markedHit.hitVec.zCoord;
-        double move = 1D / 16D;
-        if (GuiScreen.isCtrlKeyDown()) move = 1;
-        switch (direction) {
-            case EAST:
-                markedHit.hitVec.xCoord += move;
-                break;
-            case WEST:
-                markedHit.hitVec.xCoord -= move;
-                break;
-            case UP:
-                markedHit.hitVec.yCoord += move;
-                break;
-            case DOWN:
-                markedHit.hitVec.yCoord -= move;
-                break;
-            case SOUTH:
-                markedHit.hitVec.zCoord += move;
-                break;
-            case NORTH:
-                markedHit.hitVec.zCoord -= move;
-                break;
-            default:
-                break;
-        }
-        if (posX != (int) markedHit.hitVec.xCoord) markedHit.blockX += ((int) markedHit.hitVec.xCoord) - posX;
-        if (posY != (int) markedHit.hitVec.yCoord) markedHit.blockY += ((int) markedHit.hitVec.yCoord) - posY;
-        if (posZ != (int) markedHit.hitVec.zCoord) markedHit.blockZ += ((int) markedHit.hitVec.zCoord) - posZ;
+        int move = 1;
+        if (GuiScreen.isCtrlKeyDown()) move = 16;
+        markedHit.moveInDirection(direction, move);
     }
 
     @SubscribeEvent
@@ -110,82 +83,19 @@ public class PreviewRenderer {
                 }
 
                 MovingObjectPosition look = mc.objectMouseOver;
-                if (markedHit != null) look = markedHit;
+                PlacementHelper helper = PlacementHelper.getInstance(mc.thePlayer);
+                LittleTileBlockPos pos = null;
+                if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {
+                    pos = LittleTileBlockPos.fromMovingObjectPosition(look);
+                }
 
-                if (look != null && look.typeOfHit == MovingObjectType.BLOCK && mc.thePlayer.getHeldItem() != null) {
-                    PlacementHelper helper = PlacementHelper.getInstance(mc.thePlayer);
+                if (markedHit != null) pos = markedHit;
 
-                    int posX = look.blockX;
-                    int posY = look.blockY;
-                    int posZ = look.blockZ;
-
-                    double x = (double) posX - TileEntityRendererDispatcher.staticPlayerX;
-                    double y = (double) posY - TileEntityRendererDispatcher.staticPlayerY;
-                    double z = (double) posZ - TileEntityRendererDispatcher.staticPlayerZ;
-
-                    ForgeDirection side = ForgeDirection.getOrientation(look.sideHit);
-                    if (!helper.canBePlacedInside(posX, posY, posZ, look.hitVec, side)) {
-                        switch (side) {
-                            case EAST:
-                                x++;
-                                break;
-                            case WEST:
-                                x--;
-                                break;
-                            case UP:
-                                y++;
-                                break;
-                            case DOWN:
-                                y--;
-                                break;
-                            case SOUTH:
-                                z++;
-                                break;
-                            case NORTH:
-                                z--;
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-
+                if (pos != null && mc.thePlayer.getHeldItem() != null) {
                     if (GameSettings.isKeyDown(LittleTilesClient.mark) && !LittleTilesClient.pressedMark) {
                         LittleTilesClient.pressedMark = true;
                         if (markedHit == null) {
-
-                            LittleTileVec vec = helper
-                                    .getHitVec(look.hitVec, look.blockX, look.blockY, look.blockZ, side, false, false);
-                            Vec3 hitVec = Vec3.createVectorHelper(vec.getPosX(), vec.getPosY(), vec.getPosZ());
-
-                            int newX = look.blockX;
-                            int newY = look.blockY;
-                            int newZ = look.blockZ;
-                            if (!helper.canBePlacedInside(newX, newY, newZ, look.hitVec, side)) {
-                                switch (side) {
-                                    case EAST:
-                                        newX++;
-                                        break;
-                                    case WEST:
-                                        newX--;
-                                        break;
-                                    case UP:
-                                        newY++;
-                                        break;
-                                    case DOWN:
-                                        newY--;
-                                        break;
-                                    case SOUTH:
-                                        newZ++;
-                                        break;
-                                    case NORTH:
-                                        newZ--;
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }
-                            hitVec = hitVec.addVector(newX, newY, newZ);
-                            markedHit = new MovingObjectPosition(newX, newY, newZ, look.sideHit, hitVec);
+                            markedHit = pos;
                             return;
                         } else markedHit = null;
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.mark)) {
@@ -228,8 +138,11 @@ public class PreviewRenderer {
 
                     ArrayList<PreviewTile> previews;
 
-                    previews = helper.getPreviewTiles(mc.thePlayer.getHeldItem(), look, markedHit != null);
+                    previews = helper.getPreviewTiles(mc.thePlayer.getHeldItem(), pos, markedHit != null);
 
+                    double x = (double) pos.getPosX() - TileEntityRendererDispatcher.staticPlayerX;
+                    double y = (double) pos.getPosY() - TileEntityRendererDispatcher.staticPlayerY;
+                    double z = (double) pos.getPosZ() - TileEntityRendererDispatcher.staticPlayerZ;
                     for (PreviewTile previewTile : previews) {
                         GL11.glPushMatrix();
                         LittleTileBox previewBox = previewTile.getPreviewBox();

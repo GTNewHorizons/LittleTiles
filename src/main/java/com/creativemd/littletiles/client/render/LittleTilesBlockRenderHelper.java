@@ -17,6 +17,7 @@ import com.creativemd.creativecore.client.rendering.ExtendedRenderBlocks;
 import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.littletiles.LittleTiles;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -57,9 +58,15 @@ public class LittleTilesBlockRenderHelper {
                 fake.overrideMeta = cubes.get(i).meta;
                 extraRenderer.color = cubes.get(i).color;
                 extraRenderer.lockBlockBounds = true;
+                if (LittleTiles.angelicaCompat != null) {
+                    LittleTiles.angelicaCompat.setShaderMaterialOverride(cubes.get(i).block, cubes.get(i).meta);
+                }
                 extraRenderer.field_152631_f = true;
                 extraRenderer.renderBlockAllFaces(cubes.get(i).block, x, y, z);
                 extraRenderer.field_152631_f = false;
+                if (LittleTiles.angelicaCompat != null) {
+                    LittleTiles.angelicaCompat.resetShaderMaterialOverride();
+                }
                 extraRenderer.lockBlockBounds = false;
                 extraRenderer.color = ColorUtils.WHITE;
                 continue;

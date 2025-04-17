@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
+import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.structure.LittleStructure;
@@ -113,7 +114,30 @@ public class PlacementHelper {
 
             shifthandlers.add(new InsideShiftHandler());
 
-            LittleTileBox box = getTilesBox(size, pos);
+            boolean fromChisel = stack.stackTagCompound != null
+                    && (stack.getItem() == LittleTiles.chisel || stack.stackTagCompound.hasKey("fromChiselPosX"));
+
+            LittleTileBox box = getTilesBox(size, pos, !fromChisel);
+            if (fromChisel) {
+                boolean posX = stack.stackTagCompound.getBoolean("fromChiselPosX");
+                boolean posY = stack.stackTagCompound.getBoolean("fromChiselPosY");
+                boolean posZ = stack.stackTagCompound.getBoolean("fromChiselPosZ");
+                int align = 1;
+                if (posX) {
+                    box.minX -= size.sizeX - align;
+                    box.maxX -= size.sizeX - align;
+                }
+
+                if (posY) {
+                    box.minY -= size.sizeY - align;
+                    box.maxY -= size.sizeY - align;
+                }
+
+                if (posZ) {
+                    box.minZ -= size.sizeZ - align;
+                    box.maxZ -= size.sizeZ - align;
+                }
+            }
             LittleTileVec internalOffset = getInternalOffset(tiles);
             internalOffset.invert();
 
@@ -194,33 +218,35 @@ public class PlacementHelper {
         return preview;
     }
 
-    public LittleTileBox getTilesBox(LittleTileSize size, LittleTileBlockPos pos) {
+    public LittleTileBox getTilesBox(LittleTileSize size, LittleTileBlockPos pos, boolean doCenter) {
         LittleTileVec hit = pos.toHitVecRelative();
-        LittleTileVec center = size.calculateCenter();
-        LittleTileVec centerInv = size.calculateInvertedCenter();
-        switch (pos.getSide()) {
-            case EAST:
-                hit.x += center.x;
-                break;
-            case WEST:
-                hit.x -= centerInv.x - 1;
-                break;
-            case UP:
-                hit.y += center.y;
-                break;
-            case DOWN:
-                hit.y -= centerInv.y - 1;
-                break;
-            case SOUTH:
-                hit.z += center.z;
-                break;
-            case NORTH:
-                hit.z -= centerInv.z - 1;
-                break;
-            default:
-                break;
+        if (doCenter) {
+            LittleTileVec center = size.calculateCenter();
+            LittleTileVec centerInv = size.calculateInvertedCenter();
+            switch (pos.getSide()) {
+                case EAST:
+                    hit.x += center.x;
+                    break;
+                case WEST:
+                    hit.x -= centerInv.x - 1;
+                    break;
+                case UP:
+                    hit.y += center.y;
+                    break;
+                case DOWN:
+                    hit.y -= centerInv.y - 1;
+                    break;
+                case SOUTH:
+                    hit.z += center.z;
+                    break;
+                case NORTH:
+                    hit.z -= centerInv.z - 1;
+                    break;
+                default:
+                    break;
+            }
         }
-        return new LittleTileBox(hit, size);
+        return new LittleTileBox(hit, size, doCenter);
     }
 
     public boolean canBePlacedInsideBlock(int x, int y, int z) {

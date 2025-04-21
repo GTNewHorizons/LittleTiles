@@ -1,7 +1,23 @@
-[
+{
+  "modListVersion": 2,
+  "modList": [
     {
-      "modid": "${modId}",
-      "name": "${modName}",
+      "modid": "littletiles",
+      "name": "LittleTiles",
+      "description": "",
+      "version": "${modVersion}",
+      "mcversion": "${minecraftVersion}",
+      "url": "",
+      "updateUrl": "",
+      "authorList": [],
+      "credits": "",
+      "logoFile": "",
+      "screenshots": [],
+      "dependencies": []
+    },
+    {
+      "modid": "creativecore",
+      "name": "CreativeCore",
       "description": "",
       "version": "${modVersion}",
       "mcversion": "${minecraftVersion}",
@@ -13,4 +29,5 @@
       "screenshots": [],
       "dependencies": []
     }
-]
+  ]
+}

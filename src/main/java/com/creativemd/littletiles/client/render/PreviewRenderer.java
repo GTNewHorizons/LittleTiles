@@ -47,7 +47,36 @@ public class PreviewRenderer {
     public static LittleTileBlockPos markedHit = null;
     private static ItemStack lastItem = null;
 
-    public static void moveMarkedHit(ForgeDirection direction) {
+    private static ForgeDirection rotateDirection(ForgeDirection direction) {
+        switch (direction) {
+            case NORTH:
+                return ForgeDirection.EAST;
+            case EAST:
+                return ForgeDirection.SOUTH;
+            case SOUTH:
+                return ForgeDirection.WEST;
+            case WEST:
+                return ForgeDirection.NORTH;
+        }
+        return ForgeDirection.UNKNOWN;
+    }
+
+    public static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look) {
+        if (direction != ForgeDirection.UP && direction != ForgeDirection.DOWN) {
+            if (direction_look == ForgeDirection.EAST) {
+                direction = rotateDirection(direction);
+            }
+            if (direction_look == ForgeDirection.SOUTH) {
+                direction = rotateDirection(direction);
+                direction = rotateDirection(direction);
+            }
+            if (direction_look == ForgeDirection.WEST) {
+                direction = rotateDirection(direction);
+                direction = rotateDirection(direction);
+                direction = rotateDirection(direction);
+            }
+        }
+
         int move = 1;
         if (GuiScreen.isCtrlKeyDown()) move = 16;
         markedHit.moveInDirection(direction, move);
@@ -60,25 +89,28 @@ public class PreviewRenderer {
             if (!ItemStack.areItemStackTagsEqual(lastItem, mc.thePlayer.getHeldItem())) {
                 markedHit = null;
             }
+            lastItem = mc.thePlayer.getHeldItem();
             if (PlacementHelper.isLittleBlock(mc.thePlayer.getHeldItem())) {
+                int i4 = MathHelper.floor_double((double) (mc.thePlayer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
+                ForgeDirection direction_look = null;
+                switch (i4) {
+                    case 0:
+                        direction_look = ForgeDirection.SOUTH;
+                        break;
+                    case 1:
+                        direction_look = ForgeDirection.WEST;
+                        break;
+                    case 2:
+                        direction_look = ForgeDirection.NORTH;
+                        break;
+                    case 3:
+                        direction_look = ForgeDirection.EAST;
+                        break;
+                }
                 if (GameSettings.isKeyDown(LittleTilesClient.flip) && !LittleTilesClient.pressedFlip) {
                     LittleTilesClient.pressedFlip = true;
-                    int i4 = MathHelper.floor_double((double) (mc.thePlayer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
-                    ForgeDirection direction = null;
-                    switch (i4) {
-                        case 0:
-                            direction = ForgeDirection.SOUTH;
-                            break;
-                        case 1:
-                            direction = ForgeDirection.WEST;
-                            break;
-                        case 2:
-                            direction = ForgeDirection.NORTH;
-                            break;
-                        case 3:
-                            direction = ForgeDirection.EAST;
-                            break;
-                    }
+
+                    ForgeDirection direction = direction_look;
                     if (mc.thePlayer.rotationPitch > 45) direction = ForgeDirection.DOWN;
                     if (mc.thePlayer.rotationPitch < -45) direction = ForgeDirection.UP;
                     LittleFlipPacket packet = new LittleFlipPacket(direction);
@@ -111,27 +143,29 @@ public class PreviewRenderer {
                     // Rotate Block
                     if (GameSettings.isKeyDown(LittleTilesClient.up) && !LittleTilesClient.pressedUp) {
                         LittleTilesClient.pressedUp = true;
-                        if (markedHit != null)
-                            moveMarkedHit(mc.thePlayer.isSneaking() ? ForgeDirection.UP : ForgeDirection.EAST);
+                        if (markedHit != null) moveMarkedHit(
+                                mc.thePlayer.isSneaking() ? ForgeDirection.UP : ForgeDirection.NORTH,
+                                direction_look);
                         else processKey(ForgeDirection.UP);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.up)) LittleTilesClient.pressedUp = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.down) && !LittleTilesClient.pressedDown) {
                         LittleTilesClient.pressedDown = true;
-                        if (markedHit != null)
-                            moveMarkedHit(mc.thePlayer.isSneaking() ? ForgeDirection.DOWN : ForgeDirection.WEST);
+                        if (markedHit != null) moveMarkedHit(
+                                mc.thePlayer.isSneaking() ? ForgeDirection.DOWN : ForgeDirection.SOUTH,
+                                direction_look);
                         else processKey(ForgeDirection.DOWN);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.down)) LittleTilesClient.pressedDown = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.right) && !LittleTilesClient.pressedRight) {
                         LittleTilesClient.pressedRight = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.SOUTH);
+                        if (markedHit != null) moveMarkedHit(ForgeDirection.EAST, direction_look);
                         else processKey(ForgeDirection.SOUTH);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.right)) LittleTilesClient.pressedRight = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.left) && !LittleTilesClient.pressedLeft) {
                         LittleTilesClient.pressedLeft = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.NORTH);
+                        if (markedHit != null) moveMarkedHit(ForgeDirection.WEST, direction_look);
                         else processKey(ForgeDirection.NORTH);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.left)) LittleTilesClient.pressedLeft = false;
 

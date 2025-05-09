@@ -7,6 +7,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.settings.GameSettings;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
@@ -44,6 +45,7 @@ public class PreviewRenderer {
     }
 
     public static LittleTileBlockPos markedHit = null;
+    private static ItemStack lastItem = null;
 
     public static void moveMarkedHit(ForgeDirection direction) {
         int move = 1;
@@ -54,6 +56,10 @@ public class PreviewRenderer {
     @SubscribeEvent
     public void tick(RenderHandEvent event) {
         if (mc.thePlayer != null && mc.inGameHasFocus) {
+
+            if (!ItemStack.areItemStackTagsEqual(lastItem, mc.thePlayer.getHeldItem())) {
+                markedHit = null;
+            }
             if (PlacementHelper.isLittleBlock(mc.thePlayer.getHeldItem())) {
                 if (GameSettings.isKeyDown(LittleTilesClient.flip) && !LittleTilesClient.pressedFlip) {
                     LittleTilesClient.pressedFlip = true;
@@ -184,7 +190,7 @@ public class PreviewRenderer {
                     GL11.glEnable(GL11.GL_TEXTURE_2D);
                     GL11.glDisable(GL11.GL_BLEND);
                 }
-            } else markedHit = null;
+            }
         }
     }
 }

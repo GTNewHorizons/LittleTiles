@@ -57,7 +57,9 @@ public class LittleTilesBlockRenderHelper {
                 fake.overrideMeta = cubes.get(i).meta;
                 extraRenderer.color = cubes.get(i).color;
                 extraRenderer.lockBlockBounds = true;
+                extraRenderer.field_152631_f = true;
                 extraRenderer.renderBlockAllFaces(cubes.get(i).block, x, y, z);
+                extraRenderer.field_152631_f = false;
                 extraRenderer.lockBlockBounds = false;
                 extraRenderer.color = ColorUtils.WHITE;
                 continue;

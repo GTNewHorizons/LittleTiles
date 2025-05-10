@@ -64,7 +64,7 @@ public class LittleTiles {
 
     public static int maxNewTiles = 51200;
 
-    public static CreativeTabs creativeTabLittleTiles = new LittleTilesCreativeTab("LTTab");
+    public static CreativeTabs creativeTabLittleTiles = new LittleTilesCreativeTab("littletiles");
 
     public static BlockTile blockTile = (BlockTile) new BlockTile(Material.rock).setCreativeTab(creativeTabLittleTiles);
     public static Block coloredBlock = new BlockLTColored().setBlockName("LTBlocks")

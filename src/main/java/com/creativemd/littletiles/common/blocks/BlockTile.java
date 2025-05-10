@@ -245,22 +245,13 @@ public class BlockTile extends BlockContainer {
     // TODO Add this once it's important
     // public void fillWithRain(World p_149639_1_, int p_149639_2_, int p_149639_3_, int p_149639_4_) {}
 
-    public boolean first = true;
-
     @Override
     public int getLightValue(IBlockAccess world, int x, int y, int z) {
         try { // Why try? because the number of tiles can change while this method is called
-            int light = 0;
-            if (!first) return 0;
             if (loadTileEntity(world, x, y, z)) {
-                for (LittleTile tile : tempEntity.getTiles()) {
-                    first = false;
-                    int tempLight = tile.getLightValue(world, x, y, z);
-                    first = true;
-                    if (tempLight > light) light = tempLight;
-                }
+                return tempEntity.getMaxLightValue();
             }
-            return light;
+            return 0;
         } catch (Exception e) {
             return 0;
         }

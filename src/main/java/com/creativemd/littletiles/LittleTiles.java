@@ -2,6 +2,7 @@ package com.creativemd.littletiles;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
@@ -10,6 +11,7 @@ import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
+import com.creativemd.littletiles.client.render.AngelicaCompat;
 import com.creativemd.littletiles.common.blocks.BlockLTColored;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ItemBlockColored;
@@ -35,9 +37,11 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
 import com.creativemd.littletiles.common.utils.LittleTileTileEntity;
+import com.creativemd.littletiles.common.utils.LittleTilesCreativeTab;
 import com.creativemd.littletiles.server.LittleTilesServer;
 
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
@@ -46,7 +50,7 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
-@Mod(modid = LittleTiles.modid, version = LittleTiles.version, name = "LittleTiles")
+@Mod(modid = LittleTiles.modid, version = LittleTiles.version, name = "LittleTiles", dependencies = "after:angelica")
 public class LittleTiles {
 
     @Instance(LittleTiles.modid)
@@ -60,20 +64,31 @@ public class LittleTiles {
     public static final String modid = "littletiles";
     public static final String version = LTTags.VERSION;
 
-    public static int maxNewTiles = 512;
+    public static int maxNewTiles = 51200;
 
-    public static BlockTile blockTile = new BlockTile(Material.rock);
-    public static Block coloredBlock = new BlockLTColored().setBlockName("LTBlocks");
+    public static CreativeTabs creativeTabLittleTiles = new LittleTilesCreativeTab("littletiles");
 
-    public static Item hammer = new ItemHammer().setUnlocalizedName("LTHammer");
-    public static Item recipe = new ItemRecipe().setUnlocalizedName("LTRecipe");
-    public static Item multiTiles = new ItemMultiTiles().setUnlocalizedName("LTMultiTiles");
-    public static Item saw = new ItemLittleSaw().setUnlocalizedName("LTSaw");
-    public static Item container = new ItemTileContainer().setUnlocalizedName("LTContainer");
-    public static Item wrench = new ItemLittleWrench().setUnlocalizedName("LTWrench");
-    public static Item chisel = new ItemLittleChisel().setUnlocalizedName("LTChisel");
-    public static Item colorTube = new ItemColorTube().setUnlocalizedName("LTColorTube");
-    public static Item rubberMallet = new ItemRubberMallet().setUnlocalizedName("LTRubberMallet");
+    public static BlockTile blockTile = (BlockTile) new BlockTile(Material.rock).setCreativeTab(creativeTabLittleTiles);
+    public static Block coloredBlock = new BlockLTColored().setBlockName("LTBlocks")
+            .setCreativeTab(creativeTabLittleTiles);
+
+    public static Item hammer = new ItemHammer().setUnlocalizedName("LTHammer").setCreativeTab(creativeTabLittleTiles);
+    public static Item recipe = new ItemRecipe().setUnlocalizedName("LTRecipe").setCreativeTab(creativeTabLittleTiles);
+    public static Item multiTiles = new ItemMultiTiles().setUnlocalizedName("LTMultiTiles")
+            .setCreativeTab(creativeTabLittleTiles);
+    public static Item saw = new ItemLittleSaw().setUnlocalizedName("LTSaw").setCreativeTab(creativeTabLittleTiles);
+    public static Item container = new ItemTileContainer().setUnlocalizedName("LTContainer")
+            .setCreativeTab(creativeTabLittleTiles);
+    public static Item wrench = new ItemLittleWrench().setUnlocalizedName("LTWrench")
+            .setCreativeTab(creativeTabLittleTiles);
+    public static Item chisel = new ItemLittleChisel().setUnlocalizedName("LTChisel")
+            .setCreativeTab(creativeTabLittleTiles);
+    public static Item colorTube = new ItemColorTube().setUnlocalizedName("LTColorTube")
+            .setCreativeTab(creativeTabLittleTiles);
+    public static Item rubberMallet = new ItemRubberMallet().setUnlocalizedName("LTRubberMallet")
+            .setCreativeTab(creativeTabLittleTiles);
+
+    public static AngelicaCompat angelicaCompat;
 
     @EventHandler
     public void Init(FMLInitializationEvent event) {
@@ -136,6 +151,9 @@ public class LittleTiles {
         GameRegistry.addRecipe(
                 new ItemStack(colorTube),
                 new Object[] { "XXX", "XLX", "XXX", 'X', Items.dye, 'L', Items.iron_ingot });
+        if (Loader.isModLoaded("angelica")) {
+            angelicaCompat = new AngelicaCompat();
+        }
     }
 
     @EventHandler

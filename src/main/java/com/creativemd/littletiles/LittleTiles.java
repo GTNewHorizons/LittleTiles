@@ -11,6 +11,7 @@ import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
+import com.creativemd.littletiles.client.render.AngelicaCompat;
 import com.creativemd.littletiles.common.blocks.BlockLTColored;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ItemBlockColored;
@@ -40,6 +41,7 @@ import com.creativemd.littletiles.common.utils.LittleTilesCreativeTab;
 import com.creativemd.littletiles.server.LittleTilesServer;
 
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
@@ -48,7 +50,7 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
-@Mod(modid = LittleTiles.modid, version = LittleTiles.version, name = "LittleTiles")
+@Mod(modid = LittleTiles.modid, version = LittleTiles.version, name = "LittleTiles", dependencies = "after:angelica")
 public class LittleTiles {
 
     @Instance(LittleTiles.modid)
@@ -85,6 +87,8 @@ public class LittleTiles {
             .setCreativeTab(creativeTabLittleTiles);
     public static Item rubberMallet = new ItemRubberMallet().setUnlocalizedName("LTRubberMallet")
             .setCreativeTab(creativeTabLittleTiles);
+
+    public static AngelicaCompat angelicaCompat;
 
     @EventHandler
     public void Init(FMLInitializationEvent event) {
@@ -147,6 +151,9 @@ public class LittleTiles {
         GameRegistry.addRecipe(
                 new ItemStack(colorTube),
                 new Object[] { "XXX", "XLX", "XXX", 'X', Items.dye, 'L', Items.iron_ingot });
+        if (Loader.isModLoaded("angelica")) {
+            angelicaCompat = new AngelicaCompat();
+        }
     }
 
     @EventHandler

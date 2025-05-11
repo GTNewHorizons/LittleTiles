@@ -7,6 +7,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.settings.GameSettings;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
@@ -22,9 +23,9 @@ import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
+import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
-import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import com.creativemd.littletiles.utils.PreviewTile;
 import com.creativemd.littletiles.utils.ShiftHandler;
 
@@ -43,63 +44,73 @@ public class PreviewRenderer {
         PacketHandler.sendPacketToServer(packet);
     }
 
-    public static MovingObjectPosition markedHit = null;
+    public static LittleTileBlockPos markedHit = null;
+    private static ItemStack lastItem = null;
 
-    public static void moveMarkedHit(ForgeDirection direction) {
-        int posX = (int) markedHit.hitVec.xCoord;
-        int posY = (int) markedHit.hitVec.yCoord;
-        int posZ = (int) markedHit.hitVec.zCoord;
-        double move = 1D / 16D;
-        if (GuiScreen.isCtrlKeyDown()) move = 1;
+    private static ForgeDirection rotateDirection(ForgeDirection direction) {
         switch (direction) {
-            case EAST:
-                markedHit.hitVec.xCoord += move;
-                break;
-            case WEST:
-                markedHit.hitVec.xCoord -= move;
-                break;
-            case UP:
-                markedHit.hitVec.yCoord += move;
-                break;
-            case DOWN:
-                markedHit.hitVec.yCoord -= move;
-                break;
-            case SOUTH:
-                markedHit.hitVec.zCoord += move;
-                break;
             case NORTH:
-                markedHit.hitVec.zCoord -= move;
-                break;
-            default:
-                break;
+                return ForgeDirection.EAST;
+            case EAST:
+                return ForgeDirection.SOUTH;
+            case SOUTH:
+                return ForgeDirection.WEST;
+            case WEST:
+                return ForgeDirection.NORTH;
         }
-        if (posX != (int) markedHit.hitVec.xCoord) markedHit.blockX += ((int) markedHit.hitVec.xCoord) - posX;
-        if (posY != (int) markedHit.hitVec.yCoord) markedHit.blockY += ((int) markedHit.hitVec.yCoord) - posY;
-        if (posZ != (int) markedHit.hitVec.zCoord) markedHit.blockZ += ((int) markedHit.hitVec.zCoord) - posZ;
+        return ForgeDirection.UNKNOWN;
+    }
+
+    public static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look) {
+        if (direction != ForgeDirection.UP && direction != ForgeDirection.DOWN) {
+            if (direction_look == ForgeDirection.EAST) {
+                direction = rotateDirection(direction);
+            }
+            if (direction_look == ForgeDirection.SOUTH) {
+                direction = rotateDirection(direction);
+                direction = rotateDirection(direction);
+            }
+            if (direction_look == ForgeDirection.WEST) {
+                direction = rotateDirection(direction);
+                direction = rotateDirection(direction);
+                direction = rotateDirection(direction);
+            }
+        }
+
+        int move = 1;
+        if (GuiScreen.isCtrlKeyDown()) move = 16;
+        markedHit.moveInDirection(direction, move);
     }
 
     @SubscribeEvent
     public void tick(RenderHandEvent event) {
         if (mc.thePlayer != null && mc.inGameHasFocus) {
+
+            if (!ItemStack.areItemStackTagsEqual(lastItem, mc.thePlayer.getHeldItem())) {
+                markedHit = null;
+            }
+            lastItem = mc.thePlayer.getHeldItem();
             if (PlacementHelper.isLittleBlock(mc.thePlayer.getHeldItem())) {
+                int i4 = MathHelper.floor_double((double) (mc.thePlayer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
+                ForgeDirection direction_look = null;
+                switch (i4) {
+                    case 0:
+                        direction_look = ForgeDirection.SOUTH;
+                        break;
+                    case 1:
+                        direction_look = ForgeDirection.WEST;
+                        break;
+                    case 2:
+                        direction_look = ForgeDirection.NORTH;
+                        break;
+                    case 3:
+                        direction_look = ForgeDirection.EAST;
+                        break;
+                }
                 if (GameSettings.isKeyDown(LittleTilesClient.flip) && !LittleTilesClient.pressedFlip) {
                     LittleTilesClient.pressedFlip = true;
-                    int i4 = MathHelper.floor_double((double) (mc.thePlayer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
-                    ForgeDirection direction = null;
-                    switch (i4) {
-                        case 0:
-                            direction = ForgeDirection.SOUTH;
-                            break;
-                        case 1:
-                            direction = ForgeDirection.WEST;
-                            break;
-                        case 2:
-                            direction = ForgeDirection.NORTH;
-                            break;
-                        case 3:
-                            direction = ForgeDirection.EAST;
-                            break;
-                    }
+
+                    ForgeDirection direction = direction_look;
                     if (mc.thePlayer.rotationPitch > 45) direction = ForgeDirection.DOWN;
                     if (mc.thePlayer.rotationPitch < -45) direction = ForgeDirection.UP;
                     LittleFlipPacket packet = new LittleFlipPacket(direction);
@@ -110,82 +121,19 @@ public class PreviewRenderer {
                 }
 
                 MovingObjectPosition look = mc.objectMouseOver;
-                if (markedHit != null) look = markedHit;
+                PlacementHelper helper = PlacementHelper.getInstance(mc.thePlayer);
+                LittleTileBlockPos pos = null;
+                if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {
+                    pos = LittleTileBlockPos.fromMovingObjectPosition(look);
+                }
 
-                if (look != null && look.typeOfHit == MovingObjectType.BLOCK && mc.thePlayer.getHeldItem() != null) {
-                    PlacementHelper helper = PlacementHelper.getInstance(mc.thePlayer);
+                if (markedHit != null) pos = markedHit;
 
-                    int posX = look.blockX;
-                    int posY = look.blockY;
-                    int posZ = look.blockZ;
-
-                    double x = (double) posX - TileEntityRendererDispatcher.staticPlayerX;
-                    double y = (double) posY - TileEntityRendererDispatcher.staticPlayerY;
-                    double z = (double) posZ - TileEntityRendererDispatcher.staticPlayerZ;
-
-                    ForgeDirection side = ForgeDirection.getOrientation(look.sideHit);
-                    if (!helper.canBePlacedInside(posX, posY, posZ, look.hitVec, side)) {
-                        switch (side) {
-                            case EAST:
-                                x++;
-                                break;
-                            case WEST:
-                                x--;
-                                break;
-                            case UP:
-                                y++;
-                                break;
-                            case DOWN:
-                                y--;
-                                break;
-                            case SOUTH:
-                                z++;
-                                break;
-                            case NORTH:
-                                z--;
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-
+                if (pos != null && mc.thePlayer.getHeldItem() != null) {
                     if (GameSettings.isKeyDown(LittleTilesClient.mark) && !LittleTilesClient.pressedMark) {
                         LittleTilesClient.pressedMark = true;
                         if (markedHit == null) {
-
-                            LittleTileVec vec = helper
-                                    .getHitVec(look.hitVec, look.blockX, look.blockY, look.blockZ, side, false, false);
-                            Vec3 hitVec = Vec3.createVectorHelper(vec.getPosX(), vec.getPosY(), vec.getPosZ());
-
-                            int newX = look.blockX;
-                            int newY = look.blockY;
-                            int newZ = look.blockZ;
-                            if (!helper.canBePlacedInside(newX, newY, newZ, look.hitVec, side)) {
-                                switch (side) {
-                                    case EAST:
-                                        newX++;
-                                        break;
-                                    case WEST:
-                                        newX--;
-                                        break;
-                                    case UP:
-                                        newY++;
-                                        break;
-                                    case DOWN:
-                                        newY--;
-                                        break;
-                                    case SOUTH:
-                                        newZ++;
-                                        break;
-                                    case NORTH:
-                                        newZ--;
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }
-                            hitVec = hitVec.addVector(newX, newY, newZ);
-                            markedHit = new MovingObjectPosition(newX, newY, newZ, look.sideHit, hitVec);
+                            markedHit = pos;
                             return;
                         } else markedHit = null;
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.mark)) {
@@ -195,27 +143,29 @@ public class PreviewRenderer {
                     // Rotate Block
                     if (GameSettings.isKeyDown(LittleTilesClient.up) && !LittleTilesClient.pressedUp) {
                         LittleTilesClient.pressedUp = true;
-                        if (markedHit != null)
-                            moveMarkedHit(mc.thePlayer.isSneaking() ? ForgeDirection.UP : ForgeDirection.EAST);
+                        if (markedHit != null) moveMarkedHit(
+                                mc.thePlayer.isSneaking() ? ForgeDirection.UP : ForgeDirection.NORTH,
+                                direction_look);
                         else processKey(ForgeDirection.UP);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.up)) LittleTilesClient.pressedUp = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.down) && !LittleTilesClient.pressedDown) {
                         LittleTilesClient.pressedDown = true;
-                        if (markedHit != null)
-                            moveMarkedHit(mc.thePlayer.isSneaking() ? ForgeDirection.DOWN : ForgeDirection.WEST);
+                        if (markedHit != null) moveMarkedHit(
+                                mc.thePlayer.isSneaking() ? ForgeDirection.DOWN : ForgeDirection.SOUTH,
+                                direction_look);
                         else processKey(ForgeDirection.DOWN);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.down)) LittleTilesClient.pressedDown = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.right) && !LittleTilesClient.pressedRight) {
                         LittleTilesClient.pressedRight = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.SOUTH);
+                        if (markedHit != null) moveMarkedHit(ForgeDirection.EAST, direction_look);
                         else processKey(ForgeDirection.SOUTH);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.right)) LittleTilesClient.pressedRight = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.left) && !LittleTilesClient.pressedLeft) {
                         LittleTilesClient.pressedLeft = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.NORTH);
+                        if (markedHit != null) moveMarkedHit(ForgeDirection.WEST, direction_look);
                         else processKey(ForgeDirection.NORTH);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.left)) LittleTilesClient.pressedLeft = false;
 
@@ -228,8 +178,11 @@ public class PreviewRenderer {
 
                     ArrayList<PreviewTile> previews;
 
-                    previews = helper.getPreviewTiles(mc.thePlayer.getHeldItem(), look, markedHit != null);
+                    previews = helper.getPreviewTiles(mc.thePlayer.getHeldItem(), pos, markedHit != null);
 
+                    double x = (double) pos.getPosX() - TileEntityRendererDispatcher.staticPlayerX;
+                    double y = (double) pos.getPosY() - TileEntityRendererDispatcher.staticPlayerY;
+                    double z = (double) pos.getPosZ() - TileEntityRendererDispatcher.staticPlayerZ;
                     for (PreviewTile previewTile : previews) {
                         GL11.glPushMatrix();
                         LittleTileBox previewBox = previewTile.getPreviewBox();
@@ -271,7 +224,7 @@ public class PreviewRenderer {
                     GL11.glEnable(GL11.GL_TEXTURE_2D);
                     GL11.glDisable(GL11.GL_BLEND);
                 }
-            } else markedHit = null;
+            }
         }
     }
 }

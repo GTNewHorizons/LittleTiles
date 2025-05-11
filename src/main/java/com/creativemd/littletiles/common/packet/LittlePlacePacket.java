@@ -6,11 +6,12 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.server.S2FPacketSetSlot;
-import net.minecraft.util.Vec3;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.items.ItemBlockTiles;
+import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
@@ -21,61 +22,44 @@ import io.netty.buffer.ByteBuf;
 public class LittlePlacePacket extends CreativeCorePacket {
 
     public LittlePlacePacket() {
-
+        // Used by reflection
     }
 
-    public LittlePlacePacket(ItemStack stack, Vec3 playerPos, Vec3 hitVec, int x, int y, int z, int side,
-            boolean customPlacement) // , int direction, int direction2)
-    {
+    public LittlePlacePacket(ItemStack stack, LittleTileBlockPos pos, boolean customPlacement) {
         this.stack = stack;
-        this.playerPos = playerPos;
-        this.hitVec = hitVec;
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.side = side;
+        this.pos = pos;
         this.customPlacement = customPlacement;
-        // this.direction = direction;
-        // this.direction2 = direction2;
     }
 
     public ItemStack stack;
-    public Vec3 hitVec;
-    public Vec3 playerPos;
-    public int x;
-    public int y;
-    public int z;
-    public int side;
+    public LittleTileBlockPos pos;
     public boolean customPlacement;
-    // public int direction;
-    // public int direction2;
 
     @Override
     public void writeBytes(ByteBuf buf) {
         ByteBufUtils.writeItemStack(buf, stack);
-        writeVec3(playerPos, buf);
-        writeVec3(hitVec, buf);
-        buf.writeInt(x);
-        buf.writeInt(y);
-        buf.writeInt(z);
-        buf.writeInt(side);
+        buf.writeInt(pos.getPosX());
+        buf.writeInt(pos.getPosY());
+        buf.writeInt(pos.getPosZ());
+        buf.writeInt(pos.getSubX());
+        buf.writeInt(pos.getSubY());
+        buf.writeInt(pos.getSubZ());
+        buf.writeInt(pos.getSide().ordinal());
         buf.writeBoolean(customPlacement);
-        // buf.writeInt(direction);
-        // buf.writeInt(direction2);
     }
 
     @Override
     public void readBytes(ByteBuf buf) {
         stack = ByteBufUtils.readItemStack(buf);
-        playerPos = readVec3(buf);
-        hitVec = readVec3(buf);
-        this.x = buf.readInt();
-        this.y = buf.readInt();
-        this.z = buf.readInt();
-        this.side = buf.readInt();
+        int posX = buf.readInt();
+        int posY = buf.readInt();
+        int posZ = buf.readInt();
+        int subX = buf.readInt();
+        int subY = buf.readInt();
+        int subZ = buf.readInt();
+        int side = buf.readInt();
+        this.pos = new LittleTileBlockPos(posX, posY, posZ, subX, subY, subZ, ForgeDirection.getOrientation(side));
         this.customPlacement = buf.readBoolean();
-        // this.direction = buf.readInt();
-        // this.direction2 = buf.readInt();
     }
 
     @Override
@@ -87,22 +71,10 @@ public class LittlePlacePacket extends CreativeCorePacket {
     @Override
     public void executeServer(EntityPlayer player) {
         if (PlacementHelper.isLittleBlock(stack)) {
-            PlacementHelper helper = PlacementHelper.getInstance(player); // new PlacementHelper(player, x, y, z);
-            // helper.side = side;
+            PlacementHelper helper = PlacementHelper.getInstance(player);
 
-            ((ItemBlockTiles) Item.getItemFromBlock(LittleTiles.blockTile)).placeBlockAt(
-                    player,
-                    stack,
-                    player.worldObj,
-                    playerPos,
-                    hitVec,
-                    helper,
-                    x,
-                    y,
-                    z,
-                    side,
-                    customPlacement); // , ForgeDirection.getOrientation(direction),
-                                      // ForgeDirection.getOrientation(direction2));
+            ((ItemBlockTiles) Item.getItemFromBlock(LittleTiles.blockTile))
+                    .placeBlockAt(player, stack, player.worldObj, pos, helper, customPlacement);
 
             EntityPlayerMP playerMP = (EntityPlayerMP) player;
             Slot slot = playerMP.openContainer.getSlotFromInventory(playerMP.inventory, playerMP.inventory.currentItem);

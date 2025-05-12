@@ -59,27 +59,22 @@ public class LittleTileBlockPos {
     }
 
     public int getPosX() {
-
         return posX;
     }
 
     public int getPosY() {
-
         return posY;
     }
 
     public int getPosZ() {
-
         return posZ;
     }
 
     public int getSubX() {
-
         return subX;
     }
 
     public int getSubY() {
-
         return subY;
     }
 

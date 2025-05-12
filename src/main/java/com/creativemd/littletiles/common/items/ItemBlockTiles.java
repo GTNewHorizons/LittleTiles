@@ -70,6 +70,9 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     public String getUnlocalizedName(ItemStack stack) {
         if (stack.stackTagCompound != null) {
             Block block = Block.getBlockFromName(stack.stackTagCompound.getString("block"));
+            if (block == null) {
+                return "block.LTBlocks.missingblock";
+            }
             return block.getUnlocalizedName();
         }
         return super.getUnlocalizedName(stack);

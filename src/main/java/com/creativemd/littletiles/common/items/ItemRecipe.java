@@ -27,7 +27,6 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
-import com.creativemd.littletiles.utils.TileList;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -102,7 +101,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
                                         (posY - minY) * 16,
                                         (posZ - minZ) * 16);
                                 TileEntityLittleTiles littleEntity = (TileEntityLittleTiles) tileEntity;
-                                TileList<LittleTile> teTiles = littleEntity.getTiles();
+                                List<LittleTile> teTiles = littleEntity.getTiles();
                                 for (LittleTile teTile : teTiles) {
                                     LittleTile tile = teTile.copy();
                                     for (int j = 0; j < tile.boundingBoxes.size(); j++) {
@@ -191,7 +190,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
         return result;
     }
 
-    public static void saveTiles(World world, ArrayList<LittleTile> tiles, ItemStack stack) {
+    public static void saveTiles(World world, List<LittleTile> tiles, ItemStack stack) {
         stack.stackTagCompound = new NBTTagCompound();
         stack.stackTagCompound.setInteger("tiles", tiles.size());
         for (int i = 0; i < tiles.size(); i++) {

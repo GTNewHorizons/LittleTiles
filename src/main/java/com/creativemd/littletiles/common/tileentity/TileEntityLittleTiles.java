@@ -1,6 +1,8 @@
 package com.creativemd.littletiles.common.tileentity;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
@@ -20,7 +22,6 @@ import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
-import com.creativemd.littletiles.utils.TileList;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
@@ -28,18 +29,18 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public class TileEntityLittleTiles extends TileEntity {
 
-    public static TileList<LittleTile> createTileList() {
-        return new TileList<>();
+    public static List<LittleTile> createTileList() {
+        return Collections.synchronizedList(new ArrayList<LittleTile>());
     }
 
-    private TileList<LittleTile> tiles = createTileList();
+    private List<LittleTile> tiles = createTileList();
 
-    public void setTiles(TileList<LittleTile> tiles) {
+    public void setTiles(List<LittleTile> tiles) {
         this.tiles = tiles;
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) updateCustomRenderer();
     }
 
-    public TileList<LittleTile> getTiles() {
+    public List<LittleTile> getTiles() {
         return tiles;
     }
 
@@ -155,7 +156,7 @@ public class TileEntityLittleTiles extends TileEntity {
     public void readFromNBT(NBTTagCompound nbt) {
         super.readFromNBT(nbt);
         if (tiles != null) tiles.clear();
-        tiles = new TileList<>();
+        tiles = createTileList();
         int count = nbt.getInteger("tilesCount");
         for (int i = 0; i < count; i++) {
             NBTTagCompound tileNBT = nbt.getCompoundTag("t" + i);

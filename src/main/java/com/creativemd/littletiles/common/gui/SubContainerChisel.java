@@ -1,5 +1,7 @@
 package com.creativemd.littletiles.common.gui;
 
+import java.util.List;
+
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -11,7 +13,6 @@ import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
-import com.creativemd.littletiles.utils.TileList;
 
 public class SubContainerChisel extends SubContainer {
 
@@ -68,7 +69,7 @@ public class SubContainerChisel extends SubContainer {
                         boolean hasChanged = false;
                         if (tileEntity instanceof TileEntityLittleTiles) {
                             TileEntityLittleTiles littleEntity = (TileEntityLittleTiles) tileEntity;
-                            TileList<LittleTile> tiles = littleEntity.getTiles();
+                            List<LittleTile> tiles = littleEntity.getTiles();
                             for (int i = 0; i < tiles.size(); i++) {
                                 LittleTile tile = tiles.get(i);
                                 boolean shouldEffect = tile.getClass() == LittleTileBlock.class

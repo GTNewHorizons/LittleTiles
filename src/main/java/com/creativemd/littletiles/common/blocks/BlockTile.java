@@ -38,7 +38,6 @@ import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileTileEntity;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
-import com.creativemd.littletiles.utils.TileList;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
@@ -100,7 +99,7 @@ public class BlockTile extends BlockContainer {
                     TileEntity te = world.getTileEntity(x, y, z2);
                     if (te instanceof TileEntityLittleTiles) {
                         TileEntityLittleTiles littleTE = (TileEntityLittleTiles) te;
-                        TileList<LittleTile> tiles = littleTE.getTiles();
+                        List<LittleTile> tiles = littleTE.getTiles();
                         for (LittleTile tile : tiles) {
                             if (tile.isLadder()) {
                                 for (int j = 0; j < tile.boundingBoxes.size(); j++) {

@@ -21,7 +21,6 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
-import com.creativemd.littletiles.utils.TileList;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -49,9 +48,9 @@ public class ItemRubberMallet extends Item {
         if (tileEntity instanceof TileEntityLittleTiles) {
             if (!world.isRemote) {
                 if (player.isSneaking()) {
-                    TileList<LittleTile> newTiles = TileEntityLittleTiles.createTileList();
+                    List<LittleTile> newTiles = TileEntityLittleTiles.createTileList();
                     TileEntityLittleTiles te = (TileEntityLittleTiles) tileEntity;
-                    TileList<LittleTile> tiles = te.getTiles();
+                    List<LittleTile> tiles = te.getTiles();
                     for (LittleTile oldTile : tiles) {
                         if ((oldTile.getClass() == LittleTileBlock.class || oldTile instanceof LittleTileBlockColored)
                                 && oldTile.structure == null) {

@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.client.render;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -22,7 +23,6 @@ import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
-import com.creativemd.littletiles.utils.TileList;
 import com.gtnewhorizons.angelica.api.ThreadSafeISBRH;
 
 import cpw.mods.fml.client.registry.ISimpleBlockRenderingHandler;
@@ -45,7 +45,7 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
         TileEntity tileEntity = world.getTileEntity(x, y, z);
         if (tileEntity instanceof TileEntityLittleTiles) {
             TileEntityLittleTiles little = (TileEntityLittleTiles) tileEntity;
-            TileList<LittleTile> tiles = little.getTiles();
+            List<LittleTile> tiles = little.getTiles();
             for (LittleTile tile : tiles) {
                 ArrayList<CubeObject> cubes = tile.getRenderingCubes();
                 LittleTilesBlockRenderHelper.renderCubes(world, cubes, x, y, z, block, renderer, null);

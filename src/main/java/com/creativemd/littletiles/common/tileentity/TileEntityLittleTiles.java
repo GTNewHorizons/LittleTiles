@@ -110,7 +110,11 @@ public class TileEntityLittleTiles extends TileEntity {
         double maxX = xCoord + 1;
         double maxY = yCoord + 1;
         double maxZ = zCoord + 1;
-        for (LittleTile tile : tiles) {
+        List<LittleTile> snapshot;
+        synchronized (tiles) {
+            snapshot = new ArrayList<>(tiles);
+        }
+        for (LittleTile tile : snapshot) {
             AxisAlignedBB box = tile.getRenderBoundingBox();
             minX = Math.min(box.minX, minX);
             minY = Math.min(box.minY, minY);

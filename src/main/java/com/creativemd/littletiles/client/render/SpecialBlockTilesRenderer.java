@@ -46,7 +46,11 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
         if (tileEntity instanceof TileEntityLittleTiles) {
             TileEntityLittleTiles little = (TileEntityLittleTiles) tileEntity;
             List<LittleTile> tiles = little.getTiles();
-            for (LittleTile tile : tiles) {
+            List<LittleTile> snapshot;
+            synchronized (tiles) {
+                snapshot = new ArrayList<>(tiles);
+            }
+            for (LittleTile tile : snapshot) {
                 ArrayList<CubeObject> cubes = tile.getRenderingCubes();
                 LittleTilesBlockRenderHelper.renderCubes(world, cubes, x, y, z, block, renderer, null);
             }

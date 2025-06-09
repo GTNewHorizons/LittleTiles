@@ -64,7 +64,7 @@ public class LittleTiles {
     public static final String modid = "littletiles";
     public static final String version = LTTags.VERSION;
 
-    public static int maxNewTiles = 51200;
+    public static int maxNewTiles = 512;
 
     public static CreativeTabs creativeTabLittleTiles = new LittleTilesCreativeTab("littletiles");
 

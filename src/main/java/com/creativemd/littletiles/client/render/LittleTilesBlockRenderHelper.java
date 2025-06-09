@@ -29,11 +29,7 @@ public class LittleTilesBlockRenderHelper {
 
     public static void renderCubes(IBlockAccess world, ArrayList<CubeObject> cubes, int x, int y, int z, Block block,
             RenderBlocks renderer, ForgeDirection direction) {
-        renderCubes(world, cubes, x, y, z, block, renderer, direction, RenderHelper3D.renderBlocks);
-    }
-
-    public static void renderCubes(IBlockAccess world, ArrayList<CubeObject> cubes, int x, int y, int z, Block block,
-            RenderBlocks renderer, ForgeDirection direction, ExtendedRenderBlocks extraRenderer) {
+        ExtendedRenderBlocks extraRenderer = new ExtendedRenderBlocks(renderer);
         for (int i = 0; i < cubes.size(); i++) {
 
             if (cubes.get(i).icon != null) renderer.setOverrideBlockTexture(cubes.get(i).icon);

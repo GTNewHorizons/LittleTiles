@@ -39,6 +39,7 @@ import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
 import com.creativemd.littletiles.common.utils.LittleTileTileEntity;
 import com.creativemd.littletiles.common.utils.LittleTilesCreativeTab;
 import com.creativemd.littletiles.server.LittleTilesServer;
+import com.creativemd.littletiles.waila.Waila;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
@@ -68,7 +69,8 @@ public class LittleTiles {
 
     public static CreativeTabs creativeTabLittleTiles = new LittleTilesCreativeTab("littletiles");
 
-    public static BlockTile blockTile = (BlockTile) new BlockTile(Material.rock).setCreativeTab(creativeTabLittleTiles);
+    public static BlockTile blockTile = (BlockTile) new BlockTile(Material.rock).setBlockName("LTTile")
+            .setCreativeTab(creativeTabLittleTiles);
     public static Block coloredBlock = new BlockLTColored().setBlockName("LTBlocks")
             .setCreativeTab(creativeTabLittleTiles);
 
@@ -153,6 +155,9 @@ public class LittleTiles {
                 new Object[] { "XXX", "XLX", "XXX", 'X', Items.dye, 'L', Items.iron_ingot });
         if (Loader.isModLoaded("angelica")) {
             angelicaCompat = new AngelicaCompat();
+        }
+        if (Loader.isModLoaded("Waila")) {
+            Waila.init();
         }
     }
 

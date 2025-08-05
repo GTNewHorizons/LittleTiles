@@ -408,24 +408,36 @@ public class BlockTile extends BlockContainer {
     public boolean addDestroyEffects(World world, int x, int y, int z, int meta, EffectRenderer effectRenderer) {
         try { // Why try? because the loaded tile can change while setting this icon
             if (loadTileEntity(world, x, y, z) && tempEntity.updateLoadedTile(mc.thePlayer)) {
-                // overrideIcon = tempEntity.loadedTile.block.getIcon(world, x, y, z, 0);
                 AxisAlignedBB box = tempEntity.loadedTile.getSelectedBox();
-                byte b0 = 1;
+                meta = 0;
+                if (!tempEntity.loadedTile.boundingBoxes.isEmpty()) {
+                    meta = tempEntity.loadedTile.boundingBoxes.get(0).getCube().meta;
+                }
+
+                byte b0 = 4;
 
                 for (int i1 = 0; i1 < b0; ++i1) {
                     for (int j1 = 0; j1 < b0; ++j1) {
                         for (int k1 = 0; k1 < b0; ++k1) {
-                            double d0 = (double) x + ((double) i1 + box.maxX) / (double) b0;
-                            double d1 = (double) y + ((double) j1 + box.maxY) / (double) b0;
-                            double d2 = (double) z + ((double) k1 + box.maxZ) / (double) b0;
-                            EntityDiggingFX fx = (new EntityDiggingFX(world, d0, d1, d2, 0, 0, 0, this, meta))
-                                    .applyColourMultiplier(x, y, z);
+                            double radiusX = (box.maxX - box.minX);
+                            double radiusY = (box.maxY - box.minY);
+                            double radiusZ = (box.maxZ - box.minZ);
+                            double f1 = (i1 + 0.5) / b0 * radiusX;
+                            double f2 = (i1 + 0.5) / b0 * radiusY;
+                            double f3 = (i1 + 0.5) / b0 * radiusZ;
+                            double d0 = x + box.minX + f1;
+                            double d1 = y + box.minY + f2;
+                            double d2 = z + box.minZ + f3;
+                            EntityDiggingFX fx = new EntityDiggingFX(world, d0, d1, d2, f1, f2, f3, this, meta);
+                            fx.applyColourMultiplier(x, y, z);
+                            // Shrink particles for smaller tiles
+                            float size = getSizeForSide(box, -1);
+                            fx.multipleParticleScaleBy(size);
                             fx.setParticleIcon(tempEntity.loadedTile.getIcon(0));
                             effectRenderer.addEffect(fx);
                         }
                     }
                 }
-                // overrideIcon = null;
                 return true;
             }
         } catch (Exception ignored) {

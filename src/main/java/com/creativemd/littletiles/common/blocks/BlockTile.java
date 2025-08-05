@@ -323,6 +323,29 @@ public class BlockTile extends BlockContainer {
     @SideOnly(Side.CLIENT)
     public IIcon overrideIcon;
 
+    private float getSizeForSide(AxisAlignedBB box, int side) {
+        double size = 1;
+        switch (side) {
+            case 0:
+            case 1:
+                size = (box.maxX - box.minX + box.maxZ - box.minZ) / 2;
+                break;
+            case 2:
+            case 3:
+                size = (box.maxX - box.minX + box.maxY - box.minY) / 2;
+                break;
+            case 4:
+            case 5:
+                size = (box.maxY - box.minY + box.maxZ - box.minZ) / 2;
+                break;
+            case -1:
+                size = (box.maxX - box.minX + box.maxY - box.minY + box.maxZ - box.minZ) / 3;
+                break;
+        }
+        size = 0.333 + 0.666 * size;
+        return (float) size;
+    }
+
     @Override
     @SideOnly(Side.CLIENT)
     public boolean addHitEffects(World worldObj, MovingObjectPosition target, EffectRenderer effectRenderer) {
@@ -366,7 +389,9 @@ public class BlockTile extends BlockContainer {
                 EntityDiggingFX fx = new EntityDiggingFX(worldObj, d0, d1, d2, 0, 0, 0, this, meta);
                 fx.applyColourMultiplier(target.blockX, target.blockY, target.blockZ);
                 fx.multiplyVelocity(0.2F);
-                fx.multipleParticleScaleBy(0.6F);
+                // Shrink particles for smaller tiles
+                float size = getSizeForSide(box, target.sideHit);
+                fx.multipleParticleScaleBy(0.6F * size);
                 fx.setParticleIcon(tempEntity.loadedTile.getIcon(0));
                 effectRenderer.addEffect(fx);
 

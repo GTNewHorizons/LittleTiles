@@ -45,9 +45,12 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public class BlockTile extends BlockContainer {
 
+    private Random rand;
+
     public BlockTile(Material material) {
         super(material);
         setCreativeTab(CreativeTabs.tabDecorations);
+        rand = new Random();
     }
 
     @SideOnly(Side.CLIENT)
@@ -325,8 +328,50 @@ public class BlockTile extends BlockContainer {
     public boolean addHitEffects(World worldObj, MovingObjectPosition target, EffectRenderer effectRenderer) {
         try { // Why try? because the loaded tile can change while setting this icon
             if (loadTileEntity(worldObj, target.blockX, target.blockY, target.blockZ)
-                    && tempEntity.updateLoadedTile(mc.thePlayer))
-                overrideIcon = tempEntity.loadedTile.getIcon(target.sideHit);
+                    && tempEntity.updateLoadedTile(mc.thePlayer)) {
+
+                AxisAlignedBB box = tempEntity.loadedTile.getSelectedBox();
+
+                int meta = 0;
+                if (!tempEntity.loadedTile.boundingBoxes.isEmpty()) {
+                    meta = tempEntity.loadedTile.boundingBoxes.get(0).getCube().meta;
+                }
+
+                float f = 0.1F;
+                double d0 = target.blockX + rand.nextDouble() * (box.maxX - box.minX - (f * 2.0)) + f + box.minX;
+                double d1 = target.blockY + rand.nextDouble() * (box.maxY - box.minY - (f * 2.0)) + f + box.minY;
+                double d2 = target.blockZ + rand.nextDouble() * (box.maxZ - box.minZ - (f * 2.0)) + f + box.minZ;
+
+                switch (target.sideHit) {
+                    case 0:
+                        d1 = target.blockY + box.minY - f;
+                        break;
+                    case 1:
+                        d1 = target.blockY + box.maxY + f;
+                        break;
+                    case 2:
+                        d2 = target.blockZ + box.minZ - f;
+                        break;
+                    case 3:
+                        d2 = target.blockZ + box.maxZ + f;
+                        break;
+                    case 4:
+                        d0 = target.blockX + box.minX - f;
+                        break;
+                    case 5:
+                        d0 = target.blockX + box.maxX + f;
+                        break;
+                }
+
+                EntityDiggingFX fx = new EntityDiggingFX(worldObj, d0, d1, d2, 0, 0, 0, this, meta);
+                fx.applyColourMultiplier(target.blockX, target.blockY, target.blockZ);
+                fx.multiplyVelocity(0.2F);
+                fx.multipleParticleScaleBy(0.6F);
+                fx.setParticleIcon(tempEntity.loadedTile.getIcon(0));
+                effectRenderer.addEffect(fx);
+
+                return true;
+            }
         } catch (Exception ignored) {
 
         }

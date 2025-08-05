@@ -42,6 +42,9 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
     @Override
     public boolean renderWorldBlock(IBlockAccess world, int x, int y, int z, Block block, int modelId,
             RenderBlocks renderer) {
+        // Don't render when block breaking texture is applied
+        if (renderer.hasOverrideBlockTexture()) return true;
+
         TileEntity tileEntity = world.getTileEntity(x, y, z);
         if (tileEntity instanceof TileEntityLittleTiles) {
             TileEntityLittleTiles little = (TileEntityLittleTiles) tileEntity;

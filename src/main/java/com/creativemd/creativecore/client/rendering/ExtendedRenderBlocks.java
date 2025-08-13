@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
 
+import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 
 public class ExtendedRenderBlocks extends RenderBlocks {
@@ -22,14 +23,21 @@ public class ExtendedRenderBlocks extends RenderBlocks {
         return this.getIconSafe(par1Block.getIcon(par6, meta));
     }
 
+    public ExtendedRenderBlocks() {
+        blockAccess = new IBlockAccessFake(null);
+    }
+
     public ExtendedRenderBlocks(RenderBlocks renderer) {
         super();
         this.blockAccess = renderer.blockAccess;
+        updateRenderer(renderer);
+    }
+
+    public void updateRenderer(RenderBlocks renderer) {
         this.overrideBlockTexture = renderer.overrideBlockTexture;
         this.flipTexture = renderer.flipTexture;
         this.field_152631_f = renderer.field_152631_f;
         this.renderAllFaces = renderer.renderAllFaces;
-        this.fancyGrass = renderer.fancyGrass;
         this.useInventoryTint = renderer.useInventoryTint;
         this.renderFromInside = renderer.renderFromInside;
         this.enableAO = renderer.enableAO;

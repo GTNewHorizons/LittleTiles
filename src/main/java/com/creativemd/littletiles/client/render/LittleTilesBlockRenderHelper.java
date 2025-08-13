@@ -25,23 +25,23 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class LittleTilesBlockRenderHelper {
 
-    public static IBlockAccessFake fake = null;
+    private static final ThreadLocal<ExtendedRenderBlocks> extraRendererThreadLocal = ThreadLocal
+            .withInitial(ExtendedRenderBlocks::new);
 
     public static void renderCubes(IBlockAccess world, ArrayList<CubeObject> cubes, int x, int y, int z, Block block,
             RenderBlocks renderer, ForgeDirection direction) {
-        ExtendedRenderBlocks extraRenderer = new ExtendedRenderBlocks(renderer);
+
+        ExtendedRenderBlocks extraRenderer = extraRendererThreadLocal.get();
+        extraRenderer.updateRenderer(renderer);
+
+        IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
+        fake.world = renderer.blockAccess;
+
         for (int i = 0; i < cubes.size(); i++) {
 
             if (cubes.get(i).icon != null) renderer.setOverrideBlockTexture(cubes.get(i).icon);
 
             if (cubes.get(i).block != null) if (cubes.get(i).meta != -1) {
-                if (fake == null) {
-                    fake = new IBlockAccessFake(renderer.blockAccess);
-                    extraRenderer.blockAccess = fake;
-                }
-
-                if (fake.world != renderer.blockAccess) fake.world = renderer.blockAccess;
-
                 extraRenderer.clearOverrideBlockTexture();
                 extraRenderer.setRenderBounds(
                         cubes.get(i).minX,

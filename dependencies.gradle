@@ -1,6 +1,6 @@
 // Add your dependencies here
 
 dependencies {
-    devOnlyNonPublishable('com.github.GTNewHorizons:NotEnoughItems:2.7.40-GTNH:dev')
-    compileOnly('com.github.GTNewHorizons:Angelica:1.0.0-beta41:dev')
+    devOnlyNonPublishable('com.github.GTNewHorizons:NotEnoughItems:2.7.72-GTNH:dev')
+    compileOnly('com.github.GTNewHorizons:Angelica:1.0.0-beta53:dev')
 }

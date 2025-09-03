@@ -14,7 +14,6 @@ import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.creativecore.client.rendering.ExtendedRenderBlocks;
-import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
@@ -38,7 +37,7 @@ public class LittleTilesBlockRenderHelper {
         fake.world = renderer.blockAccess;
 
         for (CubeObject cube : cubes) {
-            if (cube.block != null) if (cube.meta != -1) {
+            if (cube.block != null && cube.meta != -1) {
                 extraRenderer.clearOverrideBlockTexture();
                 extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
                 extraRenderer.meta = cube.meta;
@@ -56,15 +55,7 @@ public class LittleTilesBlockRenderHelper {
                 }
                 extraRenderer.lockBlockBounds = false;
                 extraRenderer.color = ColorUtils.WHITE;
-                continue;
-            } else renderer.setOverrideBlockTexture(cube.block.getBlockTextureFromSide(0));
-
-            renderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
-
-            if (direction != null && direction != ForgeDirection.EAST && direction != ForgeDirection.UNKNOWN)
-                RenderHelper3D.applyBlockRotation(renderer, direction);
-
-            renderer.renderStandardBlock(block, x, y, z);
+            }
         }
     }
 

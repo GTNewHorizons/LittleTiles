@@ -37,28 +37,22 @@ public class LittleTilesBlockRenderHelper {
         IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
         fake.world = renderer.blockAccess;
 
-        for (int i = 0; i < cubes.size(); i++) {
+        for (CubeObject cube : cubes) {
 
-            if (cubes.get(i).icon != null) renderer.setOverrideBlockTexture(cubes.get(i).icon);
+            if (cube.icon != null) renderer.setOverrideBlockTexture(cube.icon);
 
-            if (cubes.get(i).block != null) if (cubes.get(i).meta != -1) {
+            if (cube.block != null) if (cube.meta != -1) {
                 extraRenderer.clearOverrideBlockTexture();
-                extraRenderer.setRenderBounds(
-                        cubes.get(i).minX,
-                        cubes.get(i).minY,
-                        cubes.get(i).minZ,
-                        cubes.get(i).maxX,
-                        cubes.get(i).maxY,
-                        cubes.get(i).maxZ);
-                extraRenderer.meta = cubes.get(i).meta;
-                fake.overrideMeta = cubes.get(i).meta;
-                extraRenderer.color = cubes.get(i).color;
+                extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
+                extraRenderer.meta = cube.meta;
+                fake.overrideMeta = cube.meta;
+                extraRenderer.color = cube.color;
                 extraRenderer.lockBlockBounds = true;
                 if (LittleTiles.angelicaCompat != null) {
-                    LittleTiles.angelicaCompat.setShaderMaterialOverride(cubes.get(i).block, cubes.get(i).meta);
+                    LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
                 }
                 extraRenderer.field_152631_f = true;
-                extraRenderer.renderBlockAllFaces(cubes.get(i).block, x, y, z);
+                extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
                 extraRenderer.field_152631_f = false;
                 if (LittleTiles.angelicaCompat != null) {
                     LittleTiles.angelicaCompat.resetShaderMaterialOverride();
@@ -66,22 +60,16 @@ public class LittleTilesBlockRenderHelper {
                 extraRenderer.lockBlockBounds = false;
                 extraRenderer.color = ColorUtils.WHITE;
                 continue;
-            } else renderer.setOverrideBlockTexture(cubes.get(i).block.getBlockTextureFromSide(0));
+            } else renderer.setOverrideBlockTexture(cube.block.getBlockTextureFromSide(0));
 
-            renderer.setRenderBounds(
-                    cubes.get(i).minX,
-                    cubes.get(i).minY,
-                    cubes.get(i).minZ,
-                    cubes.get(i).maxX,
-                    cubes.get(i).maxY,
-                    cubes.get(i).maxZ);
+            renderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
 
             if (direction != null && direction != ForgeDirection.EAST && direction != ForgeDirection.UNKNOWN)
                 RenderHelper3D.applyBlockRotation(renderer, direction);
 
             renderer.renderStandardBlock(block, x, y, z);
 
-            if (cubes.get(i).icon != null || cubes.get(i).block != null) renderer.clearOverrideBlockTexture();
+            if (cube.icon != null || cube.block != null) renderer.clearOverrideBlockTexture();
         }
     }
 

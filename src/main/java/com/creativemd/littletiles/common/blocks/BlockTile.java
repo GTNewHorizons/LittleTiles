@@ -45,9 +45,12 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public class BlockTile extends BlockContainer {
 
+    private Random rand;
+
     public BlockTile(Material material) {
         super(material);
         setCreativeTab(CreativeTabs.tabDecorations);
+        rand = new Random();
     }
 
     @SideOnly(Side.CLIENT)
@@ -320,13 +323,80 @@ public class BlockTile extends BlockContainer {
     @SideOnly(Side.CLIENT)
     public IIcon overrideIcon;
 
+    private float getSizeForSide(AxisAlignedBB box, int side) {
+        double size = 1;
+        switch (side) {
+            case 0:
+            case 1:
+                size = (box.maxX - box.minX + box.maxZ - box.minZ) / 2;
+                break;
+            case 2:
+            case 3:
+                size = (box.maxX - box.minX + box.maxY - box.minY) / 2;
+                break;
+            case 4:
+            case 5:
+                size = (box.maxY - box.minY + box.maxZ - box.minZ) / 2;
+                break;
+            case -1:
+                size = (box.maxX - box.minX + box.maxY - box.minY + box.maxZ - box.minZ) / 3;
+                break;
+        }
+        size = 0.333 + 0.666 * size;
+        return (float) size;
+    }
+
     @Override
     @SideOnly(Side.CLIENT)
     public boolean addHitEffects(World worldObj, MovingObjectPosition target, EffectRenderer effectRenderer) {
         try { // Why try? because the loaded tile can change while setting this icon
             if (loadTileEntity(worldObj, target.blockX, target.blockY, target.blockZ)
-                    && tempEntity.updateLoadedTile(mc.thePlayer))
-                overrideIcon = tempEntity.loadedTile.getIcon(target.sideHit);
+                    && tempEntity.updateLoadedTile(mc.thePlayer)) {
+
+                AxisAlignedBB box = tempEntity.loadedTile.getSelectedBox();
+
+                int meta = 0;
+                if (!tempEntity.loadedTile.boundingBoxes.isEmpty()) {
+                    meta = tempEntity.loadedTile.boundingBoxes.get(0).getCube().meta;
+                }
+
+                float f = 0.1F;
+                double d0 = target.blockX + rand.nextDouble() * (box.maxX - box.minX - (f * 2.0)) + f + box.minX;
+                double d1 = target.blockY + rand.nextDouble() * (box.maxY - box.minY - (f * 2.0)) + f + box.minY;
+                double d2 = target.blockZ + rand.nextDouble() * (box.maxZ - box.minZ - (f * 2.0)) + f + box.minZ;
+
+                switch (target.sideHit) {
+                    case 0:
+                        d1 = target.blockY + box.minY - f;
+                        break;
+                    case 1:
+                        d1 = target.blockY + box.maxY + f;
+                        break;
+                    case 2:
+                        d2 = target.blockZ + box.minZ - f;
+                        break;
+                    case 3:
+                        d2 = target.blockZ + box.maxZ + f;
+                        break;
+                    case 4:
+                        d0 = target.blockX + box.minX - f;
+                        break;
+                    case 5:
+                        d0 = target.blockX + box.maxX + f;
+                        break;
+                }
+
+                EntityDiggingFX fx = new EntityDiggingFX(worldObj, d0, d1, d2, 0, 0, 0, this, meta);
+                fx.applyColourMultiplier(target.blockX, target.blockY, target.blockZ);
+                fx.multiplyVelocity(0.2F);
+                // Shrink particles for smaller tiles
+                float size = getSizeForSide(box, target.sideHit);
+                fx.multipleParticleScaleBy(0.6F * size);
+                fx.setParticleIcon(tempEntity.loadedTile.getIcon(0));
+                effectRenderer.addEffect(fx);
+
+                return true;
+            }
         } catch (Exception ignored) {
 
         }
@@ -338,24 +408,36 @@ public class BlockTile extends BlockContainer {
     public boolean addDestroyEffects(World world, int x, int y, int z, int meta, EffectRenderer effectRenderer) {
         try { // Why try? because the loaded tile can change while setting this icon
             if (loadTileEntity(world, x, y, z) && tempEntity.updateLoadedTile(mc.thePlayer)) {
-                // overrideIcon = tempEntity.loadedTile.block.getIcon(world, x, y, z, 0);
                 AxisAlignedBB box = tempEntity.loadedTile.getSelectedBox();
-                byte b0 = 1;
+                meta = 0;
+                if (!tempEntity.loadedTile.boundingBoxes.isEmpty()) {
+                    meta = tempEntity.loadedTile.boundingBoxes.get(0).getCube().meta;
+                }
+
+                byte b0 = 4;
 
                 for (int i1 = 0; i1 < b0; ++i1) {
                     for (int j1 = 0; j1 < b0; ++j1) {
                         for (int k1 = 0; k1 < b0; ++k1) {
-                            double d0 = (double) x + ((double) i1 + box.maxX) / (double) b0;
-                            double d1 = (double) y + ((double) j1 + box.maxY) / (double) b0;
-                            double d2 = (double) z + ((double) k1 + box.maxZ) / (double) b0;
-                            EntityDiggingFX fx = (new EntityDiggingFX(world, d0, d1, d2, 0, 0, 0, this, meta))
-                                    .applyColourMultiplier(x, y, z);
+                            double radiusX = (box.maxX - box.minX);
+                            double radiusY = (box.maxY - box.minY);
+                            double radiusZ = (box.maxZ - box.minZ);
+                            double f1 = (i1 + 0.5) / b0 * radiusX;
+                            double f2 = (i1 + 0.5) / b0 * radiusY;
+                            double f3 = (i1 + 0.5) / b0 * radiusZ;
+                            double d0 = x + box.minX + f1;
+                            double d1 = y + box.minY + f2;
+                            double d2 = z + box.minZ + f3;
+                            EntityDiggingFX fx = new EntityDiggingFX(world, d0, d1, d2, f1, f2, f3, this, meta);
+                            fx.applyColourMultiplier(x, y, z);
+                            // Shrink particles for smaller tiles
+                            float size = getSizeForSide(box, -1);
+                            fx.multipleParticleScaleBy(size);
                             fx.setParticleIcon(tempEntity.loadedTile.getIcon(0));
                             effectRenderer.addEffect(fx);
                         }
                     }
                 }
-                // overrideIcon = null;
                 return true;
             }
         } catch (Exception ignored) {

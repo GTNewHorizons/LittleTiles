@@ -36,7 +36,8 @@ public class LittleTilesBlockRenderHelper {
         IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
         fake.world = renderer.blockAccess;
 
-        for (CubeObject cube : cubes) {
+        for (int i = 0; i < cubes.size(); i++) {
+            CubeObject cube = cubes.get(i);
             if (cube.block != null && cube.meta != -1) {
                 extraRenderer.clearOverrideBlockTexture();
                 extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);

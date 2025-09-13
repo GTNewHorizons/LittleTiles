@@ -37,7 +37,7 @@ public class LittleTilesBlockRenderHelper {
         fake.world = renderer.blockAccess;
 
         for (int i = 0; i < cubes.size(); i++) {
-            CubeObject cube = cubes.get(i);
+            final CubeObject cube = cubes.get(i);
             if (cube.block != null && cube.meta != -1) {
                 extraRenderer.clearOverrideBlockTexture();
                 extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
@@ -64,24 +64,19 @@ public class LittleTilesBlockRenderHelper {
             int meta) {
         Tessellator tesselator = Tessellator.instance;
         for (int i = 0; i < cubes.size(); i++) {
+            final CubeObject cube = cubes.get(i);
             int metadata = 0;
-            if (cubes.get(i).meta != -1) metadata = cubes.get(i).meta;
+            if (cube.meta != -1) metadata = cube.meta;
             Block block = parBlock;
             if (block instanceof BlockAir) block = Blocks.stone;
-            renderer.setRenderBounds(
-                    cubes.get(i).minX,
-                    cubes.get(i).minY,
-                    cubes.get(i).minZ,
-                    cubes.get(i).maxX,
-                    cubes.get(i).maxY,
-                    cubes.get(i).maxZ);
-            if (cubes.get(i).block != null && !(cubes.get(i).block instanceof BlockAir)) {
-                block = cubes.get(i).block;
+            renderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
+            if (cube.block != null && !(cube.block instanceof BlockAir)) {
+                block = cube.block;
                 meta = 0;
             }
 
             int j = block.getRenderColor(metadata);
-            if (cubes.get(i).color != ColorUtils.WHITE) j = cubes.get(i).color;
+            if (cube.color != ColorUtils.WHITE) j = cube.color;
 
             float f1 = (float) (j >> 16 & 255) / 255.0F;
             float f2 = (float) (j >> 8 & 255) / 255.0F;

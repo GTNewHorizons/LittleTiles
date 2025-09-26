@@ -33,9 +33,7 @@ public class ItemTileContainer extends Item implements IGuiCreator {
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
-        list.add("can store little pieces and");
-        list.add("can be used to provide");
-        list.add("needed materials");
+        list.add("Can store little pieces and can be used to provide needed materials");
     }
 
     @Override

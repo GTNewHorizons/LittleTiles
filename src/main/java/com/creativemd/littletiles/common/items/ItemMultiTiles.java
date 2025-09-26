@@ -36,8 +36,8 @@ public class ItemMultiTiles extends Item implements ITilesRenderer, ILittleTile 
             String id = "none";
             if (stack.stackTagCompound.hasKey("structure"))
                 id = stack.stackTagCompound.getCompoundTag("structure").getString("id");
-            list.add("structure: " + id);
-            list.add("contains " + stack.stackTagCompound.getInteger("tiles") + " tiles");
+            list.add("Structure: " + id);
+            list.add("Contains " + stack.stackTagCompound.getInteger("tiles") + " tiles");
         }
     }
 

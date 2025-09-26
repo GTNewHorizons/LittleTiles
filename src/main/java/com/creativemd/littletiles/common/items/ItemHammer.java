@@ -32,10 +32,8 @@ public class ItemHammer extends Item implements IGuiCreator {
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
-        list.add("used for hammering normal");
-        list.add("blocks into small pieces");
-        list.add("shift+rightclick will harvest and");
-        list.add("drop all tiles inside one block");
+        list.add("Used for hammering normal blocks into small pieces");
+        list.add("Shift + Right Click will harvest and drop all tiles inside one block");
     }
 
     @Override

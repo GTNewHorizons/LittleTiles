@@ -13,6 +13,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import com.creativemd.creativecore.common.container.SubContainer;
 import com.creativemd.creativecore.common.gui.event.container.SlotChangeEvent;
 import com.creativemd.creativecore.common.utils.WorldUtils;
+import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.items.ItemTileContainer;
 import com.creativemd.littletiles.common.items.ItemTileContainer.BlockEntry;
@@ -37,7 +38,7 @@ public class SubContainerTileContainer extends SubContainer {
         ItemStack slot = basic.getStackInSlot(0);
         if (slot != null) {
             Block block = Block.getBlockFromItem(slot.getItem());
-            if ((!(block instanceof BlockAir) && SubContainerHammer.isBlockValid(block))
+            if ((!(block instanceof BlockAir) && BlockValidator.isBlockValid(block))
                     || PlacementHelper.isLittleBlock(slot)
                     || slot.getItem() instanceof ItemTileContainer) {
 

@@ -13,6 +13,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import com.creativemd.creativecore.common.container.SubContainer;
 import com.creativemd.creativecore.common.utils.WorldUtils;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.items.ItemTileContainer;
@@ -104,7 +105,7 @@ public class SubContainerWrench extends SubContainer {
             Block block = Block.getBlockFromItem(stack.getItem());
 
             if (block != null && !(block instanceof BlockAir)) {
-                if (SubContainerHammer.isBlockValid(block)) {
+                if (BlockValidator.isBlockValid(block)) {
                     entries.add(new BlockEntry(block, stack.getItemDamage(), 1));
                 }
             }

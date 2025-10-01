@@ -16,6 +16,7 @@ import com.creativemd.creativecore.common.gui.controls.GuiTextfield;
 import com.creativemd.creativecore.common.gui.event.ControlChangedEvent;
 import com.creativemd.creativecore.common.gui.event.ControlClickEvent;
 import com.creativemd.creativecore.common.utils.ColorUtils;
+import com.creativemd.littletiles.common.BlockValidator;
 import com.n247s.api.eventapi.eventsystem.CustomEventSubscribe;
 
 public class SubGuiChisel extends SubGui {
@@ -84,7 +85,7 @@ public class SubGuiChisel extends SubGui {
                 ItemStack stackReplace = replacement.getStack();
                 if (stackReplace != null) {
                     Block replacementBlock = Block.getBlockFromItem(stackReplace.getItem());
-                    if (!SubContainerHammer.isBlockValid(replacementBlock)) {
+                    if (!BlockValidator.isBlockValid(replacementBlock)) {
                         openButtonDialogDialog("Invalid replacement block!", "ok");
                         return;
                     }

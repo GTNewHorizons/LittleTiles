@@ -13,6 +13,7 @@ import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
+import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.value.StringValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.ScrollWidget;
@@ -92,9 +93,10 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
     }
 
     @Override
-    public void draw(ModularGuiContext context, WidgetTheme widgetTheme) {
+    public void draw(ModularGuiContext context, WidgetThemeEntry widgetTheme) {
         super.draw(context, widgetTheme);
         Area area = getArea();
+        WidgetTheme theme = getWidgetTheme(context.getTheme()).getTheme();
         int smallerSide = Math.min(area.width, area.height);
         if (menu.getSelectedItem() != null) {
             IWidget child = menu.getSelectedItem().getChildren().get(0);
@@ -104,28 +106,16 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
             child.drawForeground(context);
             ItemStack stack = stacks.get(getSelectedIndex());
             IKey name = IKey.str(stack.getDisplayName());
-            name.draw(context, 25, 0, 0, area.height, widgetTheme);
+            name.draw(context, 25, 0, 0, area.height, theme);
         } else {
-            NONE.draw(context, 0, 0, area.width, area.height, getWidgetTheme(context.getTheme()));
+            NONE.draw(context, 0, 0, area.width, area.height, theme);
         }
 
         int arrowSize = smallerSide / 2;
         if (menu.isOpen()) {
-            arrowOpened.draw(
-                    context,
-                    area.width - arrowSize,
-                    arrowSize / 2,
-                    arrowSize,
-                    arrowSize,
-                    getWidgetTheme(context.getTheme()));
+            arrowOpened.draw(context, area.width - arrowSize, arrowSize / 2, arrowSize, arrowSize, theme);
         } else {
-            arrowClosed.draw(
-                    context,
-                    area.width - arrowSize,
-                    arrowSize / 2,
-                    arrowSize,
-                    arrowSize,
-                    getWidgetTheme(context.getTheme()));
+            arrowClosed.draw(context, area.width - arrowSize, arrowSize / 2, arrowSize, arrowSize, theme);
         }
     }
 

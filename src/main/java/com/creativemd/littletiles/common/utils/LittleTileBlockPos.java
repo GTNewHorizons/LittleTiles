@@ -1,5 +1,6 @@
 package com.creativemd.littletiles.common.utils;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -195,11 +196,19 @@ public class LittleTileBlockPos {
 
     public Subtraction subtract(LittleTileBlockPos other) {
         Subtraction ret = new Subtraction();
-
         ret.x = (posX - other.posX) * 16 + (subX - other.subX);
         ret.y = (posY - other.posY) * 16 + (subY - other.subY);
         ret.z = (posZ - other.posZ) * 16 + (subZ - other.subZ);
+        return ret;
+    }
 
+    public Subtraction subtract(ItemStack stack, LittleTileBlockPos other) {
+        Subtraction ret = subtract(other);
+        LittleToolHandler handler = new LittleToolHandler(stack);
+        int align = handler.getGrid();
+        ret.x = Math.max(Math.abs(ret.x) + align, align);
+        ret.y = Math.max(Math.abs(ret.y) + align, align);
+        ret.z = Math.max(Math.abs(ret.z) + align, align);
         return ret;
     }
 }

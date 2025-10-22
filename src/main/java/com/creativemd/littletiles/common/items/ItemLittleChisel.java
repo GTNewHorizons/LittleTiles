@@ -95,9 +95,9 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         int meta = handler.getMeta();
 
         int color = ColorUtils.WHITE;
-        int sizeX = 1;
-        int sizeY = 1;
-        int sizeZ = 1;
+        int sizeX = handler.getGrid();
+        int sizeY = handler.getGrid();
+        int sizeZ = handler.getGrid();
 
         LittleTileSize size;
         NBTTagCompound nbt = new NBTTagCompound();
@@ -107,8 +107,9 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         } else {
             MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
             LittleTileBlockPos pos = null;
+            int align = handler.getGrid();
             if (moving != null) {
-                pos = LittleTileBlockPos.fromMovingObjectPosition(moving, 1);
+                pos = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
             }
             if (PreviewRenderer.markedHit != null) {
                 pos = PreviewRenderer.markedHit;
@@ -116,15 +117,13 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
             if (pos == null) {
                 return null;
             }
-            LittleTileBlockPos.Subtraction subtraction = pos.subtract(PreviewRenderer.firstHit);
-            int sx = Math.max(Math.abs(subtraction.x) + 1, sizeX);
-            int sy = Math.max(Math.abs(subtraction.y) + 1, sizeY);
-            int sz = Math.max(Math.abs(subtraction.z) + 1, sizeZ);
+            LittleTileBlockPos.Subtraction subtraction = pos.subtract(stack, PreviewRenderer.firstHit);
             LittleTileBlockPos.Comparison comparison = PreviewRenderer.firstHit.compareTo(pos);
-            size = new LittleTileSize(sx, sy, sz);
+            size = new LittleTileSize(subtraction.x, subtraction.y, subtraction.z);
             nbt.setBoolean("fromChiselPosX", !comparison.biggerOrEqualX);
             nbt.setBoolean("fromChiselPosY", !comparison.biggerOrEqualY);
             nbt.setBoolean("fromChiselPosZ", !comparison.biggerOrEqualZ);
+            nbt.setInteger("fromChiselAlign", align);
         }
 
         LittleTile tile;

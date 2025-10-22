@@ -2,6 +2,7 @@ package com.creativemd.littletiles.client.render;
 
 import java.util.ArrayList;
 
+import com.creativemd.littletiles.LittleTiles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -25,6 +26,7 @@ import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.utils.PreviewTile;
@@ -135,8 +137,12 @@ public class PreviewRenderer {
                 MovingObjectPosition look = mc.objectMouseOver;
                 PlacementHelper helper = PlacementHelper.getInstance(mc.thePlayer);
                 LittleTileBlockPos pos = null;
+                int align = 1;
+                if (mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel) {
+                    align = new LittleToolHandler(mc.thePlayer.getHeldItem()).getGrid();
+                }
                 if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {
-                    pos = LittleTileBlockPos.fromMovingObjectPosition(look, 1);
+                    pos = LittleTileBlockPos.fromMovingObjectPosition(look, align);
                 }
 
                 if (markedHit != null) pos = markedHit;
@@ -211,14 +217,14 @@ public class PreviewRenderer {
                             } else {
                                 cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord
                                         - size.xCoord / 2D
-                                        + 1 / 16f;
+                                        + align / 16f;
                             }
                             if (comparison.biggerOrEqualY) {
                                 cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord + size.yCoord / 2D;
                             } else {
                                 cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord
                                         - size.yCoord / 2D
-                                        + 1 / 16f;
+                                        + align / 16f;
                             }
 
                             if (comparison.biggerOrEqualZ) {
@@ -226,7 +232,7 @@ public class PreviewRenderer {
                             } else {
                                 cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord
                                         - size.zCoord / 2D
-                                        + 1 / 16f;
+                                        + align / 16f;
                             }
                         }
                         Vec3 color = previewTile.getPreviewColor();

@@ -1,0 +1,18 @@
+package com.creativemd.littletiles.common;
+
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockGlass;
+import net.minecraft.block.BlockStainedGlass;
+import net.minecraft.init.Blocks;
+
+public class BlockValidator {
+
+    public static boolean isBlockValid(Block block) {
+        if (block == Blocks.air) return false;
+        if (block.hasTileEntity(0)) return false;
+        return block.isNormalCube() || block.isOpaqueCube()
+                || block.renderAsNormalBlock()
+                || block instanceof BlockGlass
+                || block instanceof BlockStainedGlass;
+    }
+}

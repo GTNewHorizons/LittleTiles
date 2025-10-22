@@ -14,7 +14,7 @@ import net.minecraft.world.World;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.littletiles.LittleTiles;
-import com.creativemd.littletiles.common.gui.SubContainerHammer;
+import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.packet.LittleBlockPacket;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -94,7 +94,7 @@ public class ItemRubberMallet extends Item {
         } else {
             Block block = world.getBlock(x, y, z);
 
-            if (tileEntity == null && SubContainerHammer.isBlockValid(block)) {
+            if (tileEntity == null && BlockValidator.isBlockValid(block)) {
                 if (!world.isRemote) {
                     if (LittleTiles.maxNewTiles < 4096) {
                         player.addChatComponentMessage(

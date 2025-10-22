@@ -1,7 +1,7 @@
 // Add your dependencies here
 
 dependencies {
-    devOnlyNonPublishable('com.github.GTNewHorizons:NotEnoughItems:2.7.83-GTNH:dev')
-    compileOnly('com.github.GTNewHorizons:Angelica:1.0.0-beta56:dev')
-    compileOnly("com.github.GTNewHorizons:waila:1.8.12:dev") { transitive = false }
+    devOnlyNonPublishable('com.github.GTNewHorizons:NotEnoughItems:2.8.0-GTNH:dev')
+    compileOnly('com.github.GTNewHorizons:Angelica:1.0.0-beta57:dev')
+    compileOnly("com.github.GTNewHorizons:waila:1.9.0:dev") { transitive = false }
 }

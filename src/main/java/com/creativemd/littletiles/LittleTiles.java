@@ -51,7 +51,11 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
-@Mod(modid = LittleTiles.modid, version = LittleTiles.version, name = "LittleTiles", dependencies = "after:angelica")
+@Mod(
+        modid = LittleTiles.modid,
+        version = LittleTiles.version,
+        name = "LittleTiles",
+        dependencies = "after:angelica;required-after:modularui2")
 public class LittleTiles {
 
     @Instance(LittleTiles.modid)

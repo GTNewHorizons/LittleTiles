@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.IBlockAccess;
+import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.lwjgl.opengl.GL11;
@@ -27,7 +28,7 @@ public class LittleTilesBlockRenderHelper {
     private static final ThreadLocal<ExtendedRenderBlocks> extraRendererThreadLocal = ThreadLocal
             .withInitial(ExtendedRenderBlocks::new);
 
-    public static void renderCubes(IBlockAccess world, ArrayList<CubeObject> cubes, int x, int y, int z, Block block,
+    public static boolean renderCubes(IBlockAccess world, ArrayList<CubeObject> cubes, int x, int y, int z, Block block,
             RenderBlocks renderer, ForgeDirection direction) {
 
         ExtendedRenderBlocks extraRenderer = extraRendererThreadLocal.get();
@@ -36,8 +37,15 @@ public class LittleTilesBlockRenderHelper {
         IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
         fake.world = renderer.blockAccess;
 
+        int pass = ForgeHooksClient.getWorldRenderPass();
+        boolean rendered = false;
+
         for (int i = 0; i < cubes.size(); i++) {
             final CubeObject cube = cubes.get(i);
+            if (!cube.block.canRenderInPass(pass)) {
+                continue;
+            }
+            rendered = true;
             if (cube.block != null && cube.meta != -1) {
                 extraRenderer.clearOverrideBlockTexture();
                 extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
@@ -58,6 +66,7 @@ public class LittleTilesBlockRenderHelper {
                 extraRenderer.color = ColorUtils.WHITE;
             }
         }
+        return rendered;
     }
 
     public static void renderInventoryCubes(RenderBlocks renderer, ArrayList<CubeObject> cubes, Block parBlock,

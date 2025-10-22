@@ -62,6 +62,16 @@ public class BlockTile extends BlockContainer {
         return false;
     }
 
+    @SideOnly(Side.CLIENT)
+    public int getRenderBlockPass() {
+        return 1;
+    }
+
+    @Override
+    public boolean canRenderInPass(int pass) {
+        return pass == 0 || pass == 1;
+    }
+
     /*
      * @Override
      * @SideOnly(Side.CLIENT) public int getRenderBlockPass() { return 1; }

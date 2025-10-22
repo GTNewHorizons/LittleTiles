@@ -13,6 +13,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
@@ -82,6 +83,10 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         return super.getUnlocalizedName(stack);
     }
 
+    private boolean needsTwoHits(ItemStack stack) {
+        return stack.getItem() == LittleTiles.chisel;
+    }
+
     @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
             float offsetX, float offsetY, float offsetZ) {
@@ -94,6 +99,22 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         LittleTileBlockPos pos = LittleTileBlockPos.fromMovingObjectPosition(moving);
 
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
+
+        if (needsTwoHits(stack)) {
+            if (PreviewRenderer.firstHit == null) {
+                if (PreviewRenderer.markedHit == null) {
+                    PreviewRenderer.firstHit = pos;
+                    return true;
+                }
+            } else {
+                ILittleTile littleTile = (ILittleTile) stack.getItem();
+
+                NBTTagCompound tag = (NBTTagCompound) littleTile.getLittlePreview(stack).get(0).nbt.copy();
+                stack = new ItemStack(Item.getItemFromBlock(LittleTiles.blockTile));
+                stack.stackTagCompound = tag;
+                PreviewRenderer.firstHit = null;
+            }
+        }
 
         x = pos.getPosX();
         y = pos.getPosY();
@@ -307,7 +328,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         int meta = stack.stackTagCompound.getInteger("meta");
         LittleTileSize size = new LittleTileSize("size", stack.stackTagCompound);
         if (!(block instanceof BlockAir)) {
-            CubeObject cube = new LittleTileBox(new LittleTileVec(8, 8, 8), size).getCube();
+            CubeObject cube = new LittleTileBox(new LittleTileVec(8, 8, 8), size, true).getCube();
             cube.block = block;
             cube.meta = meta;
             if (stack.stackTagCompound.hasKey("color")) cube.color = stack.stackTagCompound.getInteger("color");

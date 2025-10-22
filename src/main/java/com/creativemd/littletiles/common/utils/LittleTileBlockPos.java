@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.utils;
 
 import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
@@ -10,6 +11,20 @@ import com.creativemd.littletiles.common.utils.small.LittleTileVec;
  * new tile would be placed at.
  */
 public class LittleTileBlockPos {
+
+    public static class Comparison {
+
+        public boolean biggerOrEqualX;
+        public boolean biggerOrEqualY;
+        public boolean biggerOrEqualZ;
+    }
+
+    public static class Subtraction {
+
+        public int x;
+        public int y;
+        public int z;
+    }
 
     private int posX;
     private int posY;
@@ -130,5 +145,42 @@ public class LittleTileBlockPos {
 
     public LittleTileVec toHitVecRelative() {
         return new LittleTileVec(subX, subY, subZ);
+    }
+
+    public Vec3 toHitVec() {
+        return Vec3.createVectorHelper(posX + subX / 16.0, posY + subY / 16.0, posZ + subZ / 16.0);
+    }
+
+    public Comparison compareTo(LittleTileBlockPos other) {
+        Comparison ret = new Comparison();
+        if (posX != other.posX) {
+            ret.biggerOrEqualX = posX >= other.posX;
+        } else {
+            ret.biggerOrEqualX = subX >= other.subX;
+        }
+
+        if (posY != other.posY) {
+            ret.biggerOrEqualY = posY >= other.posY;
+        } else {
+            ret.biggerOrEqualY = subY >= other.subY;
+        }
+
+        if (posZ != other.posZ) {
+            ret.biggerOrEqualZ = posZ >= other.posZ;
+        } else {
+            ret.biggerOrEqualZ = subZ >= other.subZ;
+        }
+
+        return ret;
+    }
+
+    public Subtraction subtract(LittleTileBlockPos other) {
+        Subtraction ret = new Subtraction();
+
+        ret.x = (posX - other.posX) * 16 + (subX - other.subX);
+        ret.y = (posY - other.posY) * 16 + (subY - other.subY);
+        ret.z = (posZ - other.posZ) * 16 + (subZ - other.subZ);
+
+        return ret;
     }
 }

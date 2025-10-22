@@ -21,6 +21,7 @@ import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.client.LittleTilesClient;
+import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
@@ -45,6 +46,7 @@ public class PreviewRenderer {
     }
 
     public static LittleTileBlockPos markedHit = null;
+    public static LittleTileBlockPos firstHit = null;
     private static ItemStack lastItem = null;
 
     private static ForgeDirection rotateDirection(ForgeDirection direction) {
@@ -88,8 +90,18 @@ public class PreviewRenderer {
 
             if (!ItemStack.areItemStackTagsEqual(lastItem, mc.thePlayer.getHeldItem())) {
                 markedHit = null;
+                firstHit = null;
             }
             lastItem = mc.thePlayer.getHeldItem();
+
+            if (mc.thePlayer.getHeldItem() != null) {
+                if (GameSettings.isKeyDown(LittleTilesClient.toolConfig) && !LittleTilesClient.pressedToolConfig) {
+                    LittleTilesClient.pressedToolConfig = true;
+                    GuiToolConfig.show(mc.thePlayer.getHeldItem());
+                } else if (!GameSettings.isKeyDown(LittleTilesClient.toolConfig)) {
+                    LittleTilesClient.pressedToolConfig = false;
+                }
+            }
             if (PlacementHelper.isLittleBlock(mc.thePlayer.getHeldItem())) {
                 int i4 = MathHelper.floor_double((double) (mc.thePlayer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
                 ForgeDirection direction_look = null;
@@ -191,6 +203,32 @@ public class PreviewRenderer {
                         double cubeX = x + cube.minX + size.xCoord / 2D;
                         double cubeY = y + cube.minY + size.yCoord / 2D;
                         double cubeZ = z + cube.minZ + size.zCoord / 2D;
+                        if (firstHit != null) {
+                            LittleTileBlockPos.Comparison comparison = pos.compareTo(firstHit);
+                            Vec3 hitVec = firstHit.toHitVec();
+                            if (comparison.biggerOrEqualX) {
+                                cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord + size.xCoord / 2D;
+                            } else {
+                                cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord
+                                        - size.xCoord / 2D
+                                        + 1 / 16f;
+                            }
+                            if (comparison.biggerOrEqualY) {
+                                cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord + size.yCoord / 2D;
+                            } else {
+                                cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord
+                                        - size.yCoord / 2D
+                                        + 1 / 16f;
+                            }
+
+                            if (comparison.biggerOrEqualZ) {
+                                cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord + size.zCoord / 2D;
+                            } else {
+                                cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord
+                                        - size.zCoord / 2D
+                                        + 1 / 16f;
+                            }
+                        }
                         Vec3 color = previewTile.getPreviewColor();
                         RenderHelper3D.renderBlock(
                                 cubeX,

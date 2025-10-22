@@ -19,11 +19,17 @@ public class LittleTileBox {
     public int maxY;
     public int maxZ;
 
-    public LittleTileBox(LittleTileVec center, LittleTileSize size) {
-        LittleTileVec offset = size.calculateCenter();
-        minX = center.x - offset.x;
-        minY = center.y - offset.y;
-        minZ = center.z - offset.z;
+    public LittleTileBox(LittleTileVec center, LittleTileSize size, boolean doCenter) {
+        if (doCenter) {
+            LittleTileVec offset = size.calculateCenter();
+            minX = center.x - offset.x;
+            minY = center.y - offset.y;
+            minZ = center.z - offset.z;
+        } else {
+            minX = center.x;
+            minY = center.y;
+            minZ = center.z;
+        }
         maxX = minX + size.sizeX;
         maxY = minY + size.sizeY;
         maxZ = minZ + size.sizeZ;

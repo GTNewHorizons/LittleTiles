@@ -5,25 +5,23 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 public class LittleTileSize {
 
-    public byte sizeX;
-    public byte sizeY;
-    public byte sizeZ;
+    public int sizeX;
+    public int sizeY;
+    public int sizeZ;
 
     public LittleTileSize(String name, NBTTagCompound nbt) {
-        this(nbt.getByte(name + "x"), nbt.getByte(name + "y"), nbt.getByte(name + "z"));
+        this.sizeX = nbt.getInteger(name + "x");
+        this.sizeY = nbt.getInteger(name + "y");
+        this.sizeZ = nbt.getInteger(name + "z");
     }
 
-    public LittleTileSize(byte sizeX, byte sizeY, byte sizeZ) {
+    public LittleTileSize(int sizeX, int sizeY, int sizeZ) {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeZ = sizeZ;
     }
 
-    public LittleTileSize(int sizeX, int sizeY, int sizeZ) {
-        this((byte) sizeX, (byte) sizeY, (byte) sizeZ);
-    }
-
-    public void set(byte sizeX, byte sizeY, byte sizeZ) {
+    public void set(int sizeX, int sizeY, int sizeZ) {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeZ = sizeZ;
@@ -50,14 +48,14 @@ public class LittleTileSize {
         double x = sizeX / 2D;
         double y = sizeY / 2D;
         double z = sizeZ / 2D;
-        return new LittleTileVec((byte) (Math.ceil(x)), (byte) (Math.ceil(y)), (byte) (Math.ceil(z)));
+        return new LittleTileVec((int) (Math.ceil(x)), (int) (Math.ceil(y)), (int) (Math.ceil(z)));
     }
 
     public LittleTileVec calculateCenter() {
         double x = sizeX / 2D;
         double y = sizeY / 2D;
         double z = sizeZ / 2D;
-        return new LittleTileVec((byte) (Math.floor(x)), (byte) (Math.floor(y)), (byte) (Math.floor(z)));
+        return new LittleTileVec((int) (Math.floor(x)), (int) (Math.floor(y)), (int) (Math.floor(z)));
     }
 
     public double getPosX() {
@@ -80,13 +78,13 @@ public class LittleTileSize {
         switch (direction) {
             case UP:
             case DOWN:
-                byte tempY = sizeY;
+                int tempY = sizeY;
                 sizeY = sizeX;
                 sizeX = tempY;
                 break;
             case SOUTH:
             case NORTH:
-                byte tempZ = sizeZ;
+                int tempZ = sizeZ;
                 sizeZ = sizeX;
                 sizeX = tempZ;
                 break;
@@ -96,9 +94,9 @@ public class LittleTileSize {
     }
 
     public void writeToNBT(String name, NBTTagCompound nbt) {
-        nbt.setByte(name + "x", sizeX);
-        nbt.setByte(name + "y", sizeY);
-        nbt.setByte(name + "z", sizeZ);
+        nbt.setInteger(name + "x", sizeX);
+        nbt.setInteger(name + "y", sizeY);
+        nbt.setInteger(name + "z", sizeZ);
     }
 
     @Override
@@ -107,9 +105,9 @@ public class LittleTileSize {
     }
 
     public LittleTileSize max(LittleTileSize size) {
-        this.sizeX = (byte) Math.max(this.sizeX, size.sizeX);
-        this.sizeY = (byte) Math.max(this.sizeY, size.sizeY);
-        this.sizeZ = (byte) Math.max(this.sizeZ, size.sizeZ);
+        this.sizeX = Math.max(this.sizeX, size.sizeX);
+        this.sizeY = Math.max(this.sizeY, size.sizeY);
+        this.sizeZ = Math.max(this.sizeZ, size.sizeZ);
         return this;
     }
 

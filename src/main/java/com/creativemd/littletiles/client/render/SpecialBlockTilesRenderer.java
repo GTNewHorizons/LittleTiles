@@ -43,9 +43,10 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
     public boolean renderWorldBlock(IBlockAccess world, int x, int y, int z, Block block, int modelId,
             RenderBlocks renderer) {
         // Don't render when block breaking texture is applied
-        if (renderer.hasOverrideBlockTexture()) return true;
+        if (renderer.hasOverrideBlockTexture()) return false;
 
         TileEntity tileEntity = world.getTileEntity(x, y, z);
+        boolean rendered = false;
         if (tileEntity instanceof TileEntityLittleTiles) {
             TileEntityLittleTiles little = (TileEntityLittleTiles) tileEntity;
             List<LittleTile> tiles = little.getTiles();
@@ -55,11 +56,13 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
             }
             for (LittleTile tile : snapshot) {
                 ArrayList<CubeObject> cubes = tile.getRenderingCubes();
-                LittleTilesBlockRenderHelper.renderCubes(world, cubes, x, y, z, block, renderer, null);
+                if (LittleTilesBlockRenderHelper.renderCubes(world, cubes, x, y, z, block, renderer, null)) {
+                    rendered = true;
+                }
             }
         }
 
-        return true;
+        return rendered;
     }
 
     @Override

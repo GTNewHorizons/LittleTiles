@@ -15,17 +15,27 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.cleanroommc.modularui.api.GuiAxis;
 import com.cleanroommc.modularui.api.IGuiHolder;
+import com.cleanroommc.modularui.api.drawable.IDrawable;
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.factory.PlayerInventoryGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.SyncHandlers;
+import com.cleanroommc.modularui.widgets.TextWidget;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.gui.BlockDisplayWidget;
+import com.creativemd.littletiles.common.gui.DropDownMenu2;
+import com.creativemd.littletiles.common.gui.TextButtonWidget;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.*;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
@@ -144,6 +154,14 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         new LittleToolHandler(stack).setBlock(block, meta);
     }
 
+    private void selectGrid(PlayerInventoryGuiData data, int grid) {
+        if (grid == 0) {
+            return;
+        }
+        ItemStack stack = data.getUsedItemStack();
+        new LittleToolHandler(stack).setGrid(grid);
+    }
+
     private BlockDisplayWidget addBlockDisplay(BlockStateSyncValue syncBlock, LittleToolHandler handler, int y) {
         BlockDisplayWidget blockDisplay = new BlockDisplayWidget();
         blockDisplay.size(150, 20).pos(5, y).marginLeft(5);
@@ -168,16 +186,69 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         return blockDisplay;
     }
 
+    private Flow addGridSelector(IntSyncValue syncGrid, LittleToolHandler handler, int y) {
+        Flow flow = new Flow(GuiAxis.X);
+        flow.pos(5, y).size(100, 20);
+        TextWidget labelGrid = IKey.str("Grid:").asWidget().marginLeft(5).width(40);
+        DropDownMenu2 gridPicker = new DropDownMenu2();
+        gridPicker.marginLeft(5).marginRight(5).size(40, 20);
+        gridPicker.background(GuiTextures.BUTTON_CLEAN);
+        TextButtonWidget buttonLeft = new TextButtonWidget();
+        TextButtonWidget buttonRight = new TextButtonWidget();
+        buttonLeft.size(20, 20).text("<<").background(IDrawable.EMPTY).hoverBackground(IDrawable.EMPTY);
+        buttonRight.size(20, 20).text(">>").background(IDrawable.EMPTY).hoverBackground(IDrawable.EMPTY);
+        flow.child(labelGrid);
+        flow.child(buttonLeft);
+        flow.child(gridPicker);
+        flow.child(buttonRight);
+
+        String[] gridSizes = { "1", "2", "4", "8", "16" };
+        for (String size : gridSizes) {
+            final int realSize = 16 / Integer.parseInt(size);
+            gridPicker.addChoice(x -> syncGrid.setIntValue(realSize), size);
+        }
+
+        buttonLeft.onMouseReleased(x -> {
+            int index = gridPicker.getSelectedIndex() - 1;
+            if (index < 0) index = gridSizes.length - 1;
+            final int realSize = 16 / Integer.parseInt(gridSizes[index]);
+            syncGrid.setIntValue(realSize);
+            gridPicker.setSelectedIndex(index);
+            return true;
+        });
+
+        buttonRight.onMouseReleased(x -> {
+            int index = gridPicker.getSelectedIndex() + 1;
+            if (index >= gridSizes.length) index = 0;
+            final int realSize = 16 / Integer.parseInt(gridSizes[index]);
+            syncGrid.setIntValue(realSize);
+            gridPicker.setSelectedIndex(index);
+            return true;
+        });
+
+        String inverseGrid = String.valueOf(16 / handler.getGrid());
+        for (int i = 0; i < gridSizes.length; i++) {
+            if (gridSizes[i].equals(inverseGrid)) {
+                gridPicker.setSelectedIndex(i);
+            }
+        }
+
+        return flow;
+    }
+
     @Override
     public ModularPanel buildUI(PlayerInventoryGuiData data, PanelSyncManager syncManager, UISettings settings) {
         BlockStateSyncValue syncBlock = new BlockStateSyncValue((block, meta) -> selectBlock(data, block, meta));
+        IntSyncValue syncGrid = SyncHandlers.intNumber(() -> 0, grid -> selectGrid(data, grid));
         syncBlock.register(syncManager, "lt_chisel_block");
+        syncManager.syncValue("lt_chisel_grid", syncGrid);
 
         LittleToolHandler handler = new LittleToolHandler(data.getUsedItemStack());
 
         ModularPanel panel = ModularPanel.defaultPanel("blocks");
         panel.size(200, 300);
         panel.child(addBlockDisplay(syncBlock, handler, 75));
+        panel.child(addGridSelector(syncGrid, handler, 10));
         return panel;
     }
 }

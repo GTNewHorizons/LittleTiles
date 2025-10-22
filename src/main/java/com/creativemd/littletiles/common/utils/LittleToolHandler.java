@@ -49,4 +49,18 @@ public class LittleToolHandler {
     public ItemStack getStack() {
         return new ItemStack(getBlock(), 1, getMeta());
     }
+
+    public int getGrid() {
+        NBTTagCompound tag = getTag(false);
+        if (tag.hasKey("grid")) {
+            return tag.getByte("grid");
+        }
+        return 1;
+    }
+
+    public void setGrid(int grid) {
+        NBTTagCompound tag = getTag(true);
+        tag.setByte("grid", (byte) grid);
+    }
+
 }

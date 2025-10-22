@@ -65,7 +65,7 @@ public class PreviewRenderer {
         return ForgeDirection.UNKNOWN;
     }
 
-    public static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look) {
+    public static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look, int amount) {
         if (direction != ForgeDirection.UP && direction != ForgeDirection.DOWN) {
             if (direction_look == ForgeDirection.EAST) {
                 direction = rotateDirection(direction);
@@ -81,9 +81,8 @@ public class PreviewRenderer {
             }
         }
 
-        int move = 1;
-        if (GuiScreen.isCtrlKeyDown()) move = 16;
-        markedHit.moveInDirection(direction, move);
+        if (GuiScreen.isCtrlKeyDown()) amount = 16;
+        markedHit.moveInDirection(direction, amount);
     }
 
     @SubscribeEvent
@@ -163,7 +162,8 @@ public class PreviewRenderer {
                         LittleTilesClient.pressedUp = true;
                         if (markedHit != null) moveMarkedHit(
                                 mc.thePlayer.isSneaking() ? ForgeDirection.UP : ForgeDirection.NORTH,
-                                direction_look);
+                                direction_look,
+                                align);
                         else processKey(ForgeDirection.UP);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.up)) LittleTilesClient.pressedUp = false;
 
@@ -171,19 +171,20 @@ public class PreviewRenderer {
                         LittleTilesClient.pressedDown = true;
                         if (markedHit != null) moveMarkedHit(
                                 mc.thePlayer.isSneaking() ? ForgeDirection.DOWN : ForgeDirection.SOUTH,
-                                direction_look);
+                                direction_look,
+                                align);
                         else processKey(ForgeDirection.DOWN);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.down)) LittleTilesClient.pressedDown = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.right) && !LittleTilesClient.pressedRight) {
                         LittleTilesClient.pressedRight = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.EAST, direction_look);
+                        if (markedHit != null) moveMarkedHit(ForgeDirection.EAST, direction_look, align);
                         else processKey(ForgeDirection.SOUTH);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.right)) LittleTilesClient.pressedRight = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.left) && !LittleTilesClient.pressedLeft) {
                         LittleTilesClient.pressedLeft = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.WEST, direction_look);
+                        if (markedHit != null) moveMarkedHit(ForgeDirection.WEST, direction_look, align);
                         else processKey(ForgeDirection.NORTH);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.left)) LittleTilesClient.pressedLeft = false;
 

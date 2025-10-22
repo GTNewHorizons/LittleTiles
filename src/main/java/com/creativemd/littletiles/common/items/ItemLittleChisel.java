@@ -108,7 +108,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
             MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
             LittleTileBlockPos pos = null;
             if (moving != null) {
-                pos = LittleTileBlockPos.fromMovingObjectPosition(moving);
+                pos = LittleTileBlockPos.fromMovingObjectPosition(moving, 1);
             }
             if (PreviewRenderer.markedHit != null) {
                 pos = PreviewRenderer.markedHit;

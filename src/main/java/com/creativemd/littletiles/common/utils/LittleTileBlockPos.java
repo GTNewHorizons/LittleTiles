@@ -45,24 +45,43 @@ public class LittleTileBlockPos {
         moveSubZ(subZ);
     }
 
-    public static LittleTileBlockPos fromMovingObjectPosition(MovingObjectPosition pos) {
+    public static LittleTileBlockPos fromMovingObjectPosition(MovingObjectPosition pos, int align) {
         ForgeDirection side = ForgeDirection.getOrientation(pos.sideHit);
         double x = pos.hitVec.xCoord;
         double y = pos.hitVec.yCoord;
         double z = pos.hitVec.zCoord;
 
         if (side == ForgeDirection.WEST) {
-            x -= 1.0 / 16;
+            x -= align / 16f;
         }
         if (side == ForgeDirection.DOWN) {
-            y -= 1.0 / 16;
+            y -= align / 16f;
         }
         if (side == ForgeDirection.NORTH) {
-            z -= 1.0 / 16;
+            z -= align / 16f;
         }
         int subX = (int) Math.floor((x - Math.floor(x)) * 16);
         int subY = (int) Math.floor((y - Math.floor(y)) * 16);
         int subZ = (int) Math.floor((z - Math.floor(z)) * 16);
+
+        switch (side) {
+            case DOWN:
+            case UP:
+                subX = subX / align * align;
+                subZ = subZ / align * align;
+                break;
+            case NORTH:
+            case SOUTH:
+                subX = subX / align * align;
+                subY = subY / align * align;
+                break;
+            case EAST:
+            case WEST:
+                subY = subY / align * align;
+                subZ = subZ / align * align;
+                break;
+        }
+
         return new LittleTileBlockPos(
                 (int) Math.floor(x),
                 (int) Math.floor(y),

@@ -136,7 +136,7 @@ public class PreviewRenderer {
                 PlacementHelper helper = PlacementHelper.getInstance(mc.thePlayer);
                 LittleTileBlockPos pos = null;
                 if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {
-                    pos = LittleTileBlockPos.fromMovingObjectPosition(look);
+                    pos = LittleTileBlockPos.fromMovingObjectPosition(look, 1);
                 }
 
                 if (markedHit != null) pos = markedHit;

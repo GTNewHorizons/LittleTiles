@@ -1,8 +1,6 @@
 package com.creativemd.littletiles.common.gui;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockGlass;
-import net.minecraft.block.BlockStainedGlass;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.InventoryBasic;
 import net.minecraft.inventory.Slot;
@@ -13,6 +11,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import com.creativemd.creativecore.common.container.SubContainer;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.items.ItemTileContainer;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
@@ -37,7 +36,7 @@ public class SubContainerHammer extends SubContainer {
             ItemStack stack = basic.getStackInSlot(0);
             if (stack != null && stack.getItem() instanceof ItemBlock) {
                 Block block = Block.getBlockFromItem(stack.getItem());
-                if (isBlockValid(block)) {
+                if (BlockValidator.isBlockValid(block)) {
                     int alltiles = (int) (1 / size.getPercentVolume() * stack.stackSize);
                     int tiles = Math.min(alltiles, 64);
                     int blocks = (int) Math.ceil(tiles * size.getPercentVolume());
@@ -67,13 +66,6 @@ public class SubContainerHammer extends SubContainer {
                 }
             }
         }
-    }
-
-    public static boolean isBlockValid(Block block) {
-        return block.isNormalCube() || block.isOpaqueCube()
-                || block.renderAsNormalBlock()
-                || block instanceof BlockGlass
-                || block instanceof BlockStainedGlass;
     }
 
     @Override

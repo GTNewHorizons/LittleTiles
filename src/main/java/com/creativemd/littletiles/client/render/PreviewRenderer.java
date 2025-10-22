@@ -21,6 +21,7 @@ import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.client.LittleTilesClient;
+import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
@@ -92,6 +93,15 @@ public class PreviewRenderer {
                 firstHit = null;
             }
             lastItem = mc.thePlayer.getHeldItem();
+
+            if (mc.thePlayer.getHeldItem() != null) {
+                if (GameSettings.isKeyDown(LittleTilesClient.toolConfig) && !LittleTilesClient.pressedToolConfig) {
+                    LittleTilesClient.pressedToolConfig = true;
+                    GuiToolConfig.show(mc.thePlayer.getHeldItem());
+                } else if (!GameSettings.isKeyDown(LittleTilesClient.toolConfig)) {
+                    LittleTilesClient.pressedToolConfig = false;
+                }
+            }
             if (PlacementHelper.isLittleBlock(mc.thePlayer.getHeldItem())) {
                 int i4 = MathHelper.floor_double((double) (mc.thePlayer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
                 ForgeDirection direction_look = null;

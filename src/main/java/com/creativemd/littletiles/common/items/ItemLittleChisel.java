@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -14,10 +15,17 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.cleanroommc.modularui.api.IGuiHolder;
+import com.cleanroommc.modularui.factory.PlayerInventoryGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
+import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
+import com.creativemd.littletiles.common.gui.BlockDisplayWidget;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.*;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
@@ -25,7 +33,7 @@ import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-public class ItemLittleChisel extends Item implements ILittleTile {
+public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<PlayerInventoryGuiData> {
 
     public ItemLittleChisel() {
         setCreativeTab(CreativeTabs.tabTools);
@@ -118,5 +126,58 @@ public class ItemLittleChisel extends Item implements ILittleTile {
         LittleTilePreview preview = new LittleTilePreview(size, nbt);
         ret.add(preview);
         return ret;
+    }
+
+    private List<Block> getAllBlocks() {
+        List<Block> ret = new ArrayList<>();
+        for (Object block : Block.blockRegistry) {
+            if (BlockValidator.isBlockValid((Block) block)) {
+                ret.add((Block) block);
+            }
+        }
+        return ret;
+    }
+
+    private void selectBlock(PlayerInventoryGuiData data, Block block, int meta) {
+        if (block == Blocks.air) return;
+        ItemStack stack = data.getUsedItemStack();
+        new LittleToolHandler(stack).setBlock(block, meta);
+    }
+
+    private BlockDisplayWidget addBlockDisplay(BlockStateSyncValue syncBlock, LittleToolHandler handler, int y) {
+        BlockDisplayWidget blockDisplay = new BlockDisplayWidget();
+        blockDisplay.size(150, 20).pos(5, y).marginLeft(5);
+
+        List<Block> blocks = getAllBlocks();
+        for (final Block block : blocks) {
+            Item item = new ItemStack(block).getItem();
+            if (item == null) {
+                continue;
+            }
+            List<ItemStack> list = new ArrayList<>();
+            block.getSubBlocks(item, block.getCreativeTabToDisplayOn(), list);
+
+            for (ItemStack stack : list) {
+                final int meta = stack.getItemDamage();
+                blockDisplay.addChoice((x) -> syncBlock.setValue(block, meta), stack);
+            }
+        }
+
+        blockDisplay.setSelectedStack(handler.getStack());
+
+        return blockDisplay;
+    }
+
+    @Override
+    public ModularPanel buildUI(PlayerInventoryGuiData data, PanelSyncManager syncManager, UISettings settings) {
+        BlockStateSyncValue syncBlock = new BlockStateSyncValue((block, meta) -> selectBlock(data, block, meta));
+        syncBlock.register(syncManager, "lt_chisel_block");
+
+        LittleToolHandler handler = new LittleToolHandler(data.getUsedItemStack());
+
+        ModularPanel panel = ModularPanel.defaultPanel("blocks");
+        panel.size(200, 300);
+        panel.child(addBlockDisplay(syncBlock, handler, 75));
+        return panel;
     }
 }

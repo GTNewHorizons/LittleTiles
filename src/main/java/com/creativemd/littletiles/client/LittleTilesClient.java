@@ -36,6 +36,11 @@ public class LittleTilesClient extends LittleTilesServer {
     public static boolean pressedRight = false;
     public static KeyBinding left = new KeyBinding("key.littletiles.rotateleft", 0, "key.categories.littletiles");
     public static boolean pressedLeft = false;
+    public static KeyBinding toolConfig = new KeyBinding(
+            "key.littletiles.tool_config",
+            0,
+            "key.categories.littletiles");
+    public static boolean pressedToolConfig = false;
 
     @Override
     public void loadSide() {
@@ -54,6 +59,7 @@ public class LittleTilesClient extends LittleTilesServer {
         ClientRegistry.registerKeyBinding(left);
         ClientRegistry.registerKeyBinding(flip);
         ClientRegistry.registerKeyBinding(mark);
+        ClientRegistry.registerKeyBinding(toolConfig);
     }
 
 }

@@ -2,7 +2,6 @@ package com.creativemd.littletiles.client.render;
 
 import java.util.ArrayList;
 
-import com.creativemd.littletiles.LittleTiles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -21,6 +20,7 @@ import org.lwjgl.opengl.GL11;
 import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;

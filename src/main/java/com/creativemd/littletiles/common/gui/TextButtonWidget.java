@@ -12,7 +12,8 @@ public class TextButtonWidget extends ButtonWidget<TextButtonWidget> {
     private TextWidget currentTextWidget;
 
     public TextButtonWidget text(String text) {
-        currentTextWidget = new TextButtonTextWidget(IKey.str(text)).align(Alignment.Center);
+        currentTextWidget = new TextButtonTextWidget(IKey.str(text));
+        currentTextWidget.align(Alignment.Center);
         return child(currentTextWidget);
     }
 

@@ -1,0 +1,11 @@
+{
+  "package": "com.creativemd.littletiles.mixin",
+  "refmap": "com.creativemd.littletiles.refmap.json",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.7",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [],
+  "client": [
+    "MixinForgeHooks_PickBlock"
+  ]
+}

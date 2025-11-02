@@ -7,6 +7,7 @@ import net.minecraftforge.client.MinecraftForgeClient;
 import net.minecraftforge.common.MinecraftForge;
 
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.client.render.BlockOverlayRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.client.render.SpecialBlockTilesRenderer;
 import com.creativemd.littletiles.common.blocks.BlockTile;
@@ -60,6 +61,7 @@ public class LittleTilesClient extends LittleTilesServer {
         ClientRegistry.registerKeyBinding(flip);
         ClientRegistry.registerKeyBinding(mark);
         ClientRegistry.registerKeyBinding(toolConfig);
+        MinecraftForgeClient.registerItemRenderer(LittleTiles.chisel, new BlockOverlayRenderer());
     }
 
 }

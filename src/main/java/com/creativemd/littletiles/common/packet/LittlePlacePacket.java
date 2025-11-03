@@ -107,7 +107,7 @@ public class LittlePlacePacket extends CreativeCorePacket {
             PlacementHelper helper = PlacementHelper.getInstance(player);
 
             ((ItemBlockTiles) Item.getItemFromBlock(LittleTiles.blockTile))
-                    .placeBlockAt(player, stack, player.worldObj, pos, helper, customPlacement);
+                    .placeBlockAt(player, stack, player.worldObj, pos, helper, customPlacement, cutoutInfo);
 
             EntityPlayerMP playerMP = (EntityPlayerMP) player;
             Slot slot = playerMP.openContainer.getSlotFromInventory(playerMP.inventory, playerMP.inventory.currentItem);

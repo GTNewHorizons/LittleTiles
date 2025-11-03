@@ -1,5 +1,6 @@
 package com.creativemd.littletiles.common.utils;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
 import org.joml.Vector3i;
@@ -20,6 +21,25 @@ public class LittleTileCutoutInfo {
         size = new Vector3i(other.size);
         pos = new Vector3i(other.pos);
         orientation = other.orientation;
+    }
+
+    public static LittleTileCutoutInfo fromItemStack(ItemStack stack, LittleTileBlockPos start,
+            LittleTileBlockPos end) {
+        LittleToolHandler handler = new LittleToolHandler(stack);
+        LittleTileShapeMode shape = handler.getShape();
+
+        if (shape == LittleTileShapeMode.BOX) {
+            return null;
+        }
+
+        LittleTileCutoutInfo info = new LittleTileCutoutInfo();
+        info.type = shape;
+
+        LittleTileBlockPos.Subtraction subtract = end.subtract(stack, start);
+        info.size = new Vector3i(subtract.x, subtract.y, subtract.z);
+        info.pos = new Vector3i();
+
+        return info;
     }
 
     public static LittleTileCutoutInfo loadFromNBT(NBTTagCompound nbt) {

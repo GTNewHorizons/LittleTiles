@@ -22,6 +22,7 @@ import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import com.gtnewhorizons.angelica.api.ThreadSafeISBRH;
 
@@ -55,7 +56,7 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
                 snapshot = new ArrayList<>(tiles);
             }
             for (LittleTile tile : snapshot) {
-                ArrayList<CubeObject> cubes = tile.getRenderingCubes();
+                ArrayList<LittleTilesCubeObject> cubes = tile.getRenderingCubes();
                 if (LittleTilesBlockRenderHelper.renderCubes(world, cubes, x, y, z, block, renderer, null)) {
                     rendered = true;
                 }

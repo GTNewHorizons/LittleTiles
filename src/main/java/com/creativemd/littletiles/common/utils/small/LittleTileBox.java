@@ -9,6 +9,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.common.utils.Rotation;
 import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 
 public class LittleTileBox {
 
@@ -86,8 +87,8 @@ public class LittleTileBox {
         return AxisAlignedBB.getBoundingBox(minX / 16D, minY / 16D, minZ / 16D, maxX / 16D, maxY / 16D, maxZ / 16D);
     }
 
-    public CubeObject getCube() {
-        return new CubeObject(minX / 16D, minY / 16D, minZ / 16D, maxX / 16D, maxY / 16D, maxZ / 16D);
+    public LittleTilesCubeObject getCube() {
+        return new LittleTilesCubeObject(minX / 16D, minY / 16D, minZ / 16D, maxX / 16D, maxY / 16D, maxZ / 16D);
     }
 
     public void writeToNBT(String name, NBTTagCompound nbt) {

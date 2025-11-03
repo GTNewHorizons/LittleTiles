@@ -210,6 +210,10 @@ public abstract class LittleTile {
                 // pos.writeToNBT(nbt);
             }
         }
+
+        if (cutoutInfo != null) {
+            cutoutInfo.writeToNBT(nbt);
+        }
     }
 
     public void loadTile(TileEntityLittleTiles te, NBTTagCompound nbt) {
@@ -247,6 +251,8 @@ public abstract class LittleTile {
                 } else coord = new LittleTileCoord(nbt);
             }
         }
+
+        cutoutInfo = LittleTileCutoutInfo.loadFromNBT(nbt);
     }
 
     // ================Placing================

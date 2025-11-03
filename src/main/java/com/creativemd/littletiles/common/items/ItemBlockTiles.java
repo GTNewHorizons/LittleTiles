@@ -133,8 +133,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         } else if (y == 255) {
             return false;
         } else {
-            if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
-                PacketHandler.sendPacketToServer(new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null));
+            if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) PacketHandler
+                    .sendPacketToServer(new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null, null));
 
             placeBlockAt(player, stack, world, pos, helper, PreviewRenderer.markedHit != null);
 

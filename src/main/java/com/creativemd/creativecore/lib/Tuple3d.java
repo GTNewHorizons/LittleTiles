@@ -2,7 +2,9 @@
 package com.creativemd.creativecore.lib;
 
 /*     */
-/*     */ import java.io.Serializable;
+/*     */ import com.google.common.math.DoubleMath;
+
+import java.io.Serializable;
 
 /*     */
 /*     */
@@ -339,7 +341,9 @@ package com.creativemd.creativecore.lib;
     /*     */ {
         /*     */ try
         /*     */ {
-            /* 343 */ return (this.x == paramTuple3d.x) && (this.y == paramTuple3d.y) && (this.z == paramTuple3d.z);
+            return DoubleMath.fuzzyEquals(this.x, paramTuple3d.x, 0.0000000001)
+                    && DoubleMath.fuzzyEquals(this.y, paramTuple3d.y, 0.0000000001)
+                    && DoubleMath.fuzzyEquals(this.z, paramTuple3d.z, 0.0000000001);
             /*     */ } catch (NullPointerException localNullPointerException) {}
         /* 345 */ return false;
         /*     */ }

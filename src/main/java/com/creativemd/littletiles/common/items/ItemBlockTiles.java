@@ -37,6 +37,7 @@ import com.creativemd.littletiles.common.utils.LittleTile.LittleTilePosition;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
+import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileCoord;
@@ -96,7 +97,12 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
         MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
 
-        LittleTileBlockPos pos = LittleTileBlockPos.fromMovingObjectPosition(moving);
+        int align = 1;
+        if (stack.getItem() == LittleTiles.chisel) {
+            align = new LittleToolHandler(stack).getGrid();
+        }
+
+        LittleTileBlockPos pos = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
 
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
 
@@ -158,7 +164,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
 
         PlacementHelper helper = PlacementHelper.getInstance(player);
-        LittleTileBlockPos pos = LittleTileBlockPos.fromMovingObjectPosition(moving);
+        LittleTileBlockPos pos = LittleTileBlockPos.fromMovingObjectPosition(moving, 1);
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
 
         x = pos.getPosX();

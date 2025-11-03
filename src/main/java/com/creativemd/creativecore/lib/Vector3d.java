@@ -2,7 +2,9 @@
 package com.creativemd.creativecore.lib;
 
 /*     */
-/*     */ import java.io.Serializable;
+/*     */ import org.joml.Vector3f;
+
+import java.io.Serializable;
 
 /*     */
 /*     */
@@ -72,6 +74,16 @@ package com.creativemd.creativecore.lib;
     /*     */ {
         /* 86 */ super(paramTuple3d);
         /*     */ }
+
+    public Vector3d(Vector3f vector) {
+        x = vector.x;
+        y = vector.y;
+        z = vector.z;
+    }
+
+    public Vector3f toVector3f() {
+        return new Vector3f((float) x, (float) y, (float) z);
+    }
 
     /*     */
     /*     */

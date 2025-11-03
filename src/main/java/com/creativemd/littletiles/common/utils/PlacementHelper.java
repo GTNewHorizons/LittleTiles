@@ -122,7 +122,7 @@ public class PlacementHelper {
                 boolean posX = stack.stackTagCompound.getBoolean("fromChiselPosX");
                 boolean posY = stack.stackTagCompound.getBoolean("fromChiselPosY");
                 boolean posZ = stack.stackTagCompound.getBoolean("fromChiselPosZ");
-                int align = 1;
+                int align = stack.stackTagCompound.getInteger("fromChiselAlign");
                 if (posX) {
                     box.minX -= size.sizeX - align;
                     box.maxX -= size.sizeX - align;

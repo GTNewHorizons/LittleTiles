@@ -1,5 +1,6 @@
 package com.creativemd.littletiles.common.utils;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -45,24 +46,43 @@ public class LittleTileBlockPos {
         moveSubZ(subZ);
     }
 
-    public static LittleTileBlockPos fromMovingObjectPosition(MovingObjectPosition pos) {
+    public static LittleTileBlockPos fromMovingObjectPosition(MovingObjectPosition pos, int align) {
         ForgeDirection side = ForgeDirection.getOrientation(pos.sideHit);
         double x = pos.hitVec.xCoord;
         double y = pos.hitVec.yCoord;
         double z = pos.hitVec.zCoord;
 
         if (side == ForgeDirection.WEST) {
-            x -= 1.0 / 16;
+            x -= align / 16f;
         }
         if (side == ForgeDirection.DOWN) {
-            y -= 1.0 / 16;
+            y -= align / 16f;
         }
         if (side == ForgeDirection.NORTH) {
-            z -= 1.0 / 16;
+            z -= align / 16f;
         }
         int subX = (int) Math.floor((x - Math.floor(x)) * 16);
         int subY = (int) Math.floor((y - Math.floor(y)) * 16);
         int subZ = (int) Math.floor((z - Math.floor(z)) * 16);
+
+        switch (side) {
+            case DOWN:
+            case UP:
+                subX = subX / align * align;
+                subZ = subZ / align * align;
+                break;
+            case NORTH:
+            case SOUTH:
+                subX = subX / align * align;
+                subY = subY / align * align;
+                break;
+            case EAST:
+            case WEST:
+                subY = subY / align * align;
+                subZ = subZ / align * align;
+                break;
+        }
+
         return new LittleTileBlockPos(
                 (int) Math.floor(x),
                 (int) Math.floor(y),
@@ -176,11 +196,19 @@ public class LittleTileBlockPos {
 
     public Subtraction subtract(LittleTileBlockPos other) {
         Subtraction ret = new Subtraction();
-
         ret.x = (posX - other.posX) * 16 + (subX - other.subX);
         ret.y = (posY - other.posY) * 16 + (subY - other.subY);
         ret.z = (posZ - other.posZ) * 16 + (subZ - other.subZ);
+        return ret;
+    }
 
+    public Subtraction subtract(ItemStack stack, LittleTileBlockPos other) {
+        Subtraction ret = subtract(other);
+        LittleToolHandler handler = new LittleToolHandler(stack);
+        int align = handler.getGrid();
+        ret.x = Math.max(Math.abs(ret.x) + align, align);
+        ret.y = Math.max(Math.abs(ret.y) + align, align);
+        ret.z = Math.max(Math.abs(ret.z) + align, align);
         return ret;
     }
 }

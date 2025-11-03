@@ -20,11 +20,13 @@ import org.lwjgl.opengl.GL11;
 import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.utils.PreviewTile;
@@ -63,7 +65,7 @@ public class PreviewRenderer {
         return ForgeDirection.UNKNOWN;
     }
 
-    public static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look) {
+    public static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look, int amount) {
         if (direction != ForgeDirection.UP && direction != ForgeDirection.DOWN) {
             if (direction_look == ForgeDirection.EAST) {
                 direction = rotateDirection(direction);
@@ -79,9 +81,8 @@ public class PreviewRenderer {
             }
         }
 
-        int move = 1;
-        if (GuiScreen.isCtrlKeyDown()) move = 16;
-        markedHit.moveInDirection(direction, move);
+        if (GuiScreen.isCtrlKeyDown()) amount = 16;
+        markedHit.moveInDirection(direction, amount);
     }
 
     @SubscribeEvent
@@ -135,8 +136,12 @@ public class PreviewRenderer {
                 MovingObjectPosition look = mc.objectMouseOver;
                 PlacementHelper helper = PlacementHelper.getInstance(mc.thePlayer);
                 LittleTileBlockPos pos = null;
+                int align = 1;
+                if (mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel) {
+                    align = new LittleToolHandler(mc.thePlayer.getHeldItem()).getGrid();
+                }
                 if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {
-                    pos = LittleTileBlockPos.fromMovingObjectPosition(look);
+                    pos = LittleTileBlockPos.fromMovingObjectPosition(look, align);
                 }
 
                 if (markedHit != null) pos = markedHit;
@@ -157,7 +162,8 @@ public class PreviewRenderer {
                         LittleTilesClient.pressedUp = true;
                         if (markedHit != null) moveMarkedHit(
                                 mc.thePlayer.isSneaking() ? ForgeDirection.UP : ForgeDirection.NORTH,
-                                direction_look);
+                                direction_look,
+                                align);
                         else processKey(ForgeDirection.UP);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.up)) LittleTilesClient.pressedUp = false;
 
@@ -165,19 +171,20 @@ public class PreviewRenderer {
                         LittleTilesClient.pressedDown = true;
                         if (markedHit != null) moveMarkedHit(
                                 mc.thePlayer.isSneaking() ? ForgeDirection.DOWN : ForgeDirection.SOUTH,
-                                direction_look);
+                                direction_look,
+                                align);
                         else processKey(ForgeDirection.DOWN);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.down)) LittleTilesClient.pressedDown = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.right) && !LittleTilesClient.pressedRight) {
                         LittleTilesClient.pressedRight = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.EAST, direction_look);
+                        if (markedHit != null) moveMarkedHit(ForgeDirection.EAST, direction_look, align);
                         else processKey(ForgeDirection.SOUTH);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.right)) LittleTilesClient.pressedRight = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.left) && !LittleTilesClient.pressedLeft) {
                         LittleTilesClient.pressedLeft = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.WEST, direction_look);
+                        if (markedHit != null) moveMarkedHit(ForgeDirection.WEST, direction_look, align);
                         else processKey(ForgeDirection.NORTH);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.left)) LittleTilesClient.pressedLeft = false;
 
@@ -211,14 +218,14 @@ public class PreviewRenderer {
                             } else {
                                 cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord
                                         - size.xCoord / 2D
-                                        + 1 / 16f;
+                                        + align / 16f;
                             }
                             if (comparison.biggerOrEqualY) {
                                 cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord + size.yCoord / 2D;
                             } else {
                                 cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord
                                         - size.yCoord / 2D
-                                        + 1 / 16f;
+                                        + align / 16f;
                             }
 
                             if (comparison.biggerOrEqualZ) {
@@ -226,7 +233,7 @@ public class PreviewRenderer {
                             } else {
                                 cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord
                                         - size.zCoord / 2D
-                                        + 1 / 16f;
+                                        + align / 16f;
                             }
                         }
                         Vec3 color = previewTile.getPreviewColor();

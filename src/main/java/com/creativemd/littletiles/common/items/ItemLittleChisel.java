@@ -161,6 +161,14 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         new LittleToolHandler(stack).setGrid(grid);
     }
 
+    private void selectShape(PlayerInventoryGuiData data, int shape) {
+        if (shape == -1) {
+            return;
+        }
+        ItemStack stack = data.getUsedItemStack();
+        new LittleToolHandler(stack).setShape(shape);
+    }
+
     private BlockDisplayWidget addBlockDisplay(BlockStateSyncValue syncBlock, LittleToolHandler handler, int y) {
         BlockDisplayWidget blockDisplay = new BlockDisplayWidget();
         blockDisplay.size(150, 20).pos(5, y).marginLeft(5);
@@ -235,18 +243,37 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         return flow;
     }
 
+    private DropDownMenu addShapeSelector(IntSyncValue sync, LittleToolHandler handler, int y) {
+        DropDownMenu shapePicker = new DropDownMenu();
+        shapePicker.pos(5, y).size(75, 20).marginLeft(10);
+        shapePicker.background(GuiTextures.BUTTON_CLEAN);
+
+        for (LittleTileShapeMode mode : LittleTileShapeMode.values()) {
+            int id = mode.ordinal();
+            shapePicker.addChoice(x -> sync.setIntValue(id), mode.getName());
+        }
+
+        int shape = handler.getShape().ordinal();
+        shapePicker.setSelectedIndex(shape);
+
+        return shapePicker;
+    }
+
     @Override
     public ModularPanel buildUI(PlayerInventoryGuiData data, PanelSyncManager syncManager, UISettings settings) {
         BlockStateSyncValue syncBlock = new BlockStateSyncValue((block, meta) -> selectBlock(data, block, meta));
         IntSyncValue syncGrid = SyncHandlers.intNumber(() -> 0, grid -> selectGrid(data, grid));
+        IntSyncValue syncShape = SyncHandlers.intNumber(() -> -1, shape -> selectShape(data, shape));
         syncBlock.register(syncManager, "lt_chisel_block");
         syncManager.syncValue("lt_chisel_grid", syncGrid);
+        syncManager.syncValue("lt_chisel_shape", syncShape);
 
         LittleToolHandler handler = new LittleToolHandler(data.getUsedItemStack());
 
         ModularPanel panel = ModularPanel.defaultPanel("blocks");
         panel.size(200, 300);
         panel.child(addBlockDisplay(syncBlock, handler, 75));
+        panel.child(addShapeSelector(syncShape, handler, 45));
         panel.child(addGridSelector(syncGrid, handler, 10));
         return panel;
     }

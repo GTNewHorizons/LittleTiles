@@ -21,7 +21,6 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.EmptyChunk;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -117,6 +116,8 @@ public abstract class LittleTile {
 
     public ArrayList<LittleTileBox> boundingBoxes;
 
+    private LittleTileCutoutInfo cutoutInfo = null;
+
     public AxisAlignedBB getSelectedBox() {
         if (boundingBoxes.size() > 0) {
             LittleTileBox box = boundingBoxes.get(0).copy();
@@ -209,6 +210,10 @@ public abstract class LittleTile {
                 // pos.writeToNBT(nbt);
             }
         }
+
+        if (cutoutInfo != null) {
+            cutoutInfo.writeToNBT(nbt);
+        }
     }
 
     public void loadTile(TileEntityLittleTiles te, NBTTagCompound nbt) {
@@ -246,6 +251,8 @@ public abstract class LittleTile {
                 } else coord = new LittleTileCoord(nbt);
             }
         }
+
+        cutoutInfo = LittleTileCutoutInfo.loadFromNBT(nbt);
     }
 
     // ================Placing================
@@ -351,7 +358,7 @@ public abstract class LittleTile {
     }
 
     @SideOnly(Side.CLIENT)
-    public abstract ArrayList<CubeObject> getRenderingCubes();
+    public abstract ArrayList<LittleTilesCubeObject> getRenderingCubes();
 
     @SideOnly(Side.CLIENT)
     public void renderTick(double x, double y, double z, float partialTickTime) {}
@@ -478,6 +485,14 @@ public abstract class LittleTile {
 
     public boolean isLoaded() {
         return isStructureBlock && checkForStructure();
+    }
+
+    public void setCutoutInfo(LittleTileCutoutInfo cutoutInfo) {
+        this.cutoutInfo = cutoutInfo;
+    }
+
+    public LittleTileCutoutInfo getCutoutInfo() {
+        return cutoutInfo;
     }
 
     @Deprecated

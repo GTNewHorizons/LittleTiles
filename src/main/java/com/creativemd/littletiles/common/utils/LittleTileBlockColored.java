@@ -36,8 +36,8 @@ public class LittleTileBlockColored extends LittleTileBlock {
     }
 
     @Override
-    public ArrayList<CubeObject> getRenderingCubes() {
-        ArrayList<CubeObject> cubes = super.getRenderingCubes();
+    public ArrayList<LittleTilesCubeObject> getRenderingCubes() {
+        ArrayList<LittleTilesCubeObject> cubes = super.getRenderingCubes();
         int color = this.color;
         for (CubeObject cube : cubes) {
             cube.color = color;

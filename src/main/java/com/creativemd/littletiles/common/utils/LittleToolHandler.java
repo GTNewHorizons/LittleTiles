@@ -63,4 +63,22 @@ public class LittleToolHandler {
         tag.setByte("grid", (byte) grid);
     }
 
+    public LittleTileShapeMode getShape() {
+        NBTTagCompound tag = getTag(false);
+        LittleTileCutoutInfo cutout = LittleTileCutoutInfo.loadFromNBT(tag);
+        if (cutout != null) {
+            return cutout.type;
+        }
+        int shape = 0;
+        if (tag.hasKey("shape")) {
+            shape = tag.getByte("shape");
+        }
+        return LittleTileShapeMode.values()[shape];
+    }
+
+    public void setShape(int shape) {
+        NBTTagCompound tag = getTag(true);
+        tag.setByte("shape", (byte) shape);
+    }
+
 }

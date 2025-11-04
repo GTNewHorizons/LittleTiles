@@ -14,7 +14,6 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
 
 public class LittleTileBlock extends LittleTile {
@@ -70,12 +69,13 @@ public class LittleTileBlock extends LittleTile {
     }
 
     @Override
-    public ArrayList<CubeObject> getRenderingCubes() {
-        ArrayList<CubeObject> cubes = new ArrayList<>();
+    public ArrayList<LittleTilesCubeObject> getRenderingCubes() {
+        ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
         for (com.creativemd.littletiles.common.utils.small.LittleTileBox boundingBox : boundingBoxes) {
-            CubeObject cube = boundingBox.getCube();
+            LittleTilesCubeObject cube = boundingBox.getCube();
             cube.block = block;
             cube.meta = meta;
+            cube.cutoutInfo = this.getCutoutInfo();
             cubes.add(cube);
         }
         return cubes;

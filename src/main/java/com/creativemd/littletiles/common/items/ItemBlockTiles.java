@@ -36,6 +36,7 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTile.LittleTilePosition;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
@@ -106,6 +107,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
 
+        LittleTileCutoutInfo cutoutInfo = null;
+
         if (needsTwoHits(stack)) {
             if (PreviewRenderer.firstHit == null) {
                 if (PreviewRenderer.markedHit == null) {
@@ -113,6 +116,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
                     return true;
                 }
             } else {
+                cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, PreviewRenderer.firstHit, pos);
+
                 ILittleTile littleTile = (ILittleTile) stack.getItem();
 
                 NBTTagCompound tag = (NBTTagCompound) littleTile.getLittlePreview(stack).get(0).nbt.copy();
@@ -120,6 +125,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
                 stack.stackTagCompound = tag;
                 PreviewRenderer.firstHit = null;
             }
+        } else {
+            cutoutInfo = LittleTileCutoutInfo.loadFromNBT(stack.stackTagCompound);
         }
 
         x = pos.getPosX();
@@ -133,10 +140,10 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         } else if (y == 255) {
             return false;
         } else {
-            if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
-                PacketHandler.sendPacketToServer(new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null));
+            if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) PacketHandler.sendPacketToServer(
+                    new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null, cutoutInfo));
 
-            placeBlockAt(player, stack, world, pos, helper, PreviewRenderer.markedHit != null);
+            placeBlockAt(player, stack, world, pos, helper, PreviewRenderer.markedHit != null, cutoutInfo);
 
             PreviewRenderer.markedHit = null;
 
@@ -204,7 +211,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     }
 
     public static boolean placeTiles(World world, EntityPlayer player, ArrayList<PreviewTile> previews,
-            LittleStructure structure, int x, int y, int z, ItemStack stack, ArrayList<LittleTile> unplaceableTiles) {
+            LittleStructure structure, int x, int y, int z, ItemStack stack, ArrayList<LittleTile> unplaceableTiles,
+            LittleTileCutoutInfo cutoutInfo) {
 
         HashMapList<ChunkCoordinates, PreviewTile> splitted = getSplittedTiles(previews, x, y, z);
         if (splitted == null) return false;
@@ -240,8 +248,20 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
                         TileEntityLittleTiles teLT = (TileEntityLittleTiles) te;
 
                         for (PreviewTile placeTile : placeTiles) {
+
+                            LittleTileCutoutInfo cutoutInfoCurrent = null;
+                            if (cutoutInfo != null) {
+                                LittleTileBox originalBox = previews.get(0).box;
+                                LittleTileBox currentBox = placeTile.box;
+
+                                cutoutInfoCurrent = new LittleTileCutoutInfo(cutoutInfo);
+                                cutoutInfoCurrent.pos.x += (x - coord.posX) * 16 + originalBox.minX - currentBox.minX;
+                                cutoutInfoCurrent.pos.y += (y - coord.posY) * 16 + originalBox.minY - currentBox.minY;
+                                cutoutInfoCurrent.pos.z += (z - coord.posZ) * 16 + originalBox.minZ - currentBox.minZ;
+                            }
                             LittleTile LT = placeTile.placeTile(player, stack, teLT, structure, unplaceableTiles);
                             if (LT != null) {
+                                LT.setCutoutInfo(cutoutInfoCurrent);
                                 if (!soundsToBePlayed.contains(LT.getSound())) soundsToBePlayed.add(LT.getSound());
                                 if (structure != null) {
                                     if (pos == null) {
@@ -273,7 +293,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     }
 
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
-            PlacementHelper helper, boolean customPlacement) {
+            PlacementHelper helper, boolean customPlacement, LittleTileCutoutInfo cutoutInfo) {
         ArrayList<PreviewTile> previews = helper.getPreviewTiles(stack, pos, customPlacement);
 
         LittleStructure structure = null;
@@ -293,7 +313,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         int z = pos.getPosZ();
 
         ArrayList<LittleTile> unplaceableTiles = new ArrayList<>();
-        if (placeTiles(world, player, previews, structure, x, y, z, stack, unplaceableTiles)) {
+        if (placeTiles(world, player, previews, structure, x, y, z, stack, unplaceableTiles, cutoutInfo)) {
             if (!player.capabilities.isCreativeMode) {
                 player.inventory.mainInventory[player.inventory.currentItem].stackSize--;
                 if (player.inventory.mainInventory[player.inventory.currentItem].stackSize == 0)

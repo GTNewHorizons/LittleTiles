@@ -8,51 +8,89 @@ import com.creativemd.creativecore.lib.Vector3d;
 
 public class Plane3d {
 
-    public static Plane3d WEST = new Plane3d(
+    public static final Plane3d WEST = new Plane3d(
             ForgeDirection.WEST,
             new Vector3d(0, 0, 1),
             new Vector3d(0, 1, 0),
+            new Vector3d(0, 0, 1),
+            new Vector3d(0, 1, 0),
+            false,
+            true,
             new Vector3d(0, 0, 0));
-    public static Plane3d EAST = new Plane3d(
+
+    public static final Plane3d EAST = new Plane3d(
             ForgeDirection.EAST,
             new Vector3d(0, 1, 0),
             new Vector3d(0, 0, 1),
+            new Vector3d(0, 0, 1),
+            new Vector3d(0, 1, 0),
+            true,
+            true,
             new Vector3d(1, 0, 0));
-    public static Plane3d SOUTH = new Plane3d(
+
+    public static final Plane3d SOUTH = new Plane3d(
             ForgeDirection.SOUTH,
             new Vector3d(1, 0, 0),
             new Vector3d(0, 1, 0),
+            new Vector3d(1, 0, 0),
+            new Vector3d(0, 1, 0),
+            false,
+            true,
             new Vector3d(0, 0, 1));
-    public static Plane3d NORTH = new Plane3d(
+
+    public static final Plane3d NORTH = new Plane3d(
             ForgeDirection.NORTH,
             new Vector3d(0, 1, 0),
             new Vector3d(1, 0, 0),
+            new Vector3d(1, 0, 0),
+            new Vector3d(0, 1, 0),
+            true,
+            true,
             new Vector3d(0, 0, 0));
-    public static Plane3d UP = new Plane3d(
+
+    public static final Plane3d UP = new Plane3d(
             ForgeDirection.UP,
             new Vector3d(0, 0, 1),
             new Vector3d(1, 0, 0),
+            new Vector3d(1, 0, 0),
+            new Vector3d(0, 0, 1),
+            false,
+            false,
             new Vector3d(0, 1, 0));
-    public static Plane3d DOWN = new Plane3d(
+
+    public static final Plane3d DOWN = new Plane3d(
             ForgeDirection.DOWN,
             new Vector3d(1, 0, 0),
             new Vector3d(0, 0, 1),
+            new Vector3d(1, 0, 0),
+            new Vector3d(0, 0, 1),
+            false,
+            false,
             new Vector3d(0, 0, 0));
 
     public static Plane3d[] planes = { DOWN, UP, NORTH, SOUTH, WEST, EAST };
 
     private final double A, B, C, D;
     private final Vector3d normal;
+    private final Vector3d vector1;
+    private final Vector3d vector2;
     private final Vector3d origin;
     private final Vector3d uAxis;
     private final Vector3d vAxis;
+    private final boolean flipU;
+    private final boolean flipV;
     private final ForgeDirection direction;
 
-    public Plane3d(ForgeDirection direction, Vector3d vector1, Vector3d vector2, Vector3d point) {
+    public Plane3d(ForgeDirection direction, Vector3d vector1, Vector3d vector2, Vector3d uAxis, Vector3d vAxis,
+            boolean flipU, boolean flipV, Vector3d point) {
         this.direction = direction;
         this.origin = point;
-        this.uAxis = vector1;
-        this.vAxis = vector2;
+        this.vector1 = vector1;
+        this.vector2 = vector2;
+        this.uAxis = uAxis;
+        this.vAxis = vAxis;
+        this.flipU = flipU;
+        this.flipV = flipV;
         normal = new Vector3d();
         normal.cross(vector1, vector2);
         normal.normalize();
@@ -119,12 +157,20 @@ public class Plane3d {
         return direction;
     }
 
+    public boolean isFlipU() {
+        return flipU;
+    }
+
+    public boolean isFlipV() {
+        return flipV;
+    }
+
     public Plane3d moveAlongNormal(double distance) {
         Vector3d newOrigin = new Vector3d(
                 origin.x + normal.x * distance,
                 origin.y + normal.y * distance,
                 origin.z + normal.z * distance);
-        return new Plane3d(direction, uAxis, vAxis, newOrigin);
+        return new Plane3d(direction, vector1, vector2, uAxis, vAxis, flipU, flipV, newOrigin);
     }
 
 }

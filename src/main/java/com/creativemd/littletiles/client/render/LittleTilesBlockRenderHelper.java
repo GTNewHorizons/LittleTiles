@@ -34,7 +34,7 @@ public class LittleTilesBlockRenderHelper {
     private static final ThreadLocal<ExtendedRenderBlocks> extraRendererThreadLocal = ThreadLocal
             .withInitial(ExtendedRenderBlocks::new);
 
-    private static void renderCutout(int x, int y, int z, LittleTilesCubeObject cube, IBlockAccess world) {
+    private static boolean renderCutout(int x, int y, int z, LittleTilesCubeObject cube, IBlockAccess world) {
         Mesh3d mesh = Mesh3dUtil.createMesh(
                 x,
                 y,
@@ -65,6 +65,7 @@ public class LittleTilesBlockRenderHelper {
             tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
             tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
         }
+        return !mesh.getTriangles().isEmpty();
     }
 
     public static boolean renderCubes(IBlockAccess world, ArrayList<LittleTilesCubeObject> cubes, int x, int y, int z,
@@ -84,11 +85,14 @@ public class LittleTilesBlockRenderHelper {
             if (!cube.block.canRenderInPass(pass)) {
                 continue;
             }
-            rendered = true;
             if (cube.cutoutInfo != null) {
-                renderCutout(x, y, z, cube, world);
+                if (renderCutout(x, y, z, cube, world)) {
+                    rendered = true;
+                }
                 continue;
             }
+
+            rendered = true;
 
             if (cube.block != null && cube.meta != -1) {
                 extraRenderer.clearOverrideBlockTexture();

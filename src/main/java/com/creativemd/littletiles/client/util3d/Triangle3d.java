@@ -85,6 +85,12 @@ public class Triangle3d {
 
     private static Vector2d mapTexture(Plane3d plane, Vector3d point, IIcon icon) {
         Vector2d ret = plane.mapTo2D(point);
+        if (plane.isFlipU()) {
+            ret.x = 1 - ret.x;
+        }
+        if (plane.isFlipV()) {
+            ret.y = 1 - ret.y;
+        }
         ret.x = icon.getInterpolatedU(ret.x * 16);
         ret.y = icon.getInterpolatedV(ret.y * 16);
         return ret;

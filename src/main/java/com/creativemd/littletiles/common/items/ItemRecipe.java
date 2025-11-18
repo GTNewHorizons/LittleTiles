@@ -224,8 +224,8 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
                 String id = "none";
                 if (stack.stackTagCompound.hasKey("structure"))
                     id = stack.stackTagCompound.getCompoundTag("structure").getString("id");
-                list.add("structure: " + id);
-                list.add("contains " + stack.stackTagCompound.getInteger("tiles") + " tiles");
+                list.add("Structure: " + id);
+                list.add("Contains " + stack.stackTagCompound.getInteger("tiles") + " tiles");
             }
         }
     }

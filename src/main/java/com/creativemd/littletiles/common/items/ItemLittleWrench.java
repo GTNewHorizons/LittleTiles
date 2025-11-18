@@ -31,11 +31,8 @@ public class ItemLittleWrench extends Item implements IGuiCreator {
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
-        list.add("used to create structures");
-        list.add("from recipes and");
-        list.add("create recipes from structures");
-        list.add("rightclick on a block");
-        list.add("will combine tiles");
+        list.add("Used to create structures from recipes and create recipes from structures");
+        list.add("Right Click on a block will combine tiles");
     }
 
     @Override

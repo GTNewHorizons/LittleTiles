@@ -28,9 +28,7 @@ public class ItemLittleSaw extends Item {
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
-        list.add("rightclick to increase and");
-        list.add("shift+rightclick to decrease");
-        list.add("the size of a placed tile");
+        list.add("Right Click to increase and Shift + Right Click to decrease the size of a placed tile");
     }
 
     @Override

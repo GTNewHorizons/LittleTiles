@@ -1,8 +1,8 @@
 // Add your dependencies here
 
 dependencies {
-    devOnlyNonPublishable('com.github.GTNewHorizons:NotEnoughItems:2.8.19-GTNH:dev')
-    compileOnly('com.github.GTNewHorizons:Angelica:1.0.0-beta62:dev')
-    compileOnly("com.github.GTNewHorizons:waila:1.9.2:dev") { transitive = false }
+    devOnlyNonPublishable('com.github.GTNewHorizons:NotEnoughItems:2.8.26-GTNH:dev')
+    compileOnly('com.github.GTNewHorizons:Angelica:1.0.0-beta64:dev')
+    compileOnly("com.github.GTNewHorizons:waila:1.9.7:dev") { transitive = false }
     api("com.github.GTNewHorizons:ModularUI2:2.3.5-1.7.10:dev")
 }

@@ -15,17 +15,20 @@ import net.minecraft.util.Vec3;
 import net.minecraftforge.client.event.RenderHandEvent;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -237,20 +240,56 @@ public class PreviewRenderer {
                             }
                         }
                         Vec3 color = previewTile.getPreviewColor();
-                        RenderHelper3D.renderBlock(
-                                cubeX,
-                                cubeY,
-                                cubeZ,
-                                size.xCoord,
-                                size.yCoord,
-                                size.zCoord,
-                                0,
-                                0,
-                                0,
-                                color.xCoord,
-                                color.yCoord,
-                                color.zCoord,
-                                Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5);
+
+                        LittleToolHandler toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
+                        LittleTileShapeMode shape = toolHandler.getShape();
+
+                        // Needed for block picked cutouts
+                        Vector3d cutoutSize = toolHandler.getTileSize();
+
+                        if (shape == LittleTileShapeMode.SLOPE) {
+                            cubeX -= size.xCoord / 2;
+                            cubeY -= size.yCoord / 2;
+                            cubeZ -= size.zCoord / 2;
+                        }
+
+                        if (cutoutSize == null) {
+                            cutoutSize = new Vector3d(size.xCoord, size.yCoord, size.zCoord);
+                        }
+                        if (shape == LittleTileShapeMode.BOX) {
+                            RenderHelper3D.renderBlock(
+                                    cubeX,
+                                    cubeY,
+                                    cubeZ,
+                                    size.xCoord,
+                                    size.yCoord,
+                                    size.zCoord,
+                                    0,
+                                    0,
+                                    0,
+                                    color.xCoord,
+                                    color.yCoord,
+                                    color.zCoord,
+                                    Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5);
+                        } else {
+                            LittleTilesBlockRenderHelper.renderMesh(
+                                    cubeX,
+                                    cubeY,
+                                    cubeZ,
+                                    cutoutSize,
+                                    0,
+                                    color.xCoord,
+                                    color.yCoord,
+                                    color.zCoord,
+                                    Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5,
+                                    toolHandler.getTileOriginal(), // Needed for block picked cutouts
+                                    new Vector3i(),
+                                    new Vector3i(
+                                            (int) Math.round(size.xCoord * 16),
+                                            (int) Math.round(size.yCoord * 16),
+                                            (int) Math.round(size.zCoord * 16)));
+                        }
+
                         GL11.glPopMatrix();
                     }
 

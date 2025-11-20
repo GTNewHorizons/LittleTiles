@@ -5,6 +5,10 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
+import org.joml.Vector3i;
+
+import com.creativemd.creativecore.lib.Vector3d;
+
 public class LittleToolHandler {
 
     private final ItemStack stack;
@@ -81,4 +85,25 @@ public class LittleToolHandler {
         tag.setByte("shape", (byte) shape);
     }
 
+    public Vector3i getTileOriginal() {
+        NBTTagCompound nbt = getTag(false);
+        if (!nbt.hasKey("cutoutPosX")) {
+            return new Vector3i();
+        }
+        int cutoutPosX = nbt.getInteger("cutoutPosX");
+        int cutoutPosY = nbt.getInteger("cutoutPosY");
+        int cutoutPosZ = nbt.getInteger("cutoutPosZ");
+        return new Vector3i(cutoutPosX, cutoutPosY, cutoutPosZ);
+    }
+
+    public Vector3d getTileSize() {
+        NBTTagCompound nbt = getTag(false);
+        if (!nbt.hasKey("cutoutSizeX")) {
+            return null;
+        }
+        int cutoutSizeX = nbt.getInteger("cutoutSizeX");
+        int cutoutSizeY = nbt.getInteger("cutoutSizeY");
+        int cutoutSizeZ = nbt.getInteger("cutoutSizeZ");
+        return new Vector3d(cutoutSizeX / 16.0, cutoutSizeY / 16.0, cutoutSizeZ / 16.0);
+    }
 }

@@ -12,6 +12,7 @@ import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector2d;
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
@@ -23,6 +24,8 @@ import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
+import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 
 import cpw.mods.fml.relauncher.Side;
@@ -33,6 +36,28 @@ public class LittleTilesBlockRenderHelper {
 
     private static final ThreadLocal<ExtendedRenderBlocks> extraRendererThreadLocal = ThreadLocal
             .withInitial(ExtendedRenderBlocks::new);
+
+    public static void renderMesh(double x, double y, double z, Vector3d cutoutScale, int orientation, double red,
+            double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax) {
+        LittleTileCutoutInfo cutoutInfo = new LittleTileCutoutInfo();
+        cutoutInfo.type = LittleTileShapeMode.SLOPE;
+        Mesh3d mesh = Mesh3dUtil
+                .createMesh(cutoutInfo, cutoutScale, new Vector3d(), posCutout, posSubMin, posSubMax, null, 0);
+
+        GL11.glPushMatrix();
+        GL11.glTranslated(x, y, z);
+        GL11.glColor4d(red, green, blue, alpha);
+
+        for (Triangle3d triangle : mesh.getTriangles()) {
+            GL11.glBegin(GL11.GL_TRIANGLES);
+            GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
+            GL11.glVertex3d(triangle.getP2().x, triangle.getP2().y, triangle.getP2().z);
+            GL11.glVertex3d(triangle.getP3().x, triangle.getP3().y, triangle.getP3().z);
+            GL11.glEnd();
+        }
+
+        GL11.glPopMatrix();
+    }
 
     private static boolean renderCutout(int x, int y, int z, LittleTilesCubeObject cube, IBlockAccess world) {
         Mesh3d mesh = Mesh3dUtil.createMesh(

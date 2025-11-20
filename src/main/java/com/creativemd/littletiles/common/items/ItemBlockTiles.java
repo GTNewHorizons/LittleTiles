@@ -27,6 +27,8 @@ import com.creativemd.creativecore.common.utils.WorldUtils;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
+import com.creativemd.littletiles.client.util3d.Mesh3d;
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
@@ -258,7 +260,25 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
                                 cutoutInfoCurrent.pos.x += (x - coord.posX) * 16 + originalBox.minX - currentBox.minX;
                                 cutoutInfoCurrent.pos.y += (y - coord.posY) * 16 + originalBox.minY - currentBox.minY;
                                 cutoutInfoCurrent.pos.z += (z - coord.posZ) * 16 + originalBox.minZ - currentBox.minZ;
+
+                                Mesh3d mesh = Mesh3dUtil.createMesh(
+                                        0,
+                                        0,
+                                        0,
+                                        cutoutInfoCurrent,
+                                        currentBox.minX / 16.0,
+                                        currentBox.minY / 16.0,
+                                        currentBox.minZ / 16.0,
+                                        currentBox.maxX / 16.0,
+                                        currentBox.maxY / 16.0,
+                                        currentBox.maxZ / 16.0,
+                                        null,
+                                        0);
+                                if (mesh.getTriangles().isEmpty()) {
+                                    continue;
+                                }
                             }
+
                             LittleTile LT = placeTile.placeTile(player, stack, teLT, structure, unplaceableTiles);
                             if (LT != null) {
                                 LT.setCutoutInfo(cutoutInfoCurrent);

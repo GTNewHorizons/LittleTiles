@@ -4,7 +4,9 @@ import net.minecraft.block.Block;
 import net.minecraft.util.IIcon;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.joml.Matrix3f;
 import org.joml.Vector2d;
+import org.joml.Vector3f;
 
 import com.creativemd.creativecore.lib.Vector3d;
 
@@ -103,5 +105,17 @@ public class Triangle3d {
         tex1 = mapTexture(plane, p1, icon);
         tex2 = mapTexture(plane, p2, icon);
         tex3 = mapTexture(plane, p3, icon);
+    }
+
+    private static Vector3d rotateVector(Vector3d v, Matrix3f matrix) {
+        Vector3f result = matrix.transform(new Vector3f((float) v.x, (float) v.y, (float) v.z));
+        return new Vector3d(result.x, result.y, result.z);
+    }
+
+    public void rotate(int orientation) {
+        Matrix3f matrix = OrientationMapper.fromId(orientation);
+        p1 = rotateVector(p1, matrix);
+        p2 = rotateVector(p2, matrix);
+        p3 = rotateVector(p3, matrix);
     }
 }

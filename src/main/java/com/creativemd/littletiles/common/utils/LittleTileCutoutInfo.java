@@ -38,6 +38,7 @@ public class LittleTileCutoutInfo {
         LittleTileBlockPos.Subtraction subtract = end.subtract(stack, start);
         info.size = new Vector3i(subtract.x, subtract.y, subtract.z);
         info.pos = new Vector3i();
+        info.orientation = handler.getOrientation();
 
         return info;
     }

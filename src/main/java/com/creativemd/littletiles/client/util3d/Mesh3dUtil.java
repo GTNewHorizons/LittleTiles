@@ -27,7 +27,16 @@ public class Mesh3dUtil {
         posSubMax.x = (int) Math.round(maxX * 16);
         posSubMax.y = (int) Math.round(maxY * 16);
         posSubMax.z = (int) Math.round(maxZ * 16);
-        return Mesh3dUtil.createMesh(cutoutInfo, cutoutScale, pos, cutoutInfo.pos, posSubMin, posSubMax, block, meta);
+        return Mesh3dUtil.createMesh(
+                cutoutInfo,
+                cutoutScale,
+                pos,
+                cutoutInfo.pos,
+                posSubMin,
+                posSubMax,
+                block,
+                meta,
+                cutoutInfo.orientation);
     }
 
     private static Mesh3d createSlopeMesh() {
@@ -50,13 +59,17 @@ public class Mesh3dUtil {
     }
 
     public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3d cutoutScale, Vector3d pos,
-            Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax, Block block, int meta) {
+            Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
         Mesh3d mesh;
         if (cutoutInfo.type == LittleTileShapeMode.SLOPE) {
             mesh = createSlopeMesh();
         } else {
             throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
         }
+
+        mesh.translate(new Vector3d(-0.5, -0.5, -0.5));
+        mesh.rotate(orientation);
+        mesh.translate(new Vector3d(0.5, 0.5, 0.5));
 
         mesh.scale(cutoutScale);
         mesh.translate(posCutout);

@@ -169,9 +169,14 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         new LittleToolHandler(stack).setShape(shape);
     }
 
-    private BlockDisplayWidget addBlockDisplay(BlockStateSyncValue syncBlock, LittleToolHandler handler, int y) {
+    private BlockDisplayWidget addBlockDisplay(BlockStateSyncValue syncBlock, LittleToolHandler handler, int y,
+            boolean isClient) {
         BlockDisplayWidget blockDisplay = new BlockDisplayWidget();
         blockDisplay.size(150, 20).pos(5, y).marginLeft(5);
+
+        if (!isClient) {
+            return blockDisplay;
+        }
 
         List<Block> blocks = getAllBlocks();
         for (final Block block : blocks) {
@@ -272,7 +277,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
 
         ModularPanel panel = ModularPanel.defaultPanel("blocks");
         panel.size(200, 300);
-        panel.child(addBlockDisplay(syncBlock, handler, 75));
+        panel.child(addBlockDisplay(syncBlock, handler, 75, syncManager.isClient()));
         panel.child(addShapeSelector(syncShape, handler, 45));
         panel.child(addGridSelector(syncGrid, handler, 10));
         return panel;

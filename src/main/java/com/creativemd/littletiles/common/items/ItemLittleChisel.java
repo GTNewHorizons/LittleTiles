@@ -196,7 +196,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
     private Flow addGridSelector(IntSyncValue syncGrid, LittleToolHandler handler, int y) {
         Flow flow = new Flow(GuiAxis.X);
         flow.pos(5, y).size(100, 20);
-        TextWidget labelGrid = IKey.str("Grid:").asWidget().marginLeft(5).width(40);
+        TextWidget<?> labelGrid = IKey.str("Grid:").asWidget().marginLeft(5).width(40);
         DropDownMenu gridPicker = new DropDownMenu();
         gridPicker.marginLeft(5).marginRight(5).size(40, 20);
         gridPicker.background(GuiTextures.BUTTON_CLEAN);

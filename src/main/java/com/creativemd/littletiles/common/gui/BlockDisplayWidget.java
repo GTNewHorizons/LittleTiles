@@ -144,7 +144,7 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
         private int currentIndex = -1;
         ScrollWidget<?> scroll = new ScrollWidget<>(new VerticalScrollData());
         TextFieldWidget text_search = new TextFieldWidget();
-        TextWidget label_search = new TextWidget(IKey.lang("key.littletiles.search"));
+        TextWidget<?> label_search = IKey.lang("key.littletiles.search").asWidget();
         ParentWidget<?> panel = new ParentWidget<>();
         private final List<ItemStack> stacks;
         int visibleSize = 0;

@@ -98,15 +98,18 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
         Area area = getArea();
         WidgetTheme theme = getWidgetTheme(context.getTheme()).getTheme();
         int smallerSide = Math.min(area.width, area.height);
-        if (menu.getSelectedItem() != null) {
-            IWidget child = menu.getSelectedItem().getChildren().get(0);
-            menu.getSelectedItem().setEnabled(true);
+        IWidget selectedItem = menu.getSelectedItem();
+        if (selectedItem != null) {
+            IWidget child = selectedItem.getChildren().get(0);
+            boolean oldEnabled = selectedItem.isEnabled();
+            selectedItem.setEnabled(true);
             child.drawBackground(context, widgetTheme);
             child.draw(context, widgetTheme);
             child.drawForeground(context);
             ItemStack stack = stacks.get(getSelectedIndex());
             IKey name = IKey.str(stack.getDisplayName());
             name.draw(context, 25, 0, 0, area.height, theme);
+            selectedItem.setEnabled(oldEnabled);
         } else {
             NONE.draw(context, 0, 0, area.width, area.height, theme);
         }

@@ -137,16 +137,6 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         return ret;
     }
 
-    private List<Block> getAllBlocks() {
-        List<Block> ret = new ArrayList<>();
-        for (Object block : Block.blockRegistry) {
-            if (BlockValidator.isBlockValid((Block) block)) {
-                ret.add((Block) block);
-            }
-        }
-        return ret;
-    }
-
     private void selectBlock(PlayerInventoryGuiData data, Block block, int meta) {
         if (block == Blocks.air) return;
         ItemStack stack = data.getUsedItemStack();
@@ -169,29 +159,12 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         new LittleToolHandler(stack).setShape(shape);
     }
 
-    private BlockDisplayWidget addBlockDisplay(BlockStateSyncValue syncBlock, LittleToolHandler handler, int y,
-            boolean isClient) {
-        BlockDisplayWidget blockDisplay = new BlockDisplayWidget();
+    private BlockDisplayWidget addBlockDisplay(PanelSyncManager syncManager, BlockStateSyncValue syncBlock,
+            LittleToolHandler handler, int y) {
+        BlockDisplayWidget blockDisplay = new BlockDisplayWidget(syncManager, syncBlock);
         blockDisplay.size(150, 20).pos(5, y).marginLeft(5);
 
-        if (!isClient) {
-            return blockDisplay;
-        }
-
-        List<Block> blocks = getAllBlocks();
-        for (final Block block : blocks) {
-            Item item = new ItemStack(block).getItem();
-            if (item == null) {
-                continue;
-            }
-            List<ItemStack> list = new ArrayList<>();
-            block.getSubBlocks(item, block.getCreativeTabToDisplayOn(), list);
-
-            for (ItemStack stack : list) {
-                final int meta = stack.getItemDamage();
-                blockDisplay.addChoice((x) -> syncBlock.setValue(block, meta), stack);
-            }
-        }
+        blockDisplay.addAllBlocks(BlockValidator::isBlockValid);
 
         blockDisplay.setSelectedStack(handler.getStack());
 
@@ -277,7 +250,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
 
         ModularPanel panel = ModularPanel.defaultPanel("blocks");
         panel.size(200, 300);
-        panel.child(addBlockDisplay(syncBlock, handler, 75, syncManager.isClient()));
+        panel.child(addBlockDisplay(syncManager, syncBlock, handler, 75));
         panel.child(addShapeSelector(syncShape, handler, 45));
         panel.child(addGridSelector(syncGrid, handler, 10));
         return panel;

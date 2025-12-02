@@ -145,6 +145,7 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
         ParentWidget<?> panel = new ParentWidget<>();
         private final List<ItemStack> stacks;
         int visibleSize = 0;
+        private String lastFilter;
 
         public DropDownWrapper(List<ItemStack> stacks) {
             this.stacks = stacks;
@@ -167,6 +168,10 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
         public void updateFilter() {
             visibleSize = 0;
             String str_search = text_search.getText().toLowerCase();
+            if (lastFilter != null && !lastFilter.equals(str_search)) {
+                scroll.getScrollArea().getScrollY().scrollTo(scroll.getScrollArea(), 0);
+            }
+            lastFilter = str_search;
             for (int i = 0; i < children.size(); i++) {
                 ButtonWidget<?> child = children.get(i);
                 ItemStack stack = stacks.get(i);

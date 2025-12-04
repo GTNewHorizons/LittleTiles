@@ -276,8 +276,6 @@ public abstract class LittleTile {
 
     // ================Destroying================
 
-    public void onDestoryed() {}
-
     public void destroy() {
         if (isStructureBlock) {
             if (!te.getWorldObj().isRemote && isLoaded()) structure.onLittleTileDestory();

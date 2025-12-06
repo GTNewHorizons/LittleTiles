@@ -85,9 +85,6 @@ public class TileEntityLittleTiles extends TileEntity {
 
     public void updateNeighbor() {
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) updateRender();
-        for (LittleTile tile : tiles) {
-            tile.onNeighborChangeInside();
-        }
         worldObj.notifyBlockChange(xCoord, yCoord, zCoord, LittleTiles.blockTile);
     }
 

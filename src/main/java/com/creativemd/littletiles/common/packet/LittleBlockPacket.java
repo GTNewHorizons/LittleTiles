@@ -1,7 +1,6 @@
 package com.creativemd.littletiles.common.packet;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -113,10 +112,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
                         // littleEntity.removeTile(tile);
                         if (!player.capabilities.isCreativeMode)
                             WorldUtils.dropItem(player.worldObj, tile.getDrops(), x, y, z);
-                        List<LittleTile> tiles = littleEntity.getTiles();
-                        for (LittleTile littleTile : tiles) {
-                            littleTile.onNeighborChangeInside();
-                        }
                         littleEntity.update();
                         break;
                     case 2:

@@ -259,7 +259,7 @@ public abstract class LittleTile {
 
     /** stack may be null **/
     public void onPlaced(EntityPlayer player, ItemStack stack) {
-        onNeighborChangeInside();
+
     }
 
     public void updateCorner() {
@@ -275,8 +275,6 @@ public abstract class LittleTile {
     }
 
     // ================Destroying================
-
-    public void onDestoryed() {}
 
     public void destroy() {
         if (isStructureBlock) {
@@ -333,18 +331,6 @@ public abstract class LittleTile {
     }
 
     public abstract ItemStack getDrop();
-
-    // ================Notifcations/Events================
-
-    public void onNeighborChangeOutside() {
-        onNeighborChange();
-    }
-
-    public void onNeighborChangeInside() {
-        onNeighborChange();
-    }
-
-    public void onNeighborChange() {}
 
     // ================Rendering================
 

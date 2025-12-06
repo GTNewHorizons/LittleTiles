@@ -72,7 +72,7 @@ public class GuiTileViewer extends GuiControl {
         }
 
         double sizeX = maxX - minX;
-        double sizeY = maxY - minZ;
+        double sizeY = maxY - minY;
         double sizeZ = maxZ - minZ;
 
         switch (axisDirection) {

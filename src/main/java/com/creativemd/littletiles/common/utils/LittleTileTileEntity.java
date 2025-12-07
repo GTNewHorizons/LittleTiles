@@ -119,14 +119,6 @@ public class LittleTileTileEntity extends LittleTileBlock {
     }
 
     @Override
-    public void updateEntity() {
-        if (tileEntity != null) {
-            if (tileEntity.getWorldObj() == null) tileEntity.setWorldObj(te.getWorldObj());
-            tileEntity.updateEntity();
-        }
-    }
-
-    @Override
     @SideOnly(Side.CLIENT)
     public void renderTick(double x, double y, double z, float partialTickTime) {
         if (tileEntity != null) {

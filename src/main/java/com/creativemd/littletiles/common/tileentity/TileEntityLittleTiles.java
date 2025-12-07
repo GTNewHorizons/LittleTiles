@@ -70,6 +70,9 @@ public class TileEntityLittleTiles extends TileEntity {
         if (worldObj != null) {
             update();
             updateNeighbor();
+            if (!worldObj.isRemote && tiles.isEmpty()) {
+                worldObj.setBlockToAir(xCoord, yCoord, zCoord);
+            }
         }
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) updateCustomRenderer();
 
@@ -301,14 +304,6 @@ public class TileEntityLittleTiles extends TileEntity {
         worldObj.markBlockRangeForRenderUpdate(xCoord, yCoord, zCoord, xCoord, yCoord, zCoord);
     }
 
-    @Override
-    public void updateEntity() {
-        for (LittleTile tile : tiles) {
-            tile.updateEntity();
-        }
-        if (!worldObj.isRemote && tiles.size() == 0) worldObj.setBlockToAir(xCoord, yCoord, zCoord);
-    }
-
     public ChunkCoordinates getCoord() {
         return new ChunkCoordinates(xCoord, yCoord, zCoord);
     }
@@ -402,5 +397,10 @@ public class TileEntityLittleTiles extends TileEntity {
         lastMaxLightValue = light;
         needsLightUpdate = false;
         return light;
+    }
+
+    @Override
+    public boolean canUpdate() {
+        return false;
     }
 }

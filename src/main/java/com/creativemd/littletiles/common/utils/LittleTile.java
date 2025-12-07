@@ -352,23 +352,6 @@ public abstract class LittleTile {
 
     public abstract Block.SoundType getSound();
 
-    // ================Tick================
-
-    public static final int ticksBetweenRefresh = 1200;
-
-    public int ticks = 0;
-
-    public void updateEntity() {
-        ticks++;
-        if (ticks > ticksBetweenRefresh) {
-            ticks = 0;
-            if (isStructureBlock && isMainBlock && structure.tilesToLoad != null) {
-                // System.out.println("Loading structure x=" + te.xCoord + " y=" + te.yCoord + " z=" + te.zCoord + "");
-                structure.loadTiles();
-            }
-        }
-    }
-
     // ================Interaction================
 
     protected abstract boolean canSawResize(ForgeDirection direction, EntityPlayer player);

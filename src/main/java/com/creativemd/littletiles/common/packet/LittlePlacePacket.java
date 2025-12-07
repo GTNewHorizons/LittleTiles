@@ -65,6 +65,12 @@ public class LittlePlacePacket extends CreativeCorePacket {
             buf.writeInt(cutoutInfo.pos.y);
             buf.writeInt(cutoutInfo.pos.z);
             buf.writeByte(cutoutInfo.orientation);
+            buf.writeByte(cutoutInfo.thickness);
+            buf.writeByte(cutoutInfo.faceStart.ordinal());
+            buf.writeByte(cutoutInfo.faceEnd.ordinal());
+            buf.writeBoolean(cutoutInfo.negX);
+            buf.writeBoolean(cutoutInfo.negY);
+            buf.writeBoolean(cutoutInfo.negZ);
         }
     }
 
@@ -92,6 +98,12 @@ public class LittlePlacePacket extends CreativeCorePacket {
             int cutoutPosZ = buf.readInt();
             this.cutoutInfo.pos = new Vector3i(cutoutPosX, cutoutPosY, cutoutPosZ);
             this.cutoutInfo.orientation = buf.readByte();
+            this.cutoutInfo.thickness = buf.readByte();
+            this.cutoutInfo.faceStart = ForgeDirection.values()[buf.readByte()];
+            this.cutoutInfo.faceEnd = ForgeDirection.values()[buf.readByte()];
+            this.cutoutInfo.negX = buf.readBoolean();
+            this.cutoutInfo.negY = buf.readBoolean();
+            this.cutoutInfo.negZ = buf.readBoolean();
         }
     }
 

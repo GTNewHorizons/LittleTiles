@@ -12,6 +12,7 @@ import org.joml.Vector3i;
 
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.OrientationMapper;
+import com.creativemd.littletiles.client.util3d.Plane3d;
 
 public class LittleToolHandler {
 
@@ -109,6 +110,19 @@ public class LittleToolHandler {
         }
     }
 
+    public static ForgeDirection getDirectionForNormal(Vector3d normal) {
+        Plane3d ret = null;
+        double biggestDot = -1;
+        for (Plane3d plane : Plane3d.planes) {
+            double dot = plane.getNormal().dot(normal);
+            if (dot > biggestDot) {
+                biggestDot = dot;
+                ret = plane;
+            }
+        }
+        return ret.getDirection();
+    }
+
     // Handles rotation for a cutout. Only 90 degrees and only one axis.
     public void handleRotation(ForgeDirection direction, NBTTagCompound old) {
         // Get rotation the user requested
@@ -176,6 +190,33 @@ public class LittleToolHandler {
             nbt.setInteger("cutoutSizeX", cutoutSizeX);
             nbt.setInteger("cutoutSizeY", cutoutSizeY);
             nbt.setInteger("cutoutSizeZ", cutoutSizeZ);
+
+            boolean negX = nbt.getBoolean("cutoutNegX");
+            boolean negY = nbt.getBoolean("cutoutNegY");
+            boolean negZ = nbt.getBoolean("cutoutNegZ");
+
+            Vector3f negVec = new Vector3f(negX ? -1 : 1, negY ? -1 : 1, negZ ? -1 : 1);
+            negVec = rotation.transform(negVec);
+            negX = negVec.x < 0;
+            negY = negVec.y < 0;
+            negZ = negVec.z < 0;
+
+            nbt.setBoolean("cutoutNegX", negX);
+            nbt.setBoolean("cutoutNegY", negY);
+            nbt.setBoolean("cutoutNegZ", negZ);
+
+            int faceStartI = nbt.getByte("cutoutFaceStart");
+            int faceEndI = nbt.getByte("cutoutFaceEnd");
+            Vector3d faceStart = Plane3d.planes[faceStartI].getNormal();
+            Vector3d faceEnd = Plane3d.planes[faceEndI].getNormal();
+
+            faceStart = new Vector3d(rotation.transform(faceStart.toVector3f()));
+            faceEnd = new Vector3d(rotation.transform(faceEnd.toVector3f()));
+
+            faceStartI = getDirectionForNormal(faceStart).ordinal();
+            faceEndI = getDirectionForNormal(faceEnd).ordinal();
+            nbt.setByte("cutoutFaceStart", (byte) faceStartI);
+            nbt.setByte("cutoutFaceEnd", (byte) faceEndI);
         }
     }
 

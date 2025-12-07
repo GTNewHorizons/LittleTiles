@@ -20,6 +20,7 @@ import com.cleanroommc.modularui.api.IGuiHolder;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.drawable.GuiTextures;
+import com.cleanroommc.modularui.drawable.text.DynamicKey;
 import com.cleanroommc.modularui.factory.PlayerInventoryGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -42,6 +43,7 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
@@ -170,6 +172,14 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         new LittleToolHandler(stack).setShape(shape);
     }
 
+    private void selectPlaceMode(PlayerInventoryGuiData data, int placeMode) {
+        if (placeMode == -1) {
+            return;
+        }
+        ItemStack stack = data.getUsedItemStack();
+        new LittleToolHandler(stack).setPlaceMode(placeMode);
+    }
+
     private BlockDisplayWidget addBlockDisplay(PanelSyncManager syncManager, BlockStateSyncValue syncBlock,
             LittleToolHandler handler, int y) {
         BlockDisplayWidget blockDisplay = new BlockDisplayWidget(syncManager, syncBlock);
@@ -248,22 +258,50 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         return shapePicker;
     }
 
+    private Flow addPlaceModeSelector(IntSyncValue sync, LittleToolHandler handler, int y) {
+        Flow flow = new Flow(GuiAxis.X);
+        flow.pos(5, y).size(120, 40);
+
+        DropDownMenu placeModePicker = new DropDownMenu();
+        placeModePicker.size(90, 30).marginLeft(10);
+        placeModePicker.background(GuiTextures.BUTTON_CLEAN);
+
+        IKey placeModeInfoKey = new DynamicKey(() -> IKey.str(handler.getPlaceMode().getInfo()));
+
+        for (LittleTilePlaceMode mode : LittleTilePlaceMode.values()) {
+            int id = mode.ordinal();
+            placeModePicker.addChoice(x -> { sync.setIntValue(id); }, mode.getName());
+        }
+
+        int placeMode = handler.getPlaceMode().ordinal();
+        placeModePicker.setSelectedIndex(placeMode);
+
+        flow.child(placeModePicker);
+        flow.child(placeModeInfoKey.asWidget().marginLeft(10));
+
+        return flow;
+    }
+
     @Override
     public ModularPanel buildUI(PlayerInventoryGuiData data, PanelSyncManager syncManager, UISettings settings) {
         BlockStateSyncValue syncBlock = new BlockStateSyncValue((block, meta) -> selectBlock(data, block, meta));
         IntSyncValue syncGrid = SyncHandlers.intNumber(() -> 0, grid -> selectGrid(data, grid));
         IntSyncValue syncShape = SyncHandlers.intNumber(() -> -1, shape -> selectShape(data, shape));
+        IntSyncValue syncPlaceMode = SyncHandlers.intNumber(() -> -1, placeMode -> selectPlaceMode(data, placeMode));
         syncBlock.register(syncManager, "lt_chisel_block");
         syncManager.syncValue("lt_chisel_grid", syncGrid);
         syncManager.syncValue("lt_chisel_shape", syncShape);
+        syncManager.syncValue("lt_chisel_place_mode", syncPlaceMode);
 
         LittleToolHandler handler = new LittleToolHandler(data.getUsedItemStack());
 
         ModularPanel panel = ModularPanel.defaultPanel("blocks");
-        panel.size(200, 300);
-        panel.child(addBlockDisplay(syncManager, syncBlock, handler, 75));
-        panel.child(addShapeSelector(syncShape, handler, 45));
-        panel.child(addGridSelector(syncGrid, handler, 10));
+
+        panel.size(250, 300);
+        panel.child(addBlockDisplay(syncManager, syncBlock, handler, 125));
+        panel.child(addShapeSelector(syncShape, handler, 95));
+        panel.child(addGridSelector(syncGrid, handler, 60));
+        panel.child(addPlaceModeSelector(syncPlaceMode, handler, 10));
         return panel;
     }
 }

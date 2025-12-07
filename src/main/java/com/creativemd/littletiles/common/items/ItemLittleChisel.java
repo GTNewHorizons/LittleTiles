@@ -37,7 +37,14 @@ import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.gui.BlockDisplayWidget;
 import com.creativemd.littletiles.common.gui.TextButtonWidget;
 import com.creativemd.littletiles.common.structure.LittleStructure;
-import com.creativemd.littletiles.common.utils.*;
+import com.creativemd.littletiles.common.utils.BlockStateSyncValue;
+import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTileBlock;
+import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
+import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTilePreview;
+import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
+import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
 import cpw.mods.fml.relauncher.Side;

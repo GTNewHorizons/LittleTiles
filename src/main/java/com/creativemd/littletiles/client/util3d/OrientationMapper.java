@@ -1,8 +1,9 @@
 package com.creativemd.littletiles.client.util3d;
 
-import static com.cleanroommc.modularui.utils.MathUtils.m;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.joml.Matrix3f;
 

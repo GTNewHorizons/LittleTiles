@@ -98,15 +98,18 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
         Area area = getArea();
         WidgetTheme theme = getWidgetTheme(context.getTheme()).getTheme();
         int smallerSide = Math.min(area.width, area.height);
-        if (menu.getSelectedItem() != null) {
-            IWidget child = menu.getSelectedItem().getChildren().get(0);
-            menu.getSelectedItem().setEnabled(true);
+        IWidget selectedItem = menu.getSelectedItem();
+        if (selectedItem != null) {
+            IWidget child = selectedItem.getChildren().get(0);
+            boolean oldEnabled = selectedItem.isEnabled();
+            selectedItem.setEnabled(true);
             child.drawBackground(context, widgetTheme);
             child.draw(context, widgetTheme);
             child.drawForeground(context);
             ItemStack stack = stacks.get(getSelectedIndex());
             IKey name = IKey.str(stack.getDisplayName());
             name.draw(context, 25, 0, 0, area.height, theme);
+            selectedItem.setEnabled(oldEnabled);
         } else {
             NONE.draw(context, 0, 0, area.width, area.height, theme);
         }
@@ -141,10 +144,11 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
         private int currentIndex = -1;
         ScrollWidget<?> scroll = new ScrollWidget<>(new VerticalScrollData());
         TextFieldWidget text_search = new TextFieldWidget();
-        TextWidget label_search = new TextWidget(IKey.lang("key.littletiles.search"));
+        TextWidget<?> label_search = IKey.lang("key.littletiles.search").asWidget();
         ParentWidget<?> panel = new ParentWidget<>();
         private final List<ItemStack> stacks;
         int visibleSize = 0;
+        private String lastFilter;
 
         public DropDownWrapper(List<ItemStack> stacks) {
             this.stacks = stacks;
@@ -167,6 +171,10 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
         public void updateFilter() {
             visibleSize = 0;
             String str_search = text_search.getText().toLowerCase();
+            if (lastFilter != null && !lastFilter.equals(str_search)) {
+                scroll.getScrollArea().getScrollY().scrollTo(scroll.getScrollArea(), 0);
+            }
+            lastFilter = str_search;
             for (int i = 0; i < children.size(); i++) {
                 ButtonWidget<?> child = children.get(i);
                 ItemStack stack = stacks.get(i);

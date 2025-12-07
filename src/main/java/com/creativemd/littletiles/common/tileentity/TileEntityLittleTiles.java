@@ -136,8 +136,8 @@ public class TileEntityLittleTiles extends TileEntity {
     /** Used for placing a tile and can be used if a "cable" can connect to a direction */
     public boolean isSpaceForLittleTile(AxisAlignedBB alignedBB, LittleTile ignoreTile) {
         for (LittleTile tile : tiles) {
-            for (int j = 0; j < tile.boundingBoxes.size(); j++) {
-                if (ignoreTile != tile && alignedBB.intersectsWith(tile.boundingBoxes.get(j).getBox())) return false;
+            if (tile.boundingBox != null) {
+                if (ignoreTile != tile && alignedBB.intersectsWith(tile.boundingBox.getBox())) return false;
             }
 
         }
@@ -246,9 +246,9 @@ public class TileEntityLittleTiles extends TileEntity {
     public MovingObjectPosition getMoving(Vec3 pos, Vec3 look, boolean loadTile) {
         MovingObjectPosition hit = null;
         for (LittleTile tile : tiles) {
-            for (int j = 0; j < tile.boundingBoxes.size(); j++) {
-                MovingObjectPosition Temphit = tile.boundingBoxes.get(j).getBox()
-                        .getOffsetBoundingBox(xCoord, yCoord, zCoord).calculateIntercept(pos, look);
+            if (tile.boundingBox != null) {
+                MovingObjectPosition Temphit = tile.boundingBox.getBox().getOffsetBoundingBox(xCoord, yCoord, zCoord)
+                        .calculateIntercept(pos, look);
                 if (Temphit != null) {
                     if (hit == null || hit.hitVec.distanceTo(pos) > Temphit.hitVec.distanceTo(pos)) {
                         hit = Temphit;
@@ -332,14 +332,13 @@ public class TileEntityLittleTiles extends TileEntity {
                         continue;
                     }
 
-                    if (i != j && tiles.get(i).boundingBoxes.size() == 1
-                            && tiles.get(j).boundingBoxes.size() == 1
+                    if (i != j && tiles.get(i).boundingBox != null
+                            && tiles.get(j).boundingBox != null
                             && tiles.get(i).canBeCombined(tiles.get(j))
                             && tiles.get(j).canBeCombined(tiles.get(i))) {
-                        LittleTileBox box = tiles.get(i).boundingBoxes.get(0)
-                                .combineBoxes(tiles.get(j).boundingBoxes.get(0));
+                        LittleTileBox box = tiles.get(i).boundingBox.combineBoxes(tiles.get(j).boundingBox);
                         if (box != null) {
-                            tiles.get(i).boundingBoxes.set(0, box);
+                            tiles.get(i).boundingBox = box;
                             tiles.get(i).combineTiles(tiles.get(j));
                             tiles.get(i).updateCorner();
                             tiles.remove(j);
@@ -363,14 +362,13 @@ public class TileEntityLittleTiles extends TileEntity {
             while (i < tiles.size()) {
                 int j = 0;
                 while (j < tiles.size()) {
-                    if (i != j && tiles.get(i).boundingBoxes.size() == 1
-                            && tiles.get(j).boundingBoxes.size() == 1
+                    if (i != j && tiles.get(i).boundingBox != null
+                            && tiles.get(j).boundingBox != null
                             && tiles.get(i).canBeCombined(tiles.get(j))
                             && tiles.get(j).canBeCombined(tiles.get(i))) {
-                        LittleTileBox box = tiles.get(i).boundingBoxes.get(0)
-                                .combineBoxes(tiles.get(j).boundingBoxes.get(0));
+                        LittleTileBox box = tiles.get(i).boundingBox.combineBoxes(tiles.get(j).boundingBox);
                         if (box != null) {
-                            tiles.get(i).boundingBoxes.set(0, box);
+                            tiles.get(i).boundingBox = box;
                             tiles.get(i).combineTiles(tiles.get(j));
                             tiles.get(i).updateCorner();
                             tiles.remove(j);

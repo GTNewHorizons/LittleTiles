@@ -64,14 +64,14 @@ public class LittleTileBlock extends LittleTile {
         ItemStack stack = new ItemStack(LittleTiles.blockTile);
         stack.stackTagCompound = new NBTTagCompound();
         saveTile(stack.stackTagCompound);
-        boundingBoxes.get(0).getSize().writeToNBT("size", stack.stackTagCompound);
+        boundingBox.getSize().writeToNBT("size", stack.stackTagCompound);
         return stack;
     }
 
     @Override
     public ArrayList<LittleTilesCubeObject> getRenderingCubes() {
         ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
-        for (com.creativemd.littletiles.common.utils.small.LittleTileBox boundingBox : boundingBoxes) {
+        if (boundingBox != null) {
             LittleTilesCubeObject cube = boundingBox.getCube();
             cube.block = block;
             cube.meta = meta;

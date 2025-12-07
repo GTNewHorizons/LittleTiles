@@ -70,7 +70,7 @@ public abstract class LittleTile {
                 LittleTileBox box = new LittleTileBox(new LittleTileVec("i", nbt), new LittleTileVec("a", nbt));
                 box.addOffset(new LittleTileVec(8, 8, 8));
                 LittleTileBlock tile = new LittleTileBlock(block, meta);
-                tile.boundingBoxes.add(box);
+                tile.boundingBox = box;
                 tile.cornerVec = box.getMinVec();
                 return tile;
             }
@@ -103,7 +103,7 @@ public abstract class LittleTile {
 
     /** Every LittleTile class has to have this constructor implemented **/
     public LittleTile() {
-        boundingBoxes = new ArrayList<>();
+
     }
 
     public String getID() {
@@ -114,28 +114,19 @@ public abstract class LittleTile {
 
     public LittleTileVec cornerVec;
 
-    public ArrayList<LittleTileBox> boundingBoxes;
+    public LittleTileBox boundingBox;
 
     private LittleTileCutoutInfo cutoutInfo = null;
 
     public AxisAlignedBB getSelectedBox() {
-        if (boundingBoxes.size() > 0) {
-            LittleTileBox box = boundingBoxes.get(0).copy();
-            for (int i = 1; i < boundingBoxes.size(); i++) {
-                box.minX = (byte) Math.min(box.minX, boundingBoxes.get(i).minX);
-                box.minY = (byte) Math.min(box.minY, boundingBoxes.get(i).minY);
-                box.minZ = (byte) Math.min(box.minZ, boundingBoxes.get(i).minZ);
-                box.maxX = (byte) Math.max(box.maxX, boundingBoxes.get(i).maxX);
-                box.maxY = (byte) Math.max(box.maxY, boundingBoxes.get(i).maxY);
-                box.maxZ = (byte) Math.max(box.maxZ, boundingBoxes.get(i).maxZ);
-            }
-            return box.getBox();
+        if (boundingBox != null) {
+            return boundingBox.getBox();
         } else return AxisAlignedBB.getBoundingBox(0, 0, 0, 0, 0, 0);
     }
 
     public double getPercentVolume() {
         double percent = 0;
-        for (LittleTileBox boundingBox : boundingBoxes) {
+        if (boundingBox != null) {
             percent += boundingBox.getSize().getPercentVolume();
         }
         return percent;
@@ -143,7 +134,7 @@ public abstract class LittleTile {
 
     public LittleTileSize getSize() {
         LittleTileSize size = new LittleTileSize(0, 0, 0);
-        for (LittleTileBox boundingBox : boundingBoxes) {
+        if (boundingBox != null) {
             LittleTileSize tempSize = boundingBox.getSize();
             size.sizeX = (byte) Math.max(size.sizeX, tempSize.sizeX);
             size.sizeY = (byte) Math.max(size.sizeY, tempSize.sizeY);
@@ -168,17 +159,16 @@ public abstract class LittleTile {
     // ================Packets================
 
     public void updatePacket(NBTTagCompound nbt) {
-        nbt.setInteger("bSize", boundingBoxes.size());
-        for (int i = 0; i < boundingBoxes.size(); i++) {
-            boundingBoxes.get(i).writeToNBT("bBox" + i, nbt);
+        nbt.setInteger("bSize", boundingBox == null ? 0 : 1);
+        if (boundingBox != null) {
+            boundingBox.writeToNBT("bBox" + 0, nbt);
         }
     }
 
     public void receivePacket(NBTTagCompound nbt, NetworkManager net) {
         int count = nbt.getInteger("bSize");
-        boundingBoxes.clear();
-        for (int i = 0; i < count; i++) {
-            boundingBoxes.add(new LittleTileBox("bBox" + i, nbt));
+        if (count > 0) {
+            boundingBox = new LittleTileBox("bBox" + 0, nbt);
         }
         updateCorner();
     }
@@ -195,9 +185,9 @@ public abstract class LittleTile {
     public void saveTileCore(NBTTagCompound nbt) {
         nbt.setString("tID", getID());
         if (cornerVec != null) cornerVec.writeToNBT("cVec", nbt);
-        nbt.setInteger("bSize", boundingBoxes.size());
-        for (int i = 0; i < boundingBoxes.size(); i++) {
-            boundingBoxes.get(i).writeToNBT("bBox" + i, nbt);
+        nbt.setInteger("bSize", boundingBox == null ? 0 : 1);
+        if (boundingBox != null) {
+            boundingBox.writeToNBT("bBox" + 0, nbt);
         }
 
         if (isStructureBlock) {
@@ -227,9 +217,8 @@ public abstract class LittleTile {
     public void loadTileCore(NBTTagCompound nbt) {
         cornerVec = new LittleTileVec("cVec", nbt);
         int count = nbt.getInteger("bSize");
-        boundingBoxes.clear();
-        for (int i = 0; i < count; i++) {
-            boundingBoxes.add(new LittleTileBox("bBox" + i, nbt));
+        if (count > 0) {
+            boundingBox = new LittleTileBox("bBox" + 0, nbt);
         }
         updateCorner();
 
@@ -263,9 +252,8 @@ public abstract class LittleTile {
     }
 
     public void updateCorner() {
-        if (boundingBoxes.size() > 0) {
-            LittleTileBox box = boundingBoxes.get(0);
-            cornerVec = new LittleTileVec(box.minX, box.minY, box.minZ);
+        if (boundingBox != null) {
+            cornerVec = new LittleTileVec(boundingBox.minX, boundingBox.minY, boundingBox.minZ);
         } else cornerVec = new LittleTileVec(0, 0, 0);
     }
 
@@ -307,8 +295,8 @@ public abstract class LittleTile {
     public abstract void copyExtra(LittleTile tile);
 
     public void copyCore(LittleTile tile) {
-        for (int i = 0; i < this.boundingBoxes.size(); i++) {
-            tile.boundingBoxes.add(this.boundingBoxes.get(i).copy());
+        if (boundingBox != null) {
+            tile.boundingBox = boundingBox.copy();
         }
         tile.cornerVec = this.cornerVec.copy();
         tile.te = this.te;
@@ -386,7 +374,7 @@ public abstract class LittleTile {
     protected abstract boolean canSawResize(ForgeDirection direction, EntityPlayer player);
 
     public boolean canSawResizeTile(ForgeDirection direction, EntityPlayer player) {
-        return boundingBoxes.size() == 1 && !isStructureBlock && canSawResize(direction, player);
+        return boundingBox != null && !isStructureBlock && canSawResize(direction, player);
     }
 
     // ================Block Event================

@@ -104,8 +104,8 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
                                 List<LittleTile> teTiles = littleEntity.getTiles();
                                 for (LittleTile teTile : teTiles) {
                                     LittleTile tile = teTile.copy();
-                                    for (int j = 0; j < tile.boundingBoxes.size(); j++) {
-                                        tile.boundingBoxes.get(j).addOffset(offset);
+                                    if (tile.boundingBox != null) {
+                                        tile.boundingBox.addOffset(offset);
                                     }
                                     tiles.add(tile);
                                 }
@@ -195,7 +195,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
         stack.stackTagCompound.setInteger("tiles", tiles.size());
         for (int i = 0; i < tiles.size(); i++) {
             NBTTagCompound nbt = new NBTTagCompound();
-            tiles.get(i).boundingBoxes.get(0).writeToNBT("bBox", nbt);
+            tiles.get(i).boundingBox.writeToNBT("bBox", nbt);
             tiles.get(i).saveTile(nbt);
             stack.stackTagCompound.setTag("tile" + i, nbt);
         }

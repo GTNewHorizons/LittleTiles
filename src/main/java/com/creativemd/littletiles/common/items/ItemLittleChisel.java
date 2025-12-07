@@ -40,6 +40,7 @@ import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.*;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -102,7 +103,9 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         LittleTileSize size;
         NBTTagCompound nbt = new NBTTagCompound();
 
-        if (PreviewRenderer.firstHit == null) {
+        if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) {
+            size = new LittleTileSize(sizeX, sizeY, sizeZ);
+        } else if (PreviewRenderer.firstHit == null) {
             size = new LittleTileSize(sizeX, sizeY, sizeZ);
         } else {
             MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;

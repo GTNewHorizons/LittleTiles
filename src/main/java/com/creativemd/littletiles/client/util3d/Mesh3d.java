@@ -18,7 +18,7 @@ import cpw.mods.fml.common.FMLLog;
 
 public class Mesh3d {
 
-    private ArrayList<Triangle3d> triangles;
+    private final List<Triangle3d> triangles;
 
     public Mesh3d(ArrayList<Triangle3d> triangels) {
         this.triangles = triangels;

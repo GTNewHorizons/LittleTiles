@@ -109,7 +109,7 @@ public class LittleToolHandler {
         }
     }
 
-    // Handles rotation for a cutout. Only 90 degress and only one axis.
+    // Handles rotation for a cutout. Only 90 degrees and only one axis.
     public void handleRotation(ForgeDirection direction, NBTTagCompound old) {
         // Get rotation the user requested
         // Intentionally swapped Y and Z!
@@ -141,7 +141,7 @@ public class LittleToolHandler {
             int sizey = old.getInteger("sizey");
             int sizez = old.getInteger("sizez");
 
-            // Tread cutout pos + size as cuboid to rotate it properly
+            // Treat cutout pos + size as cuboid to rotate it properly
             int minX = cutoutPosX;
             int minY = cutoutPosY;
             int minZ = cutoutPosZ;

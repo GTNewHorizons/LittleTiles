@@ -12,9 +12,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
+import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.blocks.BlockTile;
+import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -27,9 +29,8 @@ public class MixinForgeHooks_PickBlock {
     private static void littletiles$setBlock(ItemStack stack, Block block, int meta) {
         new LittleToolHandler(stack).setBlock(block, meta);
         Minecraft mc = Minecraft.getMinecraft();
-        int j = mc.thePlayer.inventoryContainer.inventorySlots.size() - 9 + mc.thePlayer.inventory.currentItem;
-        mc.playerController
-                .sendSlotPacket(mc.thePlayer.inventory.getStackInSlot(mc.thePlayer.inventory.currentItem), j);
+
+        PacketHandler.sendPacketToServer(new LittleItemUpdatePacket(stack.getTagCompound()));
     }
 
     @WrapOperation(

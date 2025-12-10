@@ -277,7 +277,7 @@ public class PreviewRenderer {
                                     cubeY,
                                     cubeZ,
                                     cutoutSize,
-                                    0,
+                                    toolHandler.getOrientation(),
                                     color.xCoord,
                                     color.yCoord,
                                     color.zCoord,

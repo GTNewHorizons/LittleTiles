@@ -37,7 +37,14 @@ import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.gui.BlockDisplayWidget;
 import com.creativemd.littletiles.common.gui.TextButtonWidget;
 import com.creativemd.littletiles.common.structure.LittleStructure;
-import com.creativemd.littletiles.common.utils.*;
+import com.creativemd.littletiles.common.utils.BlockStateSyncValue;
+import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTileBlock;
+import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
+import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTilePreview;
+import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
+import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
 import cpw.mods.fml.relauncher.Side;
@@ -73,7 +80,8 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
 
     @Override
     public void rotateLittlePreview(ItemStack stack, ForgeDirection direction) {
-
+        LittleToolHandler handler = new LittleToolHandler(stack);
+        handler.handleRotation(direction, null);
     }
 
     @Override
@@ -196,7 +204,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
     private Flow addGridSelector(IntSyncValue syncGrid, LittleToolHandler handler, int y) {
         Flow flow = new Flow(GuiAxis.X);
         flow.pos(5, y).size(100, 20);
-        TextWidget labelGrid = IKey.str("Grid:").asWidget().marginLeft(5).width(40);
+        TextWidget<?> labelGrid = IKey.str("Grid:").asWidget().marginLeft(5).width(40);
         DropDownMenu gridPicker = new DropDownMenu();
         gridPicker.marginLeft(5).marginRight(5).size(40, 20);
         gridPicker.background(GuiTextures.BUTTON_CLEAN);

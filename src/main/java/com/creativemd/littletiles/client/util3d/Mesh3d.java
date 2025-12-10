@@ -1,6 +1,5 @@
 package com.creativemd.littletiles.client.util3d;
 
-import java.awt.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -254,5 +253,11 @@ public class Mesh3d {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public void rotate(int orientation) {
+        for (Triangle3d triangle : triangles) {
+            triangle.rotate(orientation);
+        }
     }
 }

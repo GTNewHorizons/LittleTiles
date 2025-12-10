@@ -53,21 +53,19 @@ public class ItemRubberMallet extends Item {
                     for (LittleTile oldTile : tiles) {
                         if ((oldTile.getClass() == LittleTileBlock.class || oldTile instanceof LittleTileBlockColored)
                                 && oldTile.structure == null) {
-                            for (int j = 0; j < oldTile.boundingBoxes.size(); j++) {
-                                LittleTileBox box = oldTile.boundingBoxes.get(j);
+                            LittleTileBox box = oldTile.boundingBox;
+                            if (box != null) {
                                 for (int littleX = box.minX; littleX < box.maxX; littleX++) {
                                     for (int littleY = box.minY; littleY < box.maxY; littleY++) {
                                         for (int littleZ = box.minZ; littleZ < box.maxZ; littleZ++) {
                                             LittleTile tile = oldTile.copy();
-                                            tile.boundingBoxes.clear();
-                                            tile.boundingBoxes.add(
-                                                    new LittleTileBox(
-                                                            littleX,
-                                                            littleY,
-                                                            littleZ,
-                                                            littleX + 1,
-                                                            littleY + 1,
-                                                            littleZ + 1));
+                                            tile.boundingBox = new LittleTileBox(
+                                                    littleX,
+                                                    littleY,
+                                                    littleZ,
+                                                    littleX + 1,
+                                                    littleY + 1,
+                                                    littleZ + 1);
                                             tile.updateCorner();
                                             tile.te = te;
                                             newTiles.add(tile);
@@ -106,14 +104,13 @@ public class ItemRubberMallet extends Item {
                         for (int littleY = LittleTile.minPos; littleY < LittleTile.maxPos; littleY++) {
                             for (int littleZ = LittleTile.minPos; littleZ < LittleTile.maxPos; littleZ++) {
                                 LittleTileBlock tile = new LittleTileBlock(block, meta);
-                                tile.boundingBoxes.add(
-                                        new LittleTileBox(
-                                                littleX,
-                                                littleY,
-                                                littleZ,
-                                                littleX + 1,
-                                                littleY + 1,
-                                                littleZ + 1));
+                                tile.boundingBox = new LittleTileBox(
+                                        littleX,
+                                        littleY,
+                                        littleZ,
+                                        littleX + 1,
+                                        littleY + 1,
+                                        littleZ + 1);
                                 tile.updateCorner();
                                 tile.te = te;
                                 te.getTiles().add(tile);

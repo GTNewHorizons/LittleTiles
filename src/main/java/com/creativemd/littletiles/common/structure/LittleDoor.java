@@ -325,10 +325,10 @@ public class LittleDoor extends LittleStructure {
             // invaxis.addVec(internalOffset);
             ArrayList<LittleTile> tiles = getTiles();
             for (LittleTile tileOfList : tiles) {
-                for (int j = 0; j < tileOfList.boundingBoxes.size(); j++) {
+                if (tileOfList.boundingBox != null) {
                     NBTTagCompound nbt = new NBTTagCompound();
                     tileOfList.saveTile(nbt);
-                    LittleTileBox box = tileOfList.boundingBoxes.get(j).copy();
+                    LittleTileBox box = tileOfList.boundingBox.copy();
                     box.addOffset(
                             new LittleTileVec(
                                     tileOfList.te.xCoord * 16,

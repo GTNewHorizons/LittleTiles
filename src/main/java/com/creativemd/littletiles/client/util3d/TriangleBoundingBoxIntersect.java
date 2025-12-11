@@ -30,10 +30,7 @@ package com.creativemd.littletiles.client.util3d;/*
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import com.jme3.util.TempVars;
-import com.jme3.math.FastMath;
-import com.jme3.math.Plane;
-import com.jme3.math.Vector3f;
+import org.joml.Vector3f;
 
 import static java.lang.Math.min;
 import static java.lang.Math.max;
@@ -45,32 +42,13 @@ import static java.lang.Math.max;
  */
 public class TriangleBoundingBoxIntersect {
 
-    private static final void findMinMax(float x0, float x1, float x2, Vector3f minMax){
-        minMax.set(x0, x0, 0);
-        if (x1 < minMax.x) minMax.setX(x1);
-        if (x1 > minMax.y) minMax.setY(x1);
-        if (x2 < minMax.x) minMax.setX(x2);
-        if (x2 > minMax.y) minMax.setY(x2);
+    private static void findMinMax(float f1, float f2, float f3, Vector3f minMax){
+        minMax.set(f1, f1, 0);
+        if (f2 < minMax.x) minMax.x = f2;
+        if (f2 > minMax.y) minMax.y = f2;
+        if (f3 < minMax.x) minMax.x = f3;
+        if (f3 > minMax.y) minMax.y = f3;
     }
-
-//    private boolean axisTest(float a, float b, float fa, float fb, Vector3f v0, Vector3f v1, )
-
-//    private boolean axisTestX01(float a, float b, float fa, float fb,
-//                             Vector3f center, Vector3f ext,
-//                             Vector3f v1, Vector3f v2, Vector3f v3){
-//	float p0 = a * v0.y - b * v0.z;
-//	float p2 = a * v2.y - b * v2.z;
-//        if(p0 < p2){
-//            min = p0;
-//            max = p2;
-//        } else {
-//            min = p2;
-//            max = p0;
-//        }
-//	float rad = fa * boxhalfsize.y + fb * boxhalfsize.z;
-//	if(min > rad || max < -rad)
-//            return false;
-//    }
 
     public static boolean intersect(BoundingBox bbox, Vector3f v1, Vector3f v2, Vector3f v3){
         //  use separating axis theorem to test overlap between triangle and box
@@ -81,41 +59,37 @@ public class TriangleBoundingBoxIntersect {
         //  3) crossproduct(edge from tri, {x,y,z}-directin)
         //       this gives 3x3=9 more tests
 
-        TempVars vars = TempVars.get();
-        assert vars.lock();
 
-        Vector3f tmp0 = vars.vect1,
-            tmp1 = vars.vect2,
-            tmp2 = vars.vect3;
+        Vector3f tmp0 = new Vector3f();
+        Vector3f tmp1 =  new Vector3f();
+        Vector3f tmp2 =  new Vector3f();
 
-        Vector3f e0 = vars.vect4,
-            e1 = vars.vect5,
-            e2 = vars.vect6;
+        Vector3f e0 =  new Vector3f();
+        Vector3f e1 =  new Vector3f();
+        Vector3f e2 =  new Vector3f();
 
         Vector3f center = bbox.getCenter();
-        Vector3f extent = bbox.getExtent(null);
+        Vector3f extent = bbox.getExtent();
 
-//   float min,max,p0,p1,p2,rad,fex,fey,fez;
-//   float normal[3]
 
         // This is the fastest branch on Sun
         // move everything so that the boxcenter is in (0,0,0)
-        v1.subtract(center, tmp0);
-        v2.subtract(center, tmp1);
-        v3.subtract(center, tmp2);
+        v1.sub(center, tmp0);
+        v2.sub(center, tmp1);
+        v3.sub(center, tmp2);
 
         // compute triangle edges
-        tmp1.subtract(tmp0, e0); // tri edge 0
-        tmp2.subtract(tmp1, e1); // tri edge 1
-        tmp0.subtract(tmp2, e2); // tri edge 2
+        tmp1.sub(tmp0, e0); // tri edge 0
+        tmp2.sub(tmp1, e1); // tri edge 1
+        tmp0.sub(tmp2, e2); // tri edge 2
 
         // Bullet 3:
         //  test the 9 tests first (this was faster)
         float min, max;
         float p0, p1, p2, rad;
-        float fex = FastMath.abs(e0.x);
-        float fey = FastMath.abs(e0.y);
-        float fez = FastMath.abs(e0.z);
+        float fex = Math.abs(e0.x);
+        float fey = Math.abs(e0.y);
+        float fez = Math.abs(e0.z);
 
 
 
@@ -126,7 +100,6 @@ public class TriangleBoundingBoxIntersect {
         max = max(p0,p2);
         rad = fez * extent.y + fey * extent.z;
         if (min > rad || max < -rad){
-            assert vars.unlock();
             return false;
         }
 
@@ -137,7 +110,6 @@ public class TriangleBoundingBoxIntersect {
         max = max(p0,p2);
         rad = fez * extent.x + fex * extent.z;
         if (min > rad || max < -rad){
-            assert vars.unlock();
             return false;
         }
 
@@ -148,13 +120,12 @@ public class TriangleBoundingBoxIntersect {
         max = max(p1,p2);
         rad = fey * extent.x + fex * extent.y;
         if (min > rad || max < -rad){
-            assert vars.unlock();
             return false;
         }
 
-        fex = FastMath.abs(e1.x);
-        fey = FastMath.abs(e1.y);
-        fez = FastMath.abs(e1.z);
+        fex = Math.abs(e1.x);
+        fey = Math.abs(e1.y);
+        fez = Math.abs(e1.z);
 
 //        AXISTEST_X01(e1[Z], e1[Y], fez, fey);
         p0 = e1.z * tmp0.y - e1.y * tmp0.z;
@@ -163,7 +134,6 @@ public class TriangleBoundingBoxIntersect {
         max = max(p0,p2);
         rad = fez * extent.y + fey * extent.z;
         if (min > rad || max < -rad){
-            assert vars.unlock();
             return false;
         }
 
@@ -174,7 +144,6 @@ public class TriangleBoundingBoxIntersect {
         max = max(p0,p2);
         rad = fez * extent.x + fex * extent.z;
         if (min > rad || max < -rad){
-            assert vars.unlock();
             return false;
         }
 
@@ -185,13 +154,12 @@ public class TriangleBoundingBoxIntersect {
         max = max(p0,p1);
         rad = fey * extent.x + fex * extent.y;
         if (min > rad || max < -rad){
-            assert vars.unlock();
             return false;
         }
 //
-        fex = FastMath.abs(e2.x);
-        fey = FastMath.abs(e2.y);
-        fez = FastMath.abs(e2.z);
+        fex = Math.abs(e2.x);
+        fey = Math.abs(e2.y);
+        fez = Math.abs(e2.z);
 
         // AXISTEST_X2(e2[Z], e2[Y], fez, fey);
         p0 = e2.z * tmp0.y - e2.y * tmp0.z;
@@ -200,7 +168,6 @@ public class TriangleBoundingBoxIntersect {
         max = max(p0,p1);
         rad = fez * extent.y + fey * extent.z;
         if (min > rad || max < -rad){
-            assert vars.unlock();
             return false;
         }
 
@@ -211,7 +178,6 @@ public class TriangleBoundingBoxIntersect {
         max = max(p0,p1);
         rad = fez * extent.x + fex * extent.y;
         if (min > rad || max < -rad){
-            assert vars.unlock();
             return false;
         }
 
@@ -222,7 +188,6 @@ public class TriangleBoundingBoxIntersect {
         max = max(p1,p2);
         rad = fey * extent.x + fex * extent.y;
         if (min > rad || max < -rad){
-            assert vars.unlock();
             return false;
         }
 
@@ -233,26 +198,23 @@ public class TriangleBoundingBoxIntersect {
         //  the triangle against the AABB
 
 
-        Vector3f minMax = vars.vect7;
+        Vector3f minMax = new Vector3f();
 
         // test in X-direction
         findMinMax(tmp0.x, tmp1.x, tmp2.x, minMax);
         if(minMax.x > extent.x || minMax.y < -extent.x){
-            assert vars.unlock();
             return false;
         }
 
         // test in Y-direction
         findMinMax(tmp0.y, tmp1.y, tmp2.y, minMax);
         if(minMax.x > extent.y || minMax.y < -extent.y){
-            assert vars.unlock();
             return false;
         }
 
         // test in Z-direction
         findMinMax(tmp0.z, tmp1.z, tmp2.z, minMax);
         if(minMax.x > extent.z || minMax.y < -extent.z){
-            assert vars.unlock();
             return false;
         }
 
@@ -261,19 +223,77 @@ public class TriangleBoundingBoxIntersect {
 //       //  compute plane equation of triangle: normal * x + d = 0
 //        Vector3f normal = new Vector3f();
 //        e0.cross(e1, normal);
-        Plane p = vars.plane;
+        Plane p = new Plane();
 
         p.setPlanePoints(v1,v2,v3);
         if (bbox.whichSide(p) == Plane.Side.Negative){
-            assert vars.unlock();
             return false;
         }
-//
-//        if(!planeBoxOverlap(normal,v0,boxhalfsize)) return false;
-
-        assert vars.unlock();
 
         return true;   /* box and triangle overlaps */
+    }
+
+    public static class BoundingBox
+    {
+        private final Vector3f center;
+        private final Vector3f extend;
+
+        public BoundingBox(Vector3f center, Vector3f extend) {
+            this.center = center;
+            this.extend = extend;
+        }
+
+        public final Vector3f getCenter() {
+            return center;
+        }
+
+        public Vector3f getExtent() {
+            return new Vector3f(extend);
+        }
+
+        public Plane.Side whichSide(Plane plane) {
+            float radius = Math.abs(extend.x * plane.getNormal().x)
+                + Math.abs(extend.y * plane.getNormal().y)
+                + Math.abs(extend.z * plane.getNormal().z);
+
+            float distance = plane.pseudoDistance(center);
+
+            //changed to < and > to prevent floating point precision problems
+            if (distance < -radius) {
+                return Plane.Side.Negative;
+            } else if (distance > radius) {
+                return Plane.Side.Positive;
+            } else {
+                return Plane.Side.None;
+            }
+        }
+    }
+
+    public static class Plane
+    {
+        public enum Side {
+            None,
+            Positive,
+            Negative
+        }
+
+        private Vector3f normal;
+        private float constant;
+
+
+        public void setPlanePoints(Vector3f v1, Vector3f v2, Vector3f v3) {
+            normal.set(v2).sub(v1);
+            normal.cross(v3.x - v1.x, v3.y - v1.y, v3.z - v1.z).normalize();
+            constant = normal.dot(v1);
+        }
+
+        public float pseudoDistance(Vector3f point) {
+            return normal.dot(point) - constant;
+        }
+
+        public Vector3f getNormal() {
+            return normal;
+        }
     }
 
 }

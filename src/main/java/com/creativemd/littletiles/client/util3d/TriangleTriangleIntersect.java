@@ -19,7 +19,7 @@ package com.creativemd.littletiles.client.util3d;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
-public class TriangleIntersect {
+public class TriangleTriangleIntersect {
 
     /**
      * EPSILON represents the error buffer used to denote a hit.

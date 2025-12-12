@@ -20,8 +20,8 @@ public class Mesh3d {
 
     private final List<Triangle3d> triangles;
 
-    public Mesh3d(ArrayList<Triangle3d> triangels) {
-        this.triangles = triangels;
+    public Mesh3d(List<Triangle3d> triangles) {
+        this.triangles = triangles;
     }
 
     public void scale(Vector3d vec) {
@@ -218,7 +218,7 @@ public class Mesh3d {
         return newTriangles;
     }
 
-    public ArrayList<Triangle3d> getTriangles() {
+    public List<Triangle3d> getTriangles() {
         return triangles;
     }
 

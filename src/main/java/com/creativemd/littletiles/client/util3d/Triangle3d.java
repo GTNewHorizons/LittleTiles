@@ -118,4 +118,8 @@ public class Triangle3d {
         p2 = rotateVector(p2, matrix);
         p3 = rotateVector(p3, matrix);
     }
+
+    public Triangle3d copy() {
+        return new Triangle3d(new Vector3d(p1), new Vector3d(p2), new Vector3d(p3));
+    }
 }

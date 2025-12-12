@@ -260,4 +260,12 @@ public class Mesh3d {
             triangle.rotate(orientation);
         }
     }
+
+    public Mesh3d copy() {
+        List<Triangle3d> trianglesNew = new ArrayList<>();
+        for (Triangle3d triangle : triangles) {
+            trianglesNew.add(triangle.copy());
+        }
+        return new Mesh3d(trianglesNew);
+    }
 }

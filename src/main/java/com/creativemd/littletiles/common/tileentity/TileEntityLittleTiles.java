@@ -46,7 +46,6 @@ public class TileEntityLittleTiles extends TileEntity {
 
     public ArrayList<LittleTile> customRenderingTiles = new ArrayList<>();
 
-    public boolean needFullUpdate = false;
     public boolean needsLightUpdate = true;
 
     public boolean removeTile(LittleTile tile) {
@@ -126,8 +125,6 @@ public class TileEntityLittleTiles extends TileEntity {
         return AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
-    // public boolean needFullUpdate = true;
-
     /** Used for **/
     public LittleTile loadedTile = null;
 
@@ -191,10 +188,8 @@ public class TileEntityLittleTiles extends TileEntity {
             tiles.get(i).updatePacket(packet);
             tileNBT.setTag("update", packet);
             nbt.setTag("t" + i, tileNBT);
-            if (needFullUpdate) nbt.setBoolean("f" + i, true);
         }
         nbt.setInteger("tilesCount", tiles.size());
-        needFullUpdate = false;
         return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, blockMetadata, nbt);
     }
 
@@ -212,22 +207,12 @@ public class TileEntityLittleTiles extends TileEntity {
     @Override
     @SideOnly(Side.CLIENT)
     public void onDataPacket(NetworkManager net, S35PacketUpdateTileEntity pkt) {
-        ArrayList<LittleTile> exstingTiles = new ArrayList<>(tiles);
+        tiles.clear();
         int count = pkt.func_148857_g().getInteger("tilesCount");
         for (int i = 0; i < count; i++) {
             NBTTagCompound tileNBT = pkt.func_148857_g().getCompoundTag("t" + i);
-            LittleTile tile = getTile(tileNBT.getByte("cVecx"), tileNBT.getByte("cVecy"), tileNBT.getByte("cVecz"));
-            if (tile != null && tile.getID().equals(tileNBT.getString("tID"))
-                    && !pkt.func_148857_g().getBoolean("f" + i)) {
-                tile.receivePacket(tileNBT.getCompoundTag("update"), net);
-                exstingTiles.remove(tile);
-            } else {
-                tile = LittleTile.CreateandLoadTile(this, worldObj, tileNBT);
-                if (tile != null) tiles.add(tile);
-            }
-        }
-        for (LittleTile exstingTile : exstingTiles) {
-            tiles.remove(exstingTile);
+            LittleTile tile = LittleTile.CreateandLoadTile(this, worldObj, tileNBT);
+            if (tile != null) tiles.add(tile);
         }
         updateTiles();
     }

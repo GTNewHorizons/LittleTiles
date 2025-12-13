@@ -42,7 +42,7 @@ public class LittleItemUpdatePacket extends CreativeCorePacket {
     @Override
     public void executeServer(EntityPlayer player) {
         ItemStack current = player.inventory.getCurrentItem();
-        if (current.getItem() != LittleTiles.chisel) {
+        if (current == null || current.getItem() != LittleTiles.chisel) {
             return;
         }
         player.inventory.getCurrentItem().setTagCompound(nbt);

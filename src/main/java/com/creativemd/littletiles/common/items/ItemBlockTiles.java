@@ -335,7 +335,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         ArrayList<LittleTile> unplaceableTiles = new ArrayList<>();
         if (placeTiles(world, player, previews, structure, x, y, z, stack, unplaceableTiles, cutoutInfo)) {
             ItemStack currentStack = player.inventory.mainInventory[player.inventory.currentItem];
-            boolean isChisel = currentStack.getItem() == LittleTiles.chisel;
+            boolean isChisel = currentStack != null && currentStack.getItem() == LittleTiles.chisel;
             if (!player.capabilities.isCreativeMode && !isChisel) {
                 currentStack.stackSize--;
                 if (currentStack.stackSize == 0) player.inventory.mainInventory[player.inventory.currentItem] = null;

@@ -1,6 +1,5 @@
 package com.creativemd.littletiles.client.util3d;
 
-import java.awt.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -61,7 +60,7 @@ public class Mesh3d {
         }
 
         File logsFolder = new File(mcDir, "logs");
-        File outFile = new File(logsFolder, "littleTilesErrorMesh" + logCount);
+        File outFile = new File(logsFolder, "littleTilesErrorMesh" + logCount + ".obj");
         logCount++;
         exportObj(outFile);
         FMLLog.getLogger().error("Failed to process mesh, dumped into " + outFile.getAbsolutePath());
@@ -254,5 +253,11 @@ public class Mesh3d {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public void rotate(int orientation) {
+        for (Triangle3d triangle : triangles) {
+            triangle.rotate(orientation);
+        }
     }
 }

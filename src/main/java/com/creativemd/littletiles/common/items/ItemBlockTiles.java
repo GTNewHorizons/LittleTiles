@@ -334,10 +334,11 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
         ArrayList<LittleTile> unplaceableTiles = new ArrayList<>();
         if (placeTiles(world, player, previews, structure, x, y, z, stack, unplaceableTiles, cutoutInfo)) {
-            if (!player.capabilities.isCreativeMode) {
-                player.inventory.mainInventory[player.inventory.currentItem].stackSize--;
-                if (player.inventory.mainInventory[player.inventory.currentItem].stackSize == 0)
-                    player.inventory.mainInventory[player.inventory.currentItem] = null;
+            ItemStack currentStack = player.inventory.mainInventory[player.inventory.currentItem];
+            boolean isChisel = currentStack != null && currentStack.getItem() == LittleTiles.chisel;
+            if (!player.capabilities.isCreativeMode && !isChisel) {
+                currentStack.stackSize--;
+                if (currentStack.stackSize == 0) player.inventory.mainInventory[player.inventory.currentItem] = null;
             }
 
             if (!world.isRemote) {
@@ -364,7 +365,9 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
     @Override
     public void rotateLittlePreview(ItemStack stack, ForgeDirection direction) {
+        NBTTagCompound old = (NBTTagCompound) stack.stackTagCompound.copy();
         LittleTilePreview.rotatePreview(stack.stackTagCompound, direction);
+        new LittleToolHandler(stack).handleRotation(direction, old);
     }
 
     @Override

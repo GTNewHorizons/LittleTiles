@@ -1,7 +1,6 @@
 package com.creativemd.littletiles.common.packet;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -113,10 +112,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
                         // littleEntity.removeTile(tile);
                         if (!player.capabilities.isCreativeMode)
                             WorldUtils.dropItem(player.worldObj, tile.getDrops(), x, y, z);
-                        List<LittleTile> tiles = littleEntity.getTiles();
-                        for (LittleTile littleTile : tiles) {
-                            littleTile.onNeighborChangeInside();
-                        }
                         littleEntity.update();
                         break;
                     case 2:
@@ -127,12 +122,12 @@ public class LittleBlockPacket extends CreativeCorePacket {
                             if (te.updateLoadedTileServer(pos, look)
                                     && te.loadedTile.canSawResizeTile(direction, player)) {
                                 LittleTileBox box;
-                                if (player.isSneaking()) box = te.loadedTile.boundingBoxes.get(0).shrink(direction);
-                                else box = te.loadedTile.boundingBoxes.get(0).expand(direction);
+                                if (player.isSneaking()) box = te.loadedTile.boundingBox.shrink(direction);
+                                else box = te.loadedTile.boundingBox.expand(direction);
 
                                 if (box.isBoxInsideBlock() && box.isValidBox()
                                         && te.isSpaceForLittleTile(box.getBox(), te.loadedTile)) {
-                                    float ammount = te.loadedTile.boundingBoxes.get(0).getSize().getPercentVolume()
+                                    float ammount = te.loadedTile.boundingBox.getSize().getPercentVolume()
                                             - box.getSize().getPercentVolume();
                                     boolean success = false;
                                     if (player.isSneaking()) {
@@ -152,7 +147,7 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                     }
 
                                     if (player.capabilities.isCreativeMode || success) {
-                                        te.loadedTile.boundingBoxes.set(0, box);
+                                        te.loadedTile.boundingBox = box;
                                         te.loadedTile.updateCorner();
                                         te.update();
                                     }
@@ -201,21 +196,19 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                         || te.loadedTile instanceof LittleTileBlockColored)
                                 && te.loadedTile.structure == null) {
                             LittleTile oldTile = te.loadedTile;
-                            for (int j = 0; j < oldTile.boundingBoxes.size(); j++) {
-                                LittleTileBox box = oldTile.boundingBoxes.get(j);
+                            LittleTileBox box = oldTile.boundingBox;
+                            if (box != null) {
                                 for (int littleX = box.minX; littleX < box.maxX; littleX++) {
                                     for (int littleY = box.minY; littleY < box.maxY; littleY++) {
                                         for (int littleZ = box.minZ; littleZ < box.maxZ; littleZ++) {
                                             tile = oldTile.copy();
-                                            tile.boundingBoxes.clear();
-                                            tile.boundingBoxes.add(
-                                                    new LittleTileBox(
-                                                            littleX,
-                                                            littleY,
-                                                            littleZ,
-                                                            littleX + 1,
-                                                            littleY + 1,
-                                                            littleZ + 1));
+                                            tile.boundingBox = new LittleTileBox(
+                                                    littleX,
+                                                    littleY,
+                                                    littleZ,
+                                                    littleX + 1,
+                                                    littleY + 1,
+                                                    littleZ + 1);
                                             tile.updateCorner();
                                             tile.te = te;
                                             newTiles.add(tile);

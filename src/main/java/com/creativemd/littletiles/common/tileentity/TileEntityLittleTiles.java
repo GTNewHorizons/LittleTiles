@@ -46,7 +46,6 @@ public class TileEntityLittleTiles extends TileEntity {
 
     public ArrayList<LittleTile> customRenderingTiles = new ArrayList<>();
 
-    public boolean needFullUpdate = false;
     public boolean needsLightUpdate = true;
 
     public boolean removeTile(LittleTile tile) {
@@ -70,6 +69,9 @@ public class TileEntityLittleTiles extends TileEntity {
         if (worldObj != null) {
             update();
             updateNeighbor();
+            if (!worldObj.isRemote && tiles.isEmpty()) {
+                worldObj.setBlockToAir(xCoord, yCoord, zCoord);
+            }
         }
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) updateCustomRenderer();
 
@@ -85,9 +87,6 @@ public class TileEntityLittleTiles extends TileEntity {
 
     public void updateNeighbor() {
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) updateRender();
-        for (LittleTile tile : tiles) {
-            tile.onNeighborChangeInside();
-        }
         worldObj.notifyBlockChange(xCoord, yCoord, zCoord, LittleTiles.blockTile);
     }
 
@@ -126,8 +125,6 @@ public class TileEntityLittleTiles extends TileEntity {
         return AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
-    // public boolean needFullUpdate = true;
-
     /** Used for **/
     public LittleTile loadedTile = null;
 
@@ -139,8 +136,8 @@ public class TileEntityLittleTiles extends TileEntity {
     /** Used for placing a tile and can be used if a "cable" can connect to a direction */
     public boolean isSpaceForLittleTile(AxisAlignedBB alignedBB, LittleTile ignoreTile) {
         for (LittleTile tile : tiles) {
-            for (int j = 0; j < tile.boundingBoxes.size(); j++) {
-                if (ignoreTile != tile && alignedBB.intersectsWith(tile.boundingBoxes.get(j).getBox())) return false;
+            if (tile.boundingBox != null) {
+                if (ignoreTile != tile && alignedBB.intersectsWith(tile.boundingBox.getBox())) return false;
             }
 
         }
@@ -191,10 +188,8 @@ public class TileEntityLittleTiles extends TileEntity {
             tiles.get(i).updatePacket(packet);
             tileNBT.setTag("update", packet);
             nbt.setTag("t" + i, tileNBT);
-            if (needFullUpdate) nbt.setBoolean("f" + i, true);
         }
         nbt.setInteger("tilesCount", tiles.size());
-        needFullUpdate = false;
         return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, blockMetadata, nbt);
     }
 
@@ -212,22 +207,12 @@ public class TileEntityLittleTiles extends TileEntity {
     @Override
     @SideOnly(Side.CLIENT)
     public void onDataPacket(NetworkManager net, S35PacketUpdateTileEntity pkt) {
-        ArrayList<LittleTile> exstingTiles = new ArrayList<>(tiles);
+        tiles.clear();
         int count = pkt.func_148857_g().getInteger("tilesCount");
         for (int i = 0; i < count; i++) {
             NBTTagCompound tileNBT = pkt.func_148857_g().getCompoundTag("t" + i);
-            LittleTile tile = getTile(tileNBT.getByte("cVecx"), tileNBT.getByte("cVecy"), tileNBT.getByte("cVecz"));
-            if (tile != null && tile.getID().equals(tileNBT.getString("tID"))
-                    && !pkt.func_148857_g().getBoolean("f" + i)) {
-                tile.receivePacket(tileNBT.getCompoundTag("update"), net);
-                exstingTiles.remove(tile);
-            } else {
-                tile = LittleTile.CreateandLoadTile(this, worldObj, tileNBT);
-                if (tile != null) tiles.add(tile);
-            }
-        }
-        for (LittleTile exstingTile : exstingTiles) {
-            tiles.remove(exstingTile);
+            LittleTile tile = LittleTile.CreateandLoadTile(this, worldObj, tileNBT);
+            if (tile != null) tiles.add(tile);
         }
         updateTiles();
     }
@@ -249,9 +234,9 @@ public class TileEntityLittleTiles extends TileEntity {
     public MovingObjectPosition getMoving(Vec3 pos, Vec3 look, boolean loadTile) {
         MovingObjectPosition hit = null;
         for (LittleTile tile : tiles) {
-            for (int j = 0; j < tile.boundingBoxes.size(); j++) {
-                MovingObjectPosition Temphit = tile.boundingBoxes.get(j).getBox()
-                        .getOffsetBoundingBox(xCoord, yCoord, zCoord).calculateIntercept(pos, look);
+            if (tile.boundingBox != null) {
+                MovingObjectPosition Temphit = tile.boundingBox.getBox().getOffsetBoundingBox(xCoord, yCoord, zCoord)
+                        .calculateIntercept(pos, look);
                 if (Temphit != null) {
                     if (hit == null || hit.hitVec.distanceTo(pos) > Temphit.hitVec.distanceTo(pos)) {
                         hit = Temphit;
@@ -304,14 +289,6 @@ public class TileEntityLittleTiles extends TileEntity {
         worldObj.markBlockRangeForRenderUpdate(xCoord, yCoord, zCoord, xCoord, yCoord, zCoord);
     }
 
-    @Override
-    public void updateEntity() {
-        for (LittleTile tile : tiles) {
-            tile.updateEntity();
-        }
-        if (!worldObj.isRemote && tiles.size() == 0) worldObj.setBlockToAir(xCoord, yCoord, zCoord);
-    }
-
     public ChunkCoordinates getCoord() {
         return new ChunkCoordinates(xCoord, yCoord, zCoord);
     }
@@ -335,14 +312,13 @@ public class TileEntityLittleTiles extends TileEntity {
                         continue;
                     }
 
-                    if (i != j && tiles.get(i).boundingBoxes.size() == 1
-                            && tiles.get(j).boundingBoxes.size() == 1
+                    if (i != j && tiles.get(i).boundingBox != null
+                            && tiles.get(j).boundingBox != null
                             && tiles.get(i).canBeCombined(tiles.get(j))
                             && tiles.get(j).canBeCombined(tiles.get(i))) {
-                        LittleTileBox box = tiles.get(i).boundingBoxes.get(0)
-                                .combineBoxes(tiles.get(j).boundingBoxes.get(0));
+                        LittleTileBox box = tiles.get(i).boundingBox.combineBoxes(tiles.get(j).boundingBox);
                         if (box != null) {
-                            tiles.get(i).boundingBoxes.set(0, box);
+                            tiles.get(i).boundingBox = box;
                             tiles.get(i).combineTiles(tiles.get(j));
                             tiles.get(i).updateCorner();
                             tiles.remove(j);
@@ -366,14 +342,13 @@ public class TileEntityLittleTiles extends TileEntity {
             while (i < tiles.size()) {
                 int j = 0;
                 while (j < tiles.size()) {
-                    if (i != j && tiles.get(i).boundingBoxes.size() == 1
-                            && tiles.get(j).boundingBoxes.size() == 1
+                    if (i != j && tiles.get(i).boundingBox != null
+                            && tiles.get(j).boundingBox != null
                             && tiles.get(i).canBeCombined(tiles.get(j))
                             && tiles.get(j).canBeCombined(tiles.get(i))) {
-                        LittleTileBox box = tiles.get(i).boundingBoxes.get(0)
-                                .combineBoxes(tiles.get(j).boundingBoxes.get(0));
+                        LittleTileBox box = tiles.get(i).boundingBox.combineBoxes(tiles.get(j).boundingBox);
                         if (box != null) {
-                            tiles.get(i).boundingBoxes.set(0, box);
+                            tiles.get(i).boundingBox = box;
                             tiles.get(i).combineTiles(tiles.get(j));
                             tiles.get(i).updateCorner();
                             tiles.remove(j);
@@ -407,5 +382,10 @@ public class TileEntityLittleTiles extends TileEntity {
         lastMaxLightValue = light;
         needsLightUpdate = false;
         return light;
+    }
+
+    @Override
+    public boolean canUpdate() {
+        return false;
     }
 }

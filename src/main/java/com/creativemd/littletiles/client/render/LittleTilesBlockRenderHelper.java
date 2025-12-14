@@ -41,8 +41,16 @@ public class LittleTilesBlockRenderHelper {
             double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax) {
         LittleTileCutoutInfo cutoutInfo = new LittleTileCutoutInfo();
         cutoutInfo.type = LittleTileShapeMode.SLOPE;
-        Mesh3d mesh = Mesh3dUtil
-                .createMesh(cutoutInfo, cutoutScale, new Vector3d(), posCutout, posSubMin, posSubMax, null, 0);
+        Mesh3d mesh = Mesh3dUtil.createMesh(
+                cutoutInfo,
+                cutoutScale,
+                new Vector3d(),
+                posCutout,
+                posSubMin,
+                posSubMax,
+                null,
+                0,
+                orientation);
 
         GL11.glPushMatrix();
         GL11.glTranslated(x, y, z);

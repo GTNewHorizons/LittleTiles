@@ -51,8 +51,8 @@ public class LittleChair extends LittleStructure {
         for (int i = 0; i < coords.size(); i++) {
             ChunkCoordinates coord = coords.getKey(i);
             for (int j = 0; j < coords.getValues(i).size(); j++) {
-                for (int h = 0; h < coords.getValues(i).get(j).boundingBoxes.size(); h++) {
-                    LittleTileBox box = coords.getValues(i).get(j).boundingBoxes.get(h);
+                LittleTileBox box = coords.getValues(i).get(j).boundingBox;
+                if (box != null) {
                     minX = Math.min(minX, coord.posX * 16 + box.minX);
                     minY = Math.min(minY, coord.posY * 16 + box.minY);
                     minZ = Math.min(minZ, coord.posZ * 16 + box.minZ);
@@ -93,8 +93,8 @@ public class LittleChair extends LittleStructure {
                         centerTileZ + 1);
                 // int highest = LittleTile.minPos;
                 for (LittleTile littleTile : tilesInCenter) {
-                    for (int j = 0; j < littleTile.boundingBoxes.size(); j++) {
-                        LittleTileBox littleBox = littleTile.boundingBoxes.get(j);
+                    LittleTileBox littleBox = littleTile.boundingBox;
+                    if (littleBox != null) {
                         if (box.intersectsWith(littleBox)) {
                             position.y = Math.max(y * 16 + littleBox.maxY, position.y);
                             // highest = Math.max(highest, littleBox.maxY);

@@ -115,8 +115,8 @@ public class BlockTile extends BlockContainer {
                         List<LittleTile> tiles = littleTE.getTiles();
                         for (LittleTile tile : tiles) {
                             if (tile.isLadder()) {
-                                for (int j = 0; j < tile.boundingBoxes.size(); j++) {
-                                    LittleTileBox box = tile.boundingBoxes.get(j).copy();
+                                if (tile.boundingBox != null) {
+                                    LittleTileBox box = tile.boundingBox.copy();
                                     box.addOffset(new LittleTileVec(x2 * 16, y2 * 16, z2 * 16));
                                     double expand = 0.0001;
                                     if (bb.intersectsWith(box.getBox().expand(expand, expand, expand))) return true;
@@ -185,8 +185,8 @@ public class BlockTile extends BlockContainer {
             Entity entity) {
         if (loadTileEntity(world, x, y, z)) {
             for (LittleTile tile : tempEntity.getTiles()) {
-                for (int i = 0; i < tile.boundingBoxes.size(); i++) {
-                    AxisAlignedBB box = tile.boundingBoxes.get(i).getBox().getOffsetBoundingBox(x, y, z);
+                if (tile.boundingBox != null) {
+                    AxisAlignedBB box = tile.boundingBox.getBox().getOffsetBoundingBox(x, y, z);
                     if (axis.intersectsWith(box)) list.add(box);
                 }
 
@@ -366,8 +366,8 @@ public class BlockTile extends BlockContainer {
                 AxisAlignedBB box = tempEntity.loadedTile.getSelectedBox();
 
                 int meta = 0;
-                if (!tempEntity.loadedTile.boundingBoxes.isEmpty()) {
-                    meta = tempEntity.loadedTile.boundingBoxes.get(0).getCube().meta;
+                if (tempEntity.loadedTile.boundingBox != null) {
+                    meta = tempEntity.loadedTile.boundingBox.getCube().meta;
                 }
 
                 float f = 0.1F;
@@ -420,8 +420,8 @@ public class BlockTile extends BlockContainer {
             if (loadTileEntity(world, x, y, z) && tempEntity.updateLoadedTile(mc.thePlayer)) {
                 AxisAlignedBB box = tempEntity.loadedTile.getSelectedBox();
                 meta = 0;
-                if (!tempEntity.loadedTile.boundingBoxes.isEmpty()) {
-                    meta = tempEntity.loadedTile.boundingBoxes.get(0).getCube().meta;
+                if (tempEntity.loadedTile.boundingBox != null) {
+                    meta = tempEntity.loadedTile.boundingBox.getCube().meta;
                 }
 
                 byte b0 = 4;
@@ -505,40 +505,10 @@ public class BlockTile extends BlockContainer {
      */
 
     @Override
-    public void onNeighborChange(IBlockAccess world, int x, int y, int z, int tileX, int tileY, int tileZ) {
-        if (loadTileEntity(world, x, y, z)) {
-            for (LittleTile tile : tempEntity.getTiles()) {
-                tile.onNeighborChangeOutside();
-            }
-        }
-    }
-
-    @Override
-    public void onNeighborBlockChange(World world, int x, int y, int z, Block block) {
-        if (loadTileEntity(world, x, y, z)) {
-            for (LittleTile tile : tempEntity.getTiles()) {
-                tile.onNeighborChangeOutside();
-            }
-        }
-    }
-
-    @Override
     public MovingObjectPosition collisionRayTrace(World world, int x, int y, int z, Vec3 vec1, Vec3 vec2) {
         if (loadTileEntity(world, x, y, z)) {
             try { // Why try? because the number of tiles can change while this method is called
-                MovingObjectPosition moving = null;
-                for (LittleTile tile : tempEntity.getTiles()) {
-                    for (int i = 0; i < tile.boundingBoxes.size(); i++) {
-                        MovingObjectPosition tempMoving = tile.boundingBoxes.get(i).getBox()
-                                .getOffsetBoundingBox(x, y, z).calculateIntercept(vec1, vec2);
-
-                        if (tempMoving != null) {
-                            if (moving == null || moving.hitVec.distanceTo(vec1) > tempMoving.hitVec.distanceTo(vec1))
-                                moving = tempMoving;
-                        }
-                    }
-
-                }
+                MovingObjectPosition moving = tempEntity.getMoving(vec1, vec2, false);
 
                 if (moving != null) {
                     moving.blockX = x;

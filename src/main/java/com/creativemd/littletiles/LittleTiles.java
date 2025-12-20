@@ -12,6 +12,7 @@ import net.minecraftforge.common.MinecraftForge;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
 import com.creativemd.littletiles.client.render.AngelicaCompat;
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.blocks.BlockLTColored;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ItemBlockColored;
@@ -134,6 +135,7 @@ public class LittleTiles {
         MinecraftForge.EVENT_BUS.register(new LittleEvent());
 
         LittleStructure.initStructures();
+        Mesh3dUtil.initializeMeshes();
 
         // Recipes
         GameRegistry.addRecipe(

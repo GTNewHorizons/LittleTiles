@@ -1,7 +1,5 @@
 package com.creativemd.littletiles.client.util3d;
 
-import java.util.ArrayList;
-
 import net.minecraft.block.Block;
 
 import org.joml.Vector3i;
@@ -11,6 +9,12 @@ import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 
 public class Mesh3dUtil {
+
+    private static Mesh3d MESH_SLOPE;
+
+    public static void initializeMeshes() {
+        MESH_SLOPE = Mesh3dObjLoader.load("slope");
+    }
 
     public static Mesh3d createMesh(int x, int y, int z, LittleTileCutoutInfo cutoutInfo, double minX, double minY,
             double minZ, double maxX, double maxY, double maxZ, Block block, int meta) {
@@ -39,30 +43,11 @@ public class Mesh3dUtil {
                 cutoutInfo.orientation);
     }
 
-    private static Mesh3d createSlopeMesh() {
-        ArrayList<Triangle3d> triangles = new ArrayList<>();
-        /* Top */
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 0, 1), new Vector3d(1, 1, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 1, 0), new Vector3d(0, 1, 0)));
-        /* Bottom */
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(0, 0, 0), new Vector3d(1, 0, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 0, 0), new Vector3d(1, 0, 1)));
-        /* Back */
-        triangles.add(new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(1, 1, 0), new Vector3d(1, 0, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(1, 0, 0), new Vector3d(0, 0, 0)));
-        /* Right */
-        triangles.add(new Triangle3d(new Vector3d(1, 0, 1), new Vector3d(1, 0, 0), new Vector3d(1, 1, 0)));
-        /* Left */
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(0, 1, 0), new Vector3d(0, 0, 0)));
-
-        return new Mesh3d(triangles);
-    }
-
     public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3d cutoutScale, Vector3d pos,
             Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
         Mesh3d mesh;
         if (cutoutInfo.type == LittleTileShapeMode.SLOPE) {
-            mesh = createSlopeMesh();
+            mesh = MESH_SLOPE.copy();
         } else {
             throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
         }

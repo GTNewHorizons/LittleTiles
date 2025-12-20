@@ -18,10 +18,10 @@ import cpw.mods.fml.common.FMLLog;
 
 public class Mesh3d {
 
-    private ArrayList<Triangle3d> triangles;
+    private final List<Triangle3d> triangles;
 
-    public Mesh3d(ArrayList<Triangle3d> triangels) {
-        this.triangles = triangels;
+    public Mesh3d(List<Triangle3d> triangles) {
+        this.triangles = triangles;
     }
 
     public void scale(Vector3d vec) {
@@ -204,7 +204,7 @@ public class Mesh3d {
         return newTriangles;
     }
 
-    public ArrayList<Triangle3d> getTriangles() {
+    public List<Triangle3d> getTriangles() {
         return triangles;
     }
 
@@ -245,5 +245,13 @@ public class Mesh3d {
         for (Triangle3d triangle : triangles) {
             triangle.rotate(orientation);
         }
+    }
+
+    public Mesh3d copy() {
+        List<Triangle3d> trianglesNew = new ArrayList<>();
+        for (Triangle3d triangle : triangles) {
+            trianglesNew.add(triangle.copy());
+        }
+        return new Mesh3d(trianglesNew);
     }
 }

@@ -119,21 +119,7 @@ public class Mesh3d {
                 dumpFailingMesh();
                 return new Mesh3d(new ArrayList<>());
             }
-            Vector3d firstVertex = addVertices.get(0);
-            for (int i = 2; i < addVertices.size(); i++) {
-                Vector3d secondVertex = addVertices.get(i - 1);
-                Vector3d thirdVertex = addVertices.get(i);
-                if (isDegenerate(firstVertex, secondVertex, thirdVertex)) {
-                    continue;
-                }
-                // new Vectors to have different objects for later translation
-                Triangle3d triangle = new Triangle3d(
-                        new Vector3d(firstVertex),
-                        new Vector3d(secondVertex),
-                        new Vector3d(thirdVertex));
-                triangle.ensureWindingOrder(plane.getNormal());
-                newTriangles.add(triangle);
-            }
+            Triangulator.triangulate(newTriangles, plane, addVertices);
         }
 
         return new Mesh3d(newTriangles);
@@ -154,7 +140,7 @@ public class Mesh3d {
         }
     }
 
-    private boolean isDegenerate(Vector3d p1, Vector3d p2, Vector3d p3) {
+    public static boolean isDegenerate(Vector3d p1, Vector3d p2, Vector3d p3) {
         if (p1.equals(p2) || p1.equals(p3) || p2.equals(p3)) {
             return true;
         }

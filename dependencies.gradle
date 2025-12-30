@@ -5,4 +5,5 @@ dependencies {
     compileOnly('com.github.GTNewHorizons:Angelica:1.0.0-beta64:dev')
     compileOnly("com.github.GTNewHorizons:waila:1.9.7:dev") { transitive = false }
     api("com.github.GTNewHorizons:ModularUI2:2.3.5-1.7.10:dev")
+    shadowImplementation("io.github.earcut4j:earcut4j:2.2.2")
 }

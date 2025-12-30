@@ -508,19 +508,7 @@ public class BlockTile extends BlockContainer {
     public MovingObjectPosition collisionRayTrace(World world, int x, int y, int z, Vec3 vec1, Vec3 vec2) {
         if (loadTileEntity(world, x, y, z)) {
             try { // Why try? because the number of tiles can change while this method is called
-                MovingObjectPosition moving = null;
-                for (LittleTile tile : tempEntity.getTiles()) {
-                    if (tile.boundingBox != null) {
-                        MovingObjectPosition tempMoving = tile.boundingBox.getBox().getOffsetBoundingBox(x, y, z)
-                                .calculateIntercept(vec1, vec2);
-
-                        if (tempMoving != null) {
-                            if (moving == null || moving.hitVec.distanceTo(vec1) > tempMoving.hitVec.distanceTo(vec1))
-                                moving = tempMoving;
-                        }
-                    }
-
-                }
+                MovingObjectPosition moving = tempEntity.getMoving(vec1, vec2, false);
 
                 if (moving != null) {
                     moving.blockX = x;

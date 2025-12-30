@@ -29,6 +29,7 @@ import com.creativemd.littletiles.common.items.ItemRubberMallet;
 import com.creativemd.littletiles.common.items.ItemTileContainer;
 import com.creativemd.littletiles.common.packet.LittleBlockPacket;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
+import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.sorting.LittleTileSortingList;
@@ -129,6 +130,7 @@ public class LittleTiles {
         CreativeCorePacket.registerPacket(LittleBlockPacket.class, "LittleBlock");
         CreativeCorePacket.registerPacket(LittleRotatePacket.class, "LittleRotate");
         CreativeCorePacket.registerPacket(LittleFlipPacket.class, "LittleFlip");
+        CreativeCorePacket.registerPacket(LittleItemUpdatePacket.class, "LittleItemUpdate");
         FMLCommonHandler.instance().bus().register(new LittleEvent());
         MinecraftForge.EVENT_BUS.register(new LittleEvent());
 

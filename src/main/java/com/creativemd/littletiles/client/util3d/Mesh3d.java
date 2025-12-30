@@ -60,7 +60,7 @@ public class Mesh3d {
         }
 
         File logsFolder = new File(mcDir, "logs");
-        File outFile = new File(logsFolder, "littleTilesErrorMesh" + logCount);
+        File outFile = new File(logsFolder, "littleTilesErrorMesh" + logCount + ".obj");
         logCount++;
         exportObj(outFile);
         FMLLog.getLogger().error("Failed to process mesh, dumped into " + outFile.getAbsolutePath());

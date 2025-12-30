@@ -2,7 +2,10 @@ package com.creativemd.littletiles.common.gui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
+import net.minecraft.block.Block;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 import com.cleanroommc.modularui.api.GuiAxis;
@@ -15,6 +18,7 @@ import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.value.StringValue;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.ScrollWidget;
 import com.cleanroommc.modularui.widget.SingleChildWidget;
@@ -26,6 +30,7 @@ import com.cleanroommc.modularui.widgets.ItemDisplayWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
+import com.creativemd.littletiles.common.utils.BlockStateSyncValue;
 
 public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> implements Interactable {
 
@@ -35,12 +40,16 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
     private final List<ItemStack> stacks = new ArrayList<>();
     private final DropDownWrapper menu = new DropDownWrapper(stacks);
     public static final int scrollWidth = 9;
+    private final BlockStateSyncValue syncBlock;
+    private final boolean isClient;
 
-    public BlockDisplayWidget() {
+    public BlockDisplayWidget(PanelSyncManager syncManager, BlockStateSyncValue syncBlock) {
         menu.setEnabled(false);
         menu.background(GuiTextures.BUTTON_CLEAN);
         child(menu);
         setArrows(GuiTextures.ARROW_UP, GuiTextures.ARROW_DOWN);
+        this.syncBlock = syncBlock;
+        isClient = syncManager.isClient();
     }
 
     public int getSelectedIndex() {
@@ -132,6 +141,34 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
         for (int i = 0; i < stacks.size(); i++) {
             if (ItemStack.areItemStacksEqual(stacks.get(i), stack)) {
                 setSelectedIndex(i);
+            }
+        }
+    }
+
+    public void addBlock(Block block, int meta) {
+        ItemStack stack = new ItemStack(block, 1, meta);
+        addChoice((x) -> syncBlock.setValue(block, meta), stack);
+    }
+
+    public void addAllBlocks(Predicate<Block> filter) {
+        // getSubBlocks is client only
+        if (!isClient) {
+            return;
+        }
+        for (Object blocko : Block.blockRegistry) {
+            Block block = (Block) blocko;
+            if (filter.test(block)) {
+                Item item = new ItemStack(block).getItem();
+                if (item == null) {
+                    continue;
+                }
+                List<ItemStack> list = new ArrayList<>();
+                block.getSubBlocks(item, block.getCreativeTabToDisplayOn(), list);
+
+                for (ItemStack stack : list) {
+                    final int meta = stack.getItemDamage();
+                    addBlock(block, meta);
+                }
             }
         }
     }

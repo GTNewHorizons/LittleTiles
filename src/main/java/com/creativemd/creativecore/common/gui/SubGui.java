@@ -3,7 +3,6 @@ package com.creativemd.creativecore.common.gui;
 import java.util.ArrayList;
 
 import javax.vecmath.Vector2d;
-import javax.vecmath.Vector4d;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -435,12 +434,11 @@ public abstract class SubGui {
             i++;
         }
 
-        GL11.glDisable(GL11.GL_LIGHTING);
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glColorMask(true, true, true, false);
-        Vector4d color = new Vector4d(198, 198, 198, 255);
-        RenderHelper2D.drawGradientRect(k + 6, l + 6, k + this.width - 6, l + this.height - 6, color, color);
-        GL11.glColorMask(true, true, true, true);
+        GL11.glPushMatrix();
+        GL11.glTranslatef(k + 6, l + 6, 0.0F);
+        GL11.glScalef(this.width - 12, this.height - 12, 1.0F);
+        this.drawTexturedModalRect(0, 0, 7, 7, 1, 1);
+        GL11.glPopMatrix();
     }
 
     public static void drawTexturedModalRect(int x, int y, int u, int v, int width, int height) {

@@ -130,15 +130,15 @@ public class Mesh3dUtil {
 
     public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3d cutoutScale, Vector3d pos,
             Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
-        Mesh3d mesh;
-        if (cutoutInfo.type == LittleTileShapeMode.SLOPE) {
-            mesh = MESH_SLOPE.copy();
-        } else if (cutoutInfo.type == LittleTileShapeMode.PILLAR) {
-            mesh = createWallMesh(cutoutInfo);
-            cutoutScale = new Vector3d(1, 1, 1);
-        } else {
-            throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
-        }
+        Mesh3d mesh = switch (cutoutInfo.type) {
+            case SLOPE -> MESH_SLOPE.copy();
+            case PILLAR -> {
+                cutoutScale = new Vector3d(1, 1, 1);
+                yield createWallMesh(cutoutInfo);
+            }
+            case BOX -> throw new RuntimeException("Invalid cutout BOX");
+            default -> throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
+        };
 
         if (cutoutInfo.type != LittleTileShapeMode.PILLAR) {
             mesh.translate(new Vector3d(-0.5, -0.5, -0.5));

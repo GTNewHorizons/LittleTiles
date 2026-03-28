@@ -41,7 +41,10 @@ public class LittleToolHandler {
     public Block getBlock() {
         NBTTagCompound tag = getTag(false);
         if (tag.hasKey("block")) {
-            return Block.getBlockById(tag.getInteger("block"));
+            Block ret = Block.getBlockById(tag.getInteger("block"));
+            if (ret != null && ret != Blocks.air) {
+                return ret;
+            }
         }
         return Blocks.stone;
     }

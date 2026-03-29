@@ -256,7 +256,7 @@ public class PreviewRenderer {
                         if (cutoutSize == null) {
                             cutoutSize = new Vector3d(size.xCoord, size.yCoord, size.zCoord);
                         }
-                        if (shape == LittleTileShapeMode.BOX) {
+                        if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
                             RenderHelper3D.renderBlock(
                                     cubeX,
                                     cubeY,

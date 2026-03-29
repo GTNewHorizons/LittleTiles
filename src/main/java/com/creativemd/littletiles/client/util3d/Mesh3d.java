@@ -8,6 +8,7 @@ import java.util.List;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3i;
 
@@ -253,5 +254,40 @@ public class Mesh3d {
             trianglesNew.add(triangle.copy());
         }
         return new Mesh3d(trianglesNew);
+    }
+
+    public List<Triangle3d> getTrianglesForSide(ForgeDirection direction) {
+        Plane3d plane = Plane3d.planes[direction.ordinal()];
+        List<Triangle3d> ret = new ArrayList<>();
+        for (Triangle3d triangle : triangles) {
+            if (Plane3d.getPlaneForTriangle(triangle) == plane) {
+                ret.add(triangle);
+            }
+        }
+
+        return ret;
+    }
+
+    public static List<Vector3d> getPointsForTriangles(List<Triangle3d> triangles) {
+        List<Vector3d> allPoints = new ArrayList<>();
+        for (Triangle3d triangle : triangles) {
+            allPoints.add(triangle.getP1());
+            allPoints.add(triangle.getP2());
+            allPoints.add(triangle.getP3());
+        }
+        return allPoints;
+    }
+
+    public List<Vector3d> getPointsForSide(ForgeDirection faceStart) {
+        List<Vector3d> ret = new ArrayList<>();
+        List<Vector3d> allPoints = getPointsForTriangles(triangles);
+        List<Triangle3d> sidedTriangles = getTrianglesForSide(faceStart);
+        List<Vector3d> trianglePoints = getPointsForTriangles(sidedTriangles);
+        for (Vector3d point : allPoints) {
+            if (trianglePoints.contains(point)) {
+                ret.add(point);
+            }
+        }
+        return ret;
     }
 }

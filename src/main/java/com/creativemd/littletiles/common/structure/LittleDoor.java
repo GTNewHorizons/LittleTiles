@@ -21,6 +21,7 @@ import com.creativemd.littletiles.common.gui.SubGuiStructure;
 import com.creativemd.littletiles.common.gui.controls.GuiTileViewer;
 import com.creativemd.littletiles.common.items.ItemBlockTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
@@ -283,7 +284,18 @@ public class LittleDoor extends LittleStructure {
          * structure.normalAxis = Axis.Yaxis; break; default: break; }
          */
 
-        if (ItemBlockTiles.placeTiles(world, player, previews, structure, x, y, z, null, null, null)) {
+        if (ItemBlockTiles.placeTiles(
+                world,
+                player,
+                previews,
+                structure,
+                x,
+                y,
+                z,
+                null,
+                null,
+                null,
+                LittleTilePlaceMode.NORMAL)) {
             ArrayList<LittleTile> tiles = getTiles();
             for (LittleTile littleTile : tiles) {
                 littleTile.te.update();

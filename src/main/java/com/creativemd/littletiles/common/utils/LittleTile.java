@@ -2,6 +2,7 @@ package com.creativemd.littletiles.common.utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
 
@@ -454,6 +455,25 @@ public abstract class LittleTile {
 
     public LittleTileCutoutInfo getCutoutInfo() {
         return cutoutInfo;
+    }
+
+    public boolean overlapsTile(LittleTile other) {
+        if (this.boundingBox == null || other.boundingBox == null) {
+            return false;
+        }
+        return boundingBox.intersectsWith(other.boundingBox);
+    }
+
+    public List<LittleTile> splitByTile(LittleTile other) {
+        List<LittleTileBox> newBoxes = this.boundingBox.splitByBox(other.boundingBox);
+        List<LittleTile> ret = new ArrayList<>();
+
+        for (LittleTileBox box : newBoxes) {
+            LittleTile tile = this.copy();
+            tile.boundingBox = box;
+            ret.add(tile);
+        }
+        return ret;
     }
 
     @Deprecated

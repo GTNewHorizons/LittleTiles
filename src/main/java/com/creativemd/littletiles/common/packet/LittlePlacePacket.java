@@ -15,6 +15,7 @@ import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.items.ItemBlockTiles;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 
@@ -30,17 +31,19 @@ public class LittlePlacePacket extends CreativeCorePacket {
     }
 
     public LittlePlacePacket(ItemStack stack, LittleTileBlockPos pos, boolean customPlacement,
-            LittleTileCutoutInfo cutoutInfo) {
+            LittleTileCutoutInfo cutoutInfo, LittleTilePlaceMode placeMode) {
         this.stack = stack;
         this.pos = pos;
         this.customPlacement = customPlacement;
         this.cutoutInfo = cutoutInfo;
+        this.placeMode = placeMode;
     }
 
     public ItemStack stack;
     public LittleTileBlockPos pos;
     public boolean customPlacement;
     public LittleTileCutoutInfo cutoutInfo;
+    public LittleTilePlaceMode placeMode;
 
     @Override
     public void writeBytes(ByteBuf buf) {
@@ -53,6 +56,7 @@ public class LittlePlacePacket extends CreativeCorePacket {
         buf.writeInt(pos.getSubZ());
         buf.writeInt(pos.getSide().ordinal());
         buf.writeBoolean(customPlacement);
+        buf.writeByte(placeMode.ordinal());
         if (cutoutInfo == null) {
             buf.writeBoolean(false);
         } else {
@@ -86,6 +90,7 @@ public class LittlePlacePacket extends CreativeCorePacket {
         int side = buf.readInt();
         this.pos = new LittleTileBlockPos(posX, posY, posZ, subX, subY, subZ, ForgeDirection.getOrientation(side));
         this.customPlacement = buf.readBoolean();
+        this.placeMode = LittleTilePlaceMode.values()[buf.readByte()];
         if (buf.readBoolean()) {
             this.cutoutInfo = new LittleTileCutoutInfo();
             int cutoutInfo = buf.readInt();
@@ -119,7 +124,7 @@ public class LittlePlacePacket extends CreativeCorePacket {
             PlacementHelper helper = PlacementHelper.getInstance(player);
 
             ((ItemBlockTiles) Item.getItemFromBlock(LittleTiles.blockTile))
-                    .placeBlockAt(player, stack, player.worldObj, pos, helper, customPlacement, cutoutInfo);
+                    .placeBlockAt(player, stack, player.worldObj, pos, helper, customPlacement, cutoutInfo, placeMode);
 
             EntityPlayerMP playerMP = (EntityPlayerMP) player;
             Slot slot = playerMP.openContainer.getSlotFromInventory(playerMP.inventory, playerMP.inventory.currentItem);

@@ -1,5 +1,8 @@
 package com.creativemd.littletiles.common.utils.small;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
@@ -349,6 +352,48 @@ public class LittleTileBox {
                 Math.max(minX, maxX),
                 Math.max(minY, maxY),
                 Math.max(minZ, maxZ));
+    }
+
+    public List<LittleTileBox> splitByBox(LittleTileBox other) {
+        int iMinX = Math.max(this.minX, other.minX);
+        int iMinY = Math.max(this.minY, other.minY);
+        int iMinZ = Math.max(this.minZ, other.minZ);
+
+        int iMaxX = Math.min(this.maxX, other.maxX);
+        int iMaxY = Math.min(this.maxY, other.maxY);
+        int iMaxZ = Math.min(this.maxZ, other.maxZ);
+
+        ArrayList<LittleTileBox> ret = new ArrayList<>();
+
+        // check for missing intersection case, to be safe
+        if (iMinX >= iMaxX || iMinY >= iMaxY || iMinZ >= iMaxZ) {
+            ret.add(this.copy());
+            return ret;
+        }
+
+        if (this.minX < iMinX) ret.add(new LittleTileBox(this.minX, this.minY, this.minZ, iMinX, this.maxY, this.maxZ));
+
+        if (iMaxX < this.maxX) ret.add(new LittleTileBox(iMaxX, this.minY, this.minZ, this.maxX, this.maxY, this.maxZ));
+
+        // Now clamp X to intersection slab
+        int aMinX = Math.max(this.minX, iMinX);
+        int aMaxX = Math.min(this.maxX, iMaxX);
+
+        // --- Y splits (bottom/top) ---
+        if (this.minY < iMinY) ret.add(new LittleTileBox(aMinX, this.minY, this.minZ, aMaxX, iMinY, this.maxZ));
+
+        if (iMaxY < this.maxY) ret.add(new LittleTileBox(aMinX, iMaxY, this.minZ, aMaxX, this.maxY, this.maxZ));
+
+        // Clamp Y
+        int aMinY = Math.max(this.minY, iMinY);
+        int aMaxY = Math.min(this.maxY, iMaxY);
+
+        // --- Z splits (front/back) ---
+        if (this.minZ < iMinZ) ret.add(new LittleTileBox(aMinX, aMinY, this.minZ, aMaxX, aMaxY, iMinZ));
+
+        if (iMaxZ < this.maxZ) ret.add(new LittleTileBox(aMinX, aMinY, iMaxZ, aMaxX, aMaxY, this.maxZ));
+
+        return ret;
     }
 
 }

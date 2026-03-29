@@ -265,9 +265,13 @@ public abstract class LittleTile {
     // ================Destroying================
 
     public void destroy() {
+        destroy(true);
+    }
+
+    public void destroy(boolean cleanupTileEntityIfLast) {
         if (isStructureBlock) {
             if (!te.getWorldObj().isRemote && isLoaded()) structure.onLittleTileDestory();
-        } else te.removeTile(this);
+        } else te.removeTile(this, cleanupTileEntityIfLast);
     }
 
     // ================Copy================

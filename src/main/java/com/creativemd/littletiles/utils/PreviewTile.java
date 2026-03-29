@@ -45,8 +45,7 @@ public class PreviewTile {
         return box;
     }
 
-    private List<LittleTile> placeTileModeFill(LittleTile tileNew,
-            EntityPlayer player, ItemStack stack) {
+    private List<LittleTile> placeTileModeFill(LittleTile tileNew, EntityPlayer player, ItemStack stack) {
         List<LittleTile> tiles = new ArrayList<>();
         tiles.add(tileNew);
 
@@ -69,8 +68,8 @@ public class PreviewTile {
         return tiles;
     }
 
-    private List<LittleTile> placeTileModeOverwrite(LittleTile tileNew,
-            EntityPlayer player, ItemStack stack, boolean doAdd) {
+    private List<LittleTile> placeTileModeOverwrite(LittleTile tileNew, EntityPlayer player, ItemStack stack,
+            boolean doAdd) {
         List<LittleTile> tiles = new ArrayList<>(tileNew.te.getTiles());
         List<LittleTile> newTiles = new ArrayList<>();
 

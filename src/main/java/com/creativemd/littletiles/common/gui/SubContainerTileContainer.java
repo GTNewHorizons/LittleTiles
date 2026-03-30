@@ -91,7 +91,7 @@ public class SubContainerTileContainer extends SubContainer {
 
     @Override
     public void onGuiClosed() {
-        player.inventory.mainInventory[player.inventory.currentItem] = stack;
+        player.inventory.mainInventory[this.index] = stack;
     }
 
     @Override

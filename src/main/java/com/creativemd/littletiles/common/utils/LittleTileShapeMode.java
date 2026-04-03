@@ -5,7 +5,8 @@ import net.minecraft.util.StatCollector;
 public enum LittleTileShapeMode {
 
     BOX("key.littletiles.box"),
-    SLOPE("key.littletiles.slope");
+    SLOPE("key.littletiles.slope"),
+    PILLAR("key.littletiles.pillar");
 
     private final String name;
 

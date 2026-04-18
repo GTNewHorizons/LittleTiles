@@ -19,11 +19,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public final class TickHandler {
 
-    @SideOnly(Side.CLIENT)
     private int defaultScale;
-    @SideOnly(Side.CLIENT)
     private boolean changed;
-    @SideOnly(Side.CLIENT)
     public final ArrayList<CreativeCoreEventBus> ClientEvents = new ArrayList<>();
     public final ArrayList<CreativeCoreEventBus> ServerEvents = new ArrayList<>();
 

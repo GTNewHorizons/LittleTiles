@@ -26,6 +26,7 @@ import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLServerStoppedEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import cpw.mods.fml.common.registry.EntityRegistry;
@@ -42,7 +43,7 @@ public class CreativeCore {
     public static final Logger logger = LogManager.getLogger(modid);
 
     public static SimpleNetworkWrapper network;
-    public static TickHandler tickHandler = new TickHandler();
+    public static final TickHandler tickHandler = new TickHandler();
 
     @EventHandler
     public void Init(FMLInitializationEvent event) {
@@ -66,7 +67,13 @@ public class CreativeCore {
 
         StackInfo.registerDefaultLoaders();
 
-        if (Loader.isModLoaded("NotEnoughItems") && FMLCommonHandler.instance().getEffectiveSide().isClient())
+        if (Loader.isModLoaded("NotEnoughItems") && FMLCommonHandler.instance().getEffectiveSide().isClient()) {
             NEIRecipeInfoHandler.load();
+        }
+    }
+
+    @Mod.EventHandler
+    public void onServerStopped(FMLServerStoppedEvent event) {
+        tickHandler.ServerEvents.clear();
     }
 }

@@ -1,5 +1,7 @@
 package com.creativemd.creativecore.core;
 
+import net.minecraftforge.common.MinecraftForge;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -63,6 +65,7 @@ public class CreativeCore {
         CreativeCorePacket.registerPacket(OpenGuiPacket.class, "opengui");
         CreativeCorePacket.registerPacket(BlockUpdatePacket.class, "blockupdatepacket");
 
+        MinecraftForge.EVENT_BUS.register(tickHandler);
         FMLCommonHandler.instance().bus().register(tickHandler);
 
         StackInfo.registerDefaultLoaders();

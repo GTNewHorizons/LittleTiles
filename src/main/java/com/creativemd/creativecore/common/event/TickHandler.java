@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraftforge.event.world.WorldEvent;
 
 import com.creativemd.creativecore.common.container.ContainerSub;
 import com.creativemd.creativecore.common.multiblock.IMultiBlock;
@@ -13,7 +14,6 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.RenderTickEvent;
-import cpw.mods.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -101,7 +101,7 @@ public final class TickHandler {
     }
 
     @SubscribeEvent
-    public void onClientDisconnect(ClientDisconnectionFromServerEvent event) {
-        this.ClientEvents.clear();
+    public void onWorldUnload(WorldEvent.Unload event) {
+        if (event.world.isRemote) this.ClientEvents.clear();
     }
 }

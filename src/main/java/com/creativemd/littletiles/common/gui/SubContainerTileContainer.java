@@ -75,6 +75,9 @@ public class SubContainerTileContainer extends SubContainer {
                 } else
                     ItemTileContainer.addBlock(stack, block, slot.getItemDamage(), basic.getStackInSlot(0).stackSize);
 
+                if (stack.stackTagCompound == null) {
+                    stack.stackTagCompound = new NBTTagCompound();
+                }
                 NBTTagCompound nbt = stack.stackTagCompound;
                 nbt.setBoolean("needUpdate", true);
                 sendUpdate(nbt);

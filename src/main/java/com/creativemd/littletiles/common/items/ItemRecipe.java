@@ -131,6 +131,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
     }
 
     public static void flipPreview(ItemStack stack, ForgeDirection direction) {
+        if (!stack.hasTagCompound()) return;
         int tiles = stack.stackTagCompound.getInteger("tiles");
         for (int i = 0; i < tiles; i++) {
             NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);
@@ -140,6 +141,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
     }
 
     public static void rotatePreview(ItemStack stack, ForgeDirection direction) {
+        if (!stack.hasTagCompound()) return;
         int tiles = stack.stackTagCompound.getInteger("tiles");
         for (int i = 0; i < tiles; i++) {
             NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);
@@ -150,6 +152,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
 
     public static ArrayList<LittleTilePreview> getPreview(ItemStack stack) {
         ArrayList<LittleTilePreview> result = new ArrayList<>();
+        if (!stack.hasTagCompound()) return result;
         int tiles = stack.stackTagCompound.getInteger("tiles");
         for (int i = 0; i < tiles; i++) {
             NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);

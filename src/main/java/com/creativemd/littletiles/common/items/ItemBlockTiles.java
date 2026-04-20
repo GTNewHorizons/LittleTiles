@@ -359,12 +359,16 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     @Override
     public ArrayList<LittleTilePreview> getLittlePreview(ItemStack stack) {
         ArrayList<LittleTilePreview> previews = new ArrayList<>();
-        previews.add(LittleTilePreview.getPreviewFromNBT(stack.stackTagCompound));
+        LittleTilePreview preview = LittleTilePreview.getPreviewFromNBT(stack.stackTagCompound);
+        if (preview != null) {
+            previews.add(preview);
+        }
         return previews;
     }
 
     @Override
     public void rotateLittlePreview(ItemStack stack, ForgeDirection direction) {
+        if (!stack.hasTagCompound()) return;
         NBTTagCompound old = (NBTTagCompound) stack.stackTagCompound.copy();
         LittleTilePreview.rotatePreview(stack.stackTagCompound, direction);
         new LittleToolHandler(stack).handleRotation(direction, old);
@@ -373,6 +377,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     @Override
     public ArrayList<CubeObject> getRenderingCubes(ItemStack stack) {
         ArrayList<CubeObject> cubes = new ArrayList<>();
+        if (!stack.hasTagCompound()) return cubes;
         Block block = Block.getBlockFromName(stack.stackTagCompound.getString("block"));
         int meta = stack.stackTagCompound.getInteger("meta");
         LittleTileSize size = new LittleTileSize("size", stack.stackTagCompound);

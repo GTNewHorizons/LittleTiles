@@ -89,6 +89,7 @@ public class ItemMultiTiles extends Item implements ITilesRenderer, ILittleTile 
     }
 
     public static LittleStructure getLTStructure(ItemStack stack) {
+        if (!stack.hasTagCompound()) return null;
         return LittleStructure.createAndLoadStructure(stack.stackTagCompound.getCompoundTag("structure"), null);
     }
 

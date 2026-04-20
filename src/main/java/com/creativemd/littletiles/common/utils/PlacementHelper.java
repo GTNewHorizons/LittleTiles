@@ -21,26 +21,9 @@ import com.creativemd.littletiles.utils.PreviewTile;
 import com.creativemd.littletiles.utils.ShiftHandler;
 
 /** This class does all caculate on where to place a block. Used for rendering preview and placing **/
-public class PlacementHelper {
+public final class PlacementHelper {
 
-    private static PlacementHelper instance;
-
-    public static PlacementHelper getInstance(EntityPlayer player) {
-        if (instance == null) instance = new PlacementHelper(player);
-        else {
-            instance.player = player;
-            instance.world = player.worldObj;
-        }
-        return instance;
-    }
-
-    public EntityPlayer player;
-    public World world;
-
-    public PlacementHelper(EntityPlayer player) {
-        this.player = player;
-        this.world = player.worldObj;
-    }
+    private PlacementHelper() {}
 
     public static ILittleTile getLittleInterface(ItemStack stack) {
         if (stack == null) return null;
@@ -98,7 +81,9 @@ public class PlacementHelper {
         return new LittleTileSize(maxX - minX, maxY - minY, maxZ - minZ).max(size);
     }
 
-    public ArrayList<PreviewTile> getPreviewTiles(ItemStack stack, LittleTileBlockPos pos, boolean customPlacement) {
+    public static ArrayList<PreviewTile> getPreviewTiles(EntityPlayer player, ItemStack stack, LittleTileBlockPos pos,
+            boolean customPlacement) {
+        final World world = player.worldObj;
         ArrayList<ShiftHandler> shifthandlers = new ArrayList<>();
         ArrayList<PreviewTile> preview = new ArrayList<>();
         ArrayList<LittleTilePreview> tiles = null;
@@ -148,13 +133,12 @@ public class PlacementHelper {
                 int y = pos.getPosY();
                 int z = pos.getPosZ();
 
-                if (tiles.size() > 0 && tiles.get(0).box != null) {
+                if (!tiles.isEmpty() && tiles.get(0).box != null) {
                     Block block = world.getBlock(x, y, z);
                     if (block.isReplaceable(world, x, y, z) || block instanceof BlockTile) {
                         TileEntity te = world.getTileEntity(x, y, z);
                         canPlaceNormal = true;
-                        if (te instanceof TileEntityLittleTiles) {
-                            TileEntityLittleTiles teTiles = (TileEntityLittleTiles) te;
+                        if (te instanceof TileEntityLittleTiles teTiles) {
                             for (LittleTilePreview tile : tiles) {
                                 if (!teTiles.isSpaceForLittleTile(tile.box)) {
                                     canPlaceNormal = false;
@@ -218,7 +202,7 @@ public class PlacementHelper {
         return preview;
     }
 
-    public LittleTileBox getTilesBox(LittleTileSize size, LittleTileBlockPos pos, boolean doCenter) {
+    public static LittleTileBox getTilesBox(LittleTileSize size, LittleTileBlockPos pos, boolean doCenter) {
         LittleTileVec hit = pos.toHitVecRelative();
         if (doCenter) {
             LittleTileVec center = size.calculateCenter();
@@ -249,7 +233,7 @@ public class PlacementHelper {
         return new LittleTileBox(hit, size, doCenter);
     }
 
-    public boolean canBePlacedInsideBlock(int x, int y, int z) {
+    public static boolean canBePlacedInsideBlock(EntityPlayer player, int x, int y, int z) {
         TileEntity tileEntity = player.worldObj.getTileEntity(x, y, z);
         return tileEntity instanceof TileEntityLittleTiles;
     }

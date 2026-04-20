@@ -104,48 +104,52 @@ public class LittleTilesBlockRenderHelper {
     public static boolean renderCubes(IBlockAccess world, ArrayList<LittleTilesCubeObject> cubes, int x, int y, int z,
             Block block, RenderBlocks renderer, ForgeDirection direction) {
 
-        ExtendedRenderBlocks extraRenderer = extraRendererThreadLocal.get();
+        final ExtendedRenderBlocks extraRenderer = extraRendererThreadLocal.get();
         extraRenderer.updateRenderer(renderer);
 
-        IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
+        final IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
         fake.world = renderer.blockAccess;
 
         int pass = ForgeHooksClient.getWorldRenderPass();
         boolean rendered = false;
 
-        for (int i = 0; i < cubes.size(); i++) {
-            final LittleTilesCubeObject cube = cubes.get(i);
-            if (!cube.block.canRenderInPass(pass)) {
-                continue;
-            }
-            if (cube.cutoutInfo != null) {
-                if (renderCutout(x, y, z, cube, world)) {
-                    rendered = true;
+        try {
+            for (int i = 0; i < cubes.size(); i++) {
+                final LittleTilesCubeObject cube = cubes.get(i);
+                if (!cube.block.canRenderInPass(pass)) {
+                    continue;
                 }
-                continue;
-            }
+                if (cube.cutoutInfo != null) {
+                    if (renderCutout(x, y, z, cube, world)) {
+                        rendered = true;
+                    }
+                    continue;
+                }
 
-            rendered = true;
+                rendered = true;
 
-            if (cube.block != null && cube.meta != -1) {
-                extraRenderer.clearOverrideBlockTexture();
-                extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
-                extraRenderer.meta = cube.meta;
-                fake.overrideMeta = cube.meta;
-                extraRenderer.color = cube.color;
-                extraRenderer.lockBlockBounds = true;
-                if (LittleTiles.angelicaCompat != null) {
-                    LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
+                if (cube.block != null && cube.meta != -1) {
+                    extraRenderer.clearOverrideBlockTexture();
+                    extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
+                    extraRenderer.meta = cube.meta;
+                    fake.overrideMeta = cube.meta;
+                    extraRenderer.color = cube.color;
+                    extraRenderer.lockBlockBounds = true;
+                    if (LittleTiles.angelicaCompat != null) {
+                        LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
+                    }
+                    extraRenderer.field_152631_f = true;
+                    extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
+                    extraRenderer.field_152631_f = false;
+                    if (LittleTiles.angelicaCompat != null) {
+                        LittleTiles.angelicaCompat.resetShaderMaterialOverride();
+                    }
+                    extraRenderer.lockBlockBounds = false;
+                    extraRenderer.color = ColorUtils.WHITE;
                 }
-                extraRenderer.field_152631_f = true;
-                extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
-                extraRenderer.field_152631_f = false;
-                if (LittleTiles.angelicaCompat != null) {
-                    LittleTiles.angelicaCompat.resetShaderMaterialOverride();
-                }
-                extraRenderer.lockBlockBounds = false;
-                extraRenderer.color = ColorUtils.WHITE;
             }
+        } finally {
+            fake.world = null;
         }
         return rendered;
     }

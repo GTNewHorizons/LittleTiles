@@ -96,8 +96,6 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             float offsetX, float offsetY, float offsetZ) {
         if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) return false;
 
-        PlacementHelper helper = PlacementHelper.getInstance(player);
-
         MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
 
         int align = 1;
@@ -145,7 +143,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) PacketHandler.sendPacketToServer(
                     new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null, cutoutInfo));
 
-            placeBlockAt(player, stack, world, pos, helper, PreviewRenderer.markedHit != null, cutoutInfo);
+            placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, cutoutInfo);
 
             PreviewRenderer.markedHit = null;
 
@@ -167,21 +165,19 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
     @Override
     @SideOnly(Side.CLIENT)
-    public boolean func_150936_a(World world, int x, int y, int z, int side, EntityPlayer player, ItemStack stack) {
-        Block block = world.getBlock(x, y, z);
+    public boolean func_150936_a(World world, int xin, int yin, int zin, int side, EntityPlayer player,
+            ItemStack stack) {
 
         MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
 
-        PlacementHelper helper = PlacementHelper.getInstance(player);
         LittleTileBlockPos pos = LittleTileBlockPos.fromMovingObjectPosition(moving, 1);
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
 
-        x = pos.getPosX();
-        y = pos.getPosY();
-        z = pos.getPosZ();
-        block = world.getBlock(x, y, z);
-        return block.isReplaceable(world, x, y, z)
-                || PlacementHelper.getInstance(player).canBePlacedInsideBlock(x, y, z);
+        final int x = pos.getPosX();
+        final int y = pos.getPosY();
+        final int z = pos.getPosZ();
+        final Block block = world.getBlock(x, y, z);
+        return block.isReplaceable(world, x, y, z) || PlacementHelper.canBePlacedInsideBlock(player, x, y, z);
     }
 
     public static HashMapList<ChunkCoordinates, PreviewTile> getSplittedTiles(ArrayList<PreviewTile> tiles, int x,
@@ -313,8 +309,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     }
 
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
-            PlacementHelper helper, boolean customPlacement, LittleTileCutoutInfo cutoutInfo) {
-        ArrayList<PreviewTile> previews = helper.getPreviewTiles(stack, pos, customPlacement);
+            boolean customPlacement, LittleTileCutoutInfo cutoutInfo) {
+        ArrayList<PreviewTile> previews = PlacementHelper.getPreviewTiles(player, stack, pos, customPlacement);
 
         LittleStructure structure = null;
         if (stack.getItem() instanceof ILittleTile) {

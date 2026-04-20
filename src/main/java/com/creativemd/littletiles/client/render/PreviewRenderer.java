@@ -42,11 +42,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class PreviewRenderer {
 
-    public static Minecraft mc = Minecraft.getMinecraft();
-
     public void processKey(ForgeDirection direction) {
         LittleRotatePacket packet = new LittleRotatePacket(direction);
-        packet.executeClient(mc.thePlayer);
+        packet.executeClient(Minecraft.getMinecraft().thePlayer);
         PacketHandler.sendPacketToServer(packet);
     }
 
@@ -90,6 +88,7 @@ public class PreviewRenderer {
 
     @SubscribeEvent
     public void tick(RenderHandEvent event) {
+        final Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != null && mc.inGameHasFocus) {
 
             if (!ItemStack.areItemStackTagsEqual(lastItem, mc.thePlayer.getHeldItem())) {
@@ -137,7 +136,6 @@ public class PreviewRenderer {
                 }
 
                 MovingObjectPosition look = mc.objectMouseOver;
-                PlacementHelper helper = PlacementHelper.getInstance(mc.thePlayer);
                 LittleTileBlockPos pos = null;
                 int align = 1;
                 if (mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel) {
@@ -200,7 +198,8 @@ public class PreviewRenderer {
 
                     ArrayList<PreviewTile> previews;
 
-                    previews = helper.getPreviewTiles(mc.thePlayer.getHeldItem(), pos, markedHit != null);
+                    previews = PlacementHelper
+                            .getPreviewTiles(mc.thePlayer, mc.thePlayer.getHeldItem(), pos, markedHit != null);
 
                     double x = (double) pos.getPosX() - TileEntityRendererDispatcher.staticPlayerX;
                     double y = (double) pos.getPosY() - TileEntityRendererDispatcher.staticPlayerY;

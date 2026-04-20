@@ -358,11 +358,11 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
     @Override
     public ArrayList<LittleTilePreview> getLittlePreview(ItemStack stack) {
-        ArrayList<LittleTilePreview> previews = new ArrayList<>();
         LittleTilePreview preview = LittleTilePreview.getPreviewFromNBT(stack.stackTagCompound);
-        if (preview != null) {
-            previews.add(preview);
-        }
+        if(preview == null)
+            return null;
+        ArrayList<LittleTilePreview> previews = new ArrayList<>();
+        previews.add(preview);
         return previews;
     }
 

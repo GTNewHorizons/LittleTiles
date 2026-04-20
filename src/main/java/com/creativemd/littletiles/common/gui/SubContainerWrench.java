@@ -124,10 +124,10 @@ public class SubContainerWrench extends SubContainer {
                         boolean enough = true;
 
                         ArrayList<BlockEntry> entries = getContentofStack(stack2);
-                        ArrayList<LittleTilePreview> tiles = ItemRecipe.getPreview(stack1);
 
                         if (!player.capabilities.isCreativeMode) {
-                            enough = getMissing(tiles, entries).size() == 0;
+                            ArrayList<LittleTilePreview> tiles = ItemRecipe.getPreview(stack1);
+                            enough = tiles == null || getMissing(tiles, entries).isEmpty();
                         }
 
                         if (enough) {

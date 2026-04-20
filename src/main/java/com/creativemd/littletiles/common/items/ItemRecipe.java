@@ -164,7 +164,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
 
     public static LittleTileSize getSize(ItemStack stack) {
         ArrayList<LittleTilePreview> tiles = getPreview(stack);
-        if(tiles == null){
+        if (tiles == null) {
             return new LittleTileSize(0, 0, 0);
         }
         byte minX = LittleTile.maxPos;
@@ -210,7 +210,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
     public static ArrayList<CubeObject> getCubes(ItemStack stack) {
         ArrayList<LittleTilePreview> preview = getPreview(stack);
         ArrayList<CubeObject> cubes = new ArrayList<>();
-        if(preview != null){
+        if (preview != null) {
             for (LittleTilePreview littleTilePreview : preview) {
                 cubes.add(littleTilePreview.getCubeBlock());
             }

@@ -41,7 +41,7 @@ public class SubGuiWrench extends SubGui {
                     ArrayList<BlockEntry> missing = new ArrayList<>();
                     if (!container.player.capabilities.isCreativeMode) {
                         ArrayList<LittleTilePreview> tiles = ItemRecipe.getPreview(stack1);
-                        if(tiles != null){
+                        if (tiles != null) {
                             missing.addAll(SubContainerWrench.getMissing(tiles, entries));
                         }
                     }

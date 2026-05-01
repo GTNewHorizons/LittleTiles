@@ -97,8 +97,6 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             float offsetX, float offsetY, float offsetZ) {
         if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) return false;
 
-        PlacementHelper helper = PlacementHelper.getInstance(player);
-
         MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
 
         int align = 1;
@@ -149,7 +147,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) PacketHandler.sendPacketToServer(
                     new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null, cutoutInfo, placeMode));
 
-            placeBlockAt(player, stack, world, pos, helper, PreviewRenderer.markedHit != null, cutoutInfo, placeMode);
+            placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, cutoutInfo, placeMode);
 
             PreviewRenderer.markedHit = null;
 
@@ -171,21 +169,19 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
     @Override
     @SideOnly(Side.CLIENT)
-    public boolean func_150936_a(World world, int x, int y, int z, int side, EntityPlayer player, ItemStack stack) {
-        Block block = world.getBlock(x, y, z);
+    public boolean func_150936_a(World world, int xin, int yin, int zin, int side, EntityPlayer player,
+            ItemStack stack) {
 
         MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
 
-        PlacementHelper helper = PlacementHelper.getInstance(player);
         LittleTileBlockPos pos = LittleTileBlockPos.fromMovingObjectPosition(moving, 1);
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
 
-        x = pos.getPosX();
-        y = pos.getPosY();
-        z = pos.getPosZ();
-        block = world.getBlock(x, y, z);
-        return block.isReplaceable(world, x, y, z)
-                || PlacementHelper.getInstance(player).canBePlacedInsideBlock(x, y, z);
+        final int x = pos.getPosX();
+        final int y = pos.getPosY();
+        final int z = pos.getPosZ();
+        final Block block = world.getBlock(x, y, z);
+        return block.isReplaceable(world, x, y, z) || PlacementHelper.canBePlacedInsideBlock(player, x, y, z);
     }
 
     public static HashMapList<ChunkCoordinates, PreviewTile> getSplittedTiles(ArrayList<PreviewTile> tiles, int x,
@@ -318,9 +314,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     }
 
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
-            PlacementHelper helper, boolean customPlacement, LittleTileCutoutInfo cutoutInfo,
-            LittleTilePlaceMode placeMode) {
-        ArrayList<PreviewTile> previews = helper.getPreviewTiles(stack, pos, customPlacement);
+            boolean customPlacement, LittleTileCutoutInfo cutoutInfo, LittleTilePlaceMode placeMode) {
+        ArrayList<PreviewTile> previews = PlacementHelper.getPreviewTiles(player, stack, pos, customPlacement);
 
         LittleStructure structure = null;
         if (stack.getItem() instanceof ILittleTile) {
@@ -364,13 +359,16 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
     @Override
     public ArrayList<LittleTilePreview> getLittlePreview(ItemStack stack) {
+        LittleTilePreview preview = LittleTilePreview.getPreviewFromNBT(stack.stackTagCompound);
+        if (preview == null) return null;
         ArrayList<LittleTilePreview> previews = new ArrayList<>();
-        previews.add(LittleTilePreview.getPreviewFromNBT(stack.stackTagCompound));
+        previews.add(preview);
         return previews;
     }
 
     @Override
     public void rotateLittlePreview(ItemStack stack, ForgeDirection direction) {
+        if (!stack.hasTagCompound()) return;
         NBTTagCompound old = (NBTTagCompound) stack.stackTagCompound.copy();
         LittleTilePreview.rotatePreview(stack.stackTagCompound, direction);
         new LittleToolHandler(stack).handleRotation(direction, old);
@@ -379,6 +377,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     @Override
     public ArrayList<CubeObject> getRenderingCubes(ItemStack stack) {
         ArrayList<CubeObject> cubes = new ArrayList<>();
+        if (!stack.hasTagCompound()) return cubes;
         Block block = Block.getBlockFromName(stack.stackTagCompound.getString("block"));
         int meta = stack.stackTagCompound.getInteger("meta");
         LittleTileSize size = new LittleTileSize("size", stack.stackTagCompound);

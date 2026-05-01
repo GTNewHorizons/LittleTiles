@@ -24,13 +24,13 @@ public class CreativeCoreEventBus extends EventBus {
         else initServer();
     }
 
-    public void initServer() {
-        TickHandler.ServerEvents.add(this);
+    private void initServer() {
+        CreativeCore.tickHandler.ServerEvents.add(this);
     }
 
     @SideOnly(Side.CLIENT)
-    public void initClient() {
-        TickHandler.ClientEvents.add(this);
+    private void initClient() {
+        CreativeCore.tickHandler.ClientEvents.add(this);
     }
 
     /**
@@ -85,12 +85,12 @@ public class CreativeCoreEventBus extends EventBus {
     }
 
     public void removeTickEventServer() {
-        TickHandler.ServerEvents.remove(this);
+        CreativeCore.tickHandler.ServerEvents.remove(this);
     }
 
     @SideOnly(Side.CLIENT)
     public void removeTickEventClient() {
-        TickHandler.ClientEvents.remove(this);
+        CreativeCore.tickHandler.ClientEvents.remove(this);
     }
 
     @Override

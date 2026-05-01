@@ -1,6 +1,5 @@
 package com.creativemd.littletiles.client;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.Item;
 import net.minecraftforge.client.MinecraftForgeClient;
@@ -10,7 +9,6 @@ import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.BlockOverlayRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.client.render.SpecialBlockTilesRenderer;
-import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.server.LittleTilesServer;
 
@@ -51,7 +49,6 @@ public class LittleTilesClient extends LittleTilesServer {
         MinecraftForgeClient.registerItemRenderer(Item.getItemFromBlock(LittleTiles.blockTile), renderer);
         MinecraftForgeClient.registerItemRenderer(LittleTiles.recipe, renderer);
         MinecraftForgeClient.registerItemRenderer(LittleTiles.multiTiles, renderer);
-        BlockTile.mc = Minecraft.getMinecraft();
         FMLCommonHandler.instance().bus().register(new PreviewRenderer());
         MinecraftForge.EVENT_BUS.register(new PreviewRenderer());
         ClientRegistry.registerKeyBinding(up);

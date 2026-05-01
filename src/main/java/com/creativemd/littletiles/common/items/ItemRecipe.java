@@ -131,6 +131,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
     }
 
     public static void flipPreview(ItemStack stack, ForgeDirection direction) {
+        if (!stack.hasTagCompound()) return;
         int tiles = stack.stackTagCompound.getInteger("tiles");
         for (int i = 0; i < tiles; i++) {
             NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);
@@ -140,6 +141,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
     }
 
     public static void rotatePreview(ItemStack stack, ForgeDirection direction) {
+        if (!stack.hasTagCompound()) return;
         int tiles = stack.stackTagCompound.getInteger("tiles");
         for (int i = 0; i < tiles; i++) {
             NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);
@@ -149,6 +151,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
     }
 
     public static ArrayList<LittleTilePreview> getPreview(ItemStack stack) {
+        if (!stack.hasTagCompound()) return null;
         ArrayList<LittleTilePreview> result = new ArrayList<>();
         int tiles = stack.stackTagCompound.getInteger("tiles");
         for (int i = 0; i < tiles; i++) {
@@ -161,6 +164,9 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
 
     public static LittleTileSize getSize(ItemStack stack) {
         ArrayList<LittleTilePreview> tiles = getPreview(stack);
+        if (tiles == null) {
+            return new LittleTileSize(0, 0, 0);
+        }
         byte minX = LittleTile.maxPos;
         byte minY = LittleTile.maxPos;
         byte minZ = LittleTile.maxPos;
@@ -204,8 +210,10 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
     public static ArrayList<CubeObject> getCubes(ItemStack stack) {
         ArrayList<LittleTilePreview> preview = getPreview(stack);
         ArrayList<CubeObject> cubes = new ArrayList<>();
-        for (LittleTilePreview littleTilePreview : preview) {
-            cubes.add(littleTilePreview.getCubeBlock());
+        if (preview != null) {
+            for (LittleTilePreview littleTilePreview : preview) {
+                cubes.add(littleTilePreview.getCubeBlock());
+            }
         }
         return cubes;
     }

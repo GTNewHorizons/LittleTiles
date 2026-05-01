@@ -1,5 +1,7 @@
 package com.creativemd.creativecore.core;
 
+import net.minecraftforge.common.MinecraftForge;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,6 +28,7 @@ import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLServerStoppedEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import cpw.mods.fml.common.registry.EntityRegistry;
@@ -42,7 +45,7 @@ public class CreativeCore {
     public static final Logger logger = LogManager.getLogger(modid);
 
     public static SimpleNetworkWrapper network;
-    public static TickHandler tickHandler = new TickHandler();
+    public static final TickHandler tickHandler = new TickHandler();
 
     @EventHandler
     public void Init(FMLInitializationEvent event) {
@@ -62,11 +65,18 @@ public class CreativeCore {
         CreativeCorePacket.registerPacket(OpenGuiPacket.class, "opengui");
         CreativeCorePacket.registerPacket(BlockUpdatePacket.class, "blockupdatepacket");
 
+        MinecraftForge.EVENT_BUS.register(tickHandler);
         FMLCommonHandler.instance().bus().register(tickHandler);
 
         StackInfo.registerDefaultLoaders();
 
-        if (Loader.isModLoaded("NotEnoughItems") && FMLCommonHandler.instance().getEffectiveSide().isClient())
+        if (Loader.isModLoaded("NotEnoughItems") && FMLCommonHandler.instance().getEffectiveSide().isClient()) {
             NEIRecipeInfoHandler.load();
+        }
+    }
+
+    @Mod.EventHandler
+    public void onServerStopped(FMLServerStoppedEvent event) {
+        tickHandler.ServerEvents.clear();
     }
 }

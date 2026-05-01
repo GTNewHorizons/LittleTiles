@@ -35,7 +35,6 @@ import com.creativemd.littletiles.common.packet.LittleBlockPacket;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
-import com.creativemd.littletiles.common.utils.LittleTileTileEntity;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 
@@ -45,16 +44,15 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public class BlockTile extends BlockContainer {
 
-    private Random rand;
+    @SideOnly(Side.CLIENT)
+    private IIcon overrideIcon;
+    private final Random rand;
 
     public BlockTile(Material material) {
         super(material);
         setCreativeTab(CreativeTabs.tabDecorations);
         rand = new Random();
     }
-
-    @SideOnly(Side.CLIENT)
-    public static Minecraft mc;
 
     @Override
     @SideOnly(Side.CLIENT)
@@ -86,8 +84,9 @@ public class BlockTile extends BlockContainer {
 
     @Override
     public boolean isBed(IBlockAccess world, int x, int y, int z, EntityLivingBase player) {
-        if (loadTileEntity(world, x, y, z)) {
-            for (LittleTile tile : tempEntity.getTiles()) {
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null) {
+            for (LittleTile tile : littleTile.getTiles()) {
                 if (tile.isBed(world, x, y, z, player)) return true;
             }
         }
@@ -153,9 +152,10 @@ public class BlockTile extends BlockContainer {
 
     @Override
     public float getPlayerRelativeBlockHardness(EntityPlayer player, World world, int x, int y, int z) {
-        if (loadTileEntity(world, x, y, z) && tempEntity.updateLoadedTile(player)
-                && tempEntity.loadedTile instanceof LittleTileBlock) {
-            return ((LittleTileBlock) tempEntity.loadedTile).block
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null && littleTile.updateLoadedTile(player)
+                && littleTile.loadedTile instanceof LittleTileBlock) {
+            return ((LittleTileBlock) littleTile.loadedTile).block
                     .getPlayerRelativeBlockHardness(player, world, x, y, z);
         }
         return super.getBlockHardness(world, x, y, z);
@@ -170,9 +170,10 @@ public class BlockTile extends BlockContainer {
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getSelectedBoundingBoxFromPool(World world, int x, int y, int z) {
-        if (loadTileEntity(world, x, y, z) && tempEntity.updateLoadedTile(mc.thePlayer)) {
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null && littleTile.updateLoadedTile(Minecraft.getMinecraft().thePlayer)) {
             try { // Why try? because the number of tiles can change while this method is called
-                return tempEntity.loadedTile.getSelectedBox().getOffsetBoundingBox(x, y, z);
+                return littleTile.loadedTile.getSelectedBox().getOffsetBoundingBox(x, y, z);
             } catch (Exception ignored) {
 
             }
@@ -183,8 +184,9 @@ public class BlockTile extends BlockContainer {
     @Override
     public void addCollisionBoxesToList(World world, int x, int y, int z, AxisAlignedBB axis, List list,
             Entity entity) {
-        if (loadTileEntity(world, x, y, z)) {
-            for (LittleTile tile : tempEntity.getTiles()) {
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null) {
+            for (LittleTile tile : littleTile.getTiles()) {
                 if (tile.boundingBox != null) {
                     AxisAlignedBB box = tile.boundingBox.getBox().getOffsetBoundingBox(x, y, z);
                     if (axis.intersectsWith(box)) list.add(box);
@@ -201,15 +203,20 @@ public class BlockTile extends BlockContainer {
 
     @Override
     public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
-        if (loadTileEntity(world, x, y, z) && tempEntity.getTiles().size() == 0)
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null && littleTile.getTiles().isEmpty()) {
             super.breakBlock(world, x, y, z, block, meta);
+        }
     }
 
     @Override
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick(World world, int x, int y, int z, Random random) {
-        if (loadTileEntity(world, x, y, z)) for (LittleTile tile : tempEntity.getTiles()) {
-            tile.randomDisplayTick(world, x, y, z, random);
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null) {
+            for (LittleTile tile : littleTile.getTiles()) {
+                tile.randomDisplayTick(world, x, y, z, random);
+            }
         }
     }
 
@@ -218,10 +225,11 @@ public class BlockTile extends BlockContainer {
     @Override
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float moveX,
             float moveY, float moveZ) {
-        if (loadTileEntity(world, x, y, z) && tempEntity.updateLoadedTile(player)) {
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null && littleTile.updateLoadedTile(player)) {
             try {
                 if (world.isRemote) PacketHandler.sendPacketToServer(new LittleBlockPacket(x, y, z, player, 0));
-                return tempEntity.loadedTile.onBlockActivated(world, x, y, z, player, side, moveX, moveY, moveZ);
+                return littleTile.loadedTile.onBlockActivated(world, x, y, z, player, side, moveX, moveY, moveZ);
             } catch (Exception ignored) {
 
             }
@@ -260,8 +268,9 @@ public class BlockTile extends BlockContainer {
     @Override
     public int getLightValue(IBlockAccess world, int x, int y, int z) {
         try { // Why try? because the number of tiles can change while this method is called
-            if (loadTileEntity(world, x, y, z)) {
-                return tempEntity.getMaxLightValue();
+            final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+            if (littleTile != null) {
+                return littleTile.getMaxLightValue();
             }
             return 0;
         } catch (Exception e) {
@@ -278,13 +287,14 @@ public class BlockTile extends BlockContainer {
     @Override
     public boolean removedByPlayer(World world, EntityPlayer player, int x, int y, int z) {
         if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) {
-            if (loadTileEntity(world, x, y, z) && tempEntity.updateLoadedTile(player)) {
+            final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+            if (littleTile != null && littleTile.updateLoadedTile(player)) {
                 try {
-                    tempEntity.loadedTile.destroy();
+                    littleTile.loadedTile.destroy();
                     NBTTagCompound nbt = new NBTTagCompound();
-                    tempEntity.writeToNBT(nbt);
+                    littleTile.writeToNBT(nbt);
                     PacketHandler.sendPacketToServer(new LittleBlockPacket(x, y, z, player, 1));
-                    tempEntity.updateRender();
+                    littleTile.updateRender();
                 } catch (Exception ignored) {
 
                 }
@@ -301,7 +311,8 @@ public class BlockTile extends BlockContainer {
 
     @Override
     public boolean isReplaceable(IBlockAccess world, int x, int y, int z) {
-        if (loadTileEntity(world, x, y, z)) return tempEntity.getTiles().size() == 0;
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null) return littleTile.getTiles().isEmpty();
         return true;
     }
 
@@ -309,8 +320,9 @@ public class BlockTile extends BlockContainer {
     /** Blocks will drop before this method is called */
     public ArrayList<ItemStack> getDrops(World world, int x, int y, int z, int metadata, int fortune) {
         ArrayList<ItemStack> stacks = new ArrayList<>();
-        if (loadTileEntity(world, x, y, z)) {
-            for (LittleTile tile : tempEntity.getTiles()) {
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null) {
+            for (LittleTile tile : littleTile.getTiles()) {
                 stacks.addAll(tile.getDrops());
             }
         }
@@ -319,19 +331,17 @@ public class BlockTile extends BlockContainer {
 
     @Override
     public ItemStack getPickBlock(MovingObjectPosition target, World world, int x, int y, int z, EntityPlayer player) {
-        if (loadTileEntity(world, x, y, z) && tempEntity.updateLoadedTile(player)) {
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null && littleTile.updateLoadedTile(player)) {
             try {
-                ArrayList<ItemStack> drops = tempEntity.loadedTile.getDrops();
-                if (drops.size() > 0) return drops.get(0);
+                ArrayList<ItemStack> drops = littleTile.loadedTile.getDrops();
+                if (!drops.isEmpty()) return drops.get(0);
             } catch (Exception ignored) {
 
             }
         }
         return null;
     }
-
-    @SideOnly(Side.CLIENT)
-    public IIcon overrideIcon;
 
     private float getSizeForSide(AxisAlignedBB box, int side) {
         double size = 1;
@@ -358,16 +368,20 @@ public class BlockTile extends BlockContainer {
 
     @Override
     @SideOnly(Side.CLIENT)
-    public boolean addHitEffects(World worldObj, MovingObjectPosition target, EffectRenderer effectRenderer) {
+    public boolean addHitEffects(World world, MovingObjectPosition target, EffectRenderer effectRenderer) {
         try { // Why try? because the loaded tile can change while setting this icon
-            if (loadTileEntity(worldObj, target.blockX, target.blockY, target.blockZ)
-                    && tempEntity.updateLoadedTile(mc.thePlayer)) {
+            final TileEntityLittleTiles littleTile = getTileEntityAt(
+                    world,
+                    target.blockX,
+                    target.blockY,
+                    target.blockZ);
+            if (littleTile != null && littleTile.updateLoadedTile(Minecraft.getMinecraft().thePlayer)) {
 
-                AxisAlignedBB box = tempEntity.loadedTile.getSelectedBox();
+                AxisAlignedBB box = littleTile.loadedTile.getSelectedBox();
 
                 int meta = 0;
-                if (tempEntity.loadedTile.boundingBox != null) {
-                    meta = tempEntity.loadedTile.boundingBox.getCube().meta;
+                if (littleTile.loadedTile.boundingBox != null) {
+                    meta = littleTile.loadedTile.boundingBox.getCube().meta;
                 }
 
                 float f = 0.1F;
@@ -396,13 +410,13 @@ public class BlockTile extends BlockContainer {
                         break;
                 }
 
-                EntityDiggingFX fx = new EntityDiggingFX(worldObj, d0, d1, d2, 0, 0, 0, this, meta);
+                EntityDiggingFX fx = new EntityDiggingFX(world, d0, d1, d2, 0, 0, 0, this, meta);
                 fx.applyColourMultiplier(target.blockX, target.blockY, target.blockZ);
                 fx.multiplyVelocity(0.2F);
                 // Shrink particles for smaller tiles
                 float size = getSizeForSide(box, target.sideHit);
                 fx.multipleParticleScaleBy(0.6F * size);
-                fx.setParticleIcon(tempEntity.loadedTile.getIcon(0));
+                fx.setParticleIcon(littleTile.loadedTile.getIcon(0));
                 effectRenderer.addEffect(fx);
 
                 return true;
@@ -417,11 +431,12 @@ public class BlockTile extends BlockContainer {
     @SideOnly(Side.CLIENT)
     public boolean addDestroyEffects(World world, int x, int y, int z, int meta, EffectRenderer effectRenderer) {
         try { // Why try? because the loaded tile can change while setting this icon
-            if (loadTileEntity(world, x, y, z) && tempEntity.updateLoadedTile(mc.thePlayer)) {
-                AxisAlignedBB box = tempEntity.loadedTile.getSelectedBox();
+            final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+            if (littleTile != null && littleTile.updateLoadedTile(Minecraft.getMinecraft().thePlayer)) {
+                AxisAlignedBB box = littleTile.loadedTile.getSelectedBox();
                 meta = 0;
-                if (tempEntity.loadedTile.boundingBox != null) {
-                    meta = tempEntity.loadedTile.boundingBox.getCube().meta;
+                if (littleTile.loadedTile.boundingBox != null) {
+                    meta = littleTile.loadedTile.boundingBox.getCube().meta;
                 }
 
                 byte b0 = 4;
@@ -443,7 +458,7 @@ public class BlockTile extends BlockContainer {
                             // Shrink particles for smaller tiles
                             float size = getSizeForSide(box, -1);
                             fx.multipleParticleScaleBy(size);
-                            fx.setParticleIcon(tempEntity.loadedTile.getIcon(0));
+                            fx.setParticleIcon(littleTile.loadedTile.getIcon(0));
                             effectRenderer.addEffect(fx);
                         }
                     }
@@ -491,8 +506,9 @@ public class BlockTile extends BlockContainer {
     @Override
     public float getEnchantPowerBonus(World world, int x, int y, int z) {
         float bonus = 0F;
-        if (loadTileEntity(world, x, y, z)) {
-            for (LittleTile tile : tempEntity.getTiles()) {
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null) {
+            for (LittleTile tile : littleTile.getTiles()) {
                 bonus += tile.getEnchantPowerBonus(world, x, y, z) * tile.getPercentVolume();
             }
         }
@@ -506,9 +522,10 @@ public class BlockTile extends BlockContainer {
 
     @Override
     public MovingObjectPosition collisionRayTrace(World world, int x, int y, int z, Vec3 vec1, Vec3 vec2) {
-        if (loadTileEntity(world, x, y, z)) {
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null) {
             try { // Why try? because the number of tiles can change while this method is called
-                MovingObjectPosition moving = tempEntity.getMoving(vec1, vec2, false);
+                final MovingObjectPosition moving = littleTile.getMoving(vec1, vec2, false);
 
                 if (moving != null) {
                     moving.blockX = x;
@@ -528,32 +545,10 @@ public class BlockTile extends BlockContainer {
         return new TileEntityLittleTiles();
     }
 
-    public static TileEntityLittleTiles tempEntity;
-
-    public static boolean loadTileEntity(IBlockAccess world, int x, int y, int z) {
-        if (world == null) {
-            tempEntity = null;
-            return false;
-        }
-        TileEntity tileEntity = world.getTileEntity(x, y, z);
-        if (tileEntity instanceof TileEntityLittleTiles) tempEntity = (TileEntityLittleTiles) tileEntity;
-        else tempEntity = null;
-        return tempEntity != null;
-    }
-
-    public static TileEntity getTileEntityInWorld(IBlockAccess world, int x, int y, int z) {
-        TileEntity tileEntity = world.getTileEntity(x, y, z);
-        if (tileEntity instanceof TileEntityLittleTiles
-                && ((TileEntityLittleTiles) tileEntity).loadedTile instanceof LittleTileTileEntity) {
-            return ((LittleTileTileEntity) ((TileEntityLittleTiles) tileEntity).loadedTile).tileEntity;
-        }
-        return tileEntity;
-    }
-
-    public static LittleTile getLittleTileInWorld(IBlockAccess world, int x, int y, int z) {
-        TileEntity tileEntity = world.getTileEntity(x, y, z);
+    private static TileEntityLittleTiles getTileEntityAt(IBlockAccess world, int x, int y, int z) {
+        final TileEntity tileEntity = world.getTileEntity(x, y, z);
         if (tileEntity instanceof TileEntityLittleTiles) {
-            return ((TileEntityLittleTiles) tileEntity).loadedTile;
+            return (TileEntityLittleTiles) tileEntity;
         }
         return null;
     }

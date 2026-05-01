@@ -90,7 +90,7 @@ public class LittlePlacePacket extends CreativeCorePacket {
         int side = buf.readInt();
         this.pos = new LittleTileBlockPos(posX, posY, posZ, subX, subY, subZ, ForgeDirection.getOrientation(side));
         this.customPlacement = buf.readBoolean();
-        this.placeMode = LittleTilePlaceMode.values()[buf.readByte()];
+        this.placeMode = LittleTilePlaceMode.fromOrdinal(buf.readByte());
         if (buf.readBoolean()) {
             this.cutoutInfo = new LittleTileCutoutInfo();
             int cutoutInfo = buf.readInt();

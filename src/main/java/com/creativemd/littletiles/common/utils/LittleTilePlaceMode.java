@@ -22,4 +22,12 @@ public enum LittleTilePlaceMode {
     public String getInfo() {
         return StatCollector.translateToLocal(name + "_info");
     }
+
+    public static LittleTilePlaceMode fromOrdinal(int ordinal) {
+        LittleTilePlaceMode[] values = values();
+        if (ordinal < 0 || ordinal >= values.length) {
+            return NORMAL;
+        }
+        return values[ordinal];
+    }
 }

@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.utils;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -11,6 +12,7 @@ import com.creativemd.creativecore.common.utils.HashMapList;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
@@ -43,8 +45,53 @@ public class PreviewTile {
         return box;
     }
 
-    public LittleTile placeTile(EntityPlayer player, ItemStack stack, TileEntityLittleTiles teLT,
-            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
+    private List<LittleTile> placeTileModeFill(LittleTile tileNew, EntityPlayer player, ItemStack stack) {
+        List<LittleTile> tiles = new ArrayList<>();
+        tiles.add(tileNew);
+
+        for (LittleTile existing : tileNew.te.getTiles()) {
+            List<LittleTile> newTiles = new ArrayList<>();
+            for (LittleTile t : tiles) {
+                if (t.overlapsTile(existing)) {
+                    newTiles.addAll(t.splitByTile(existing));
+                } else {
+                    newTiles.add(t);
+                }
+            }
+            tiles = newTiles;
+        }
+
+        for (LittleTile tile : tiles) {
+            tile.place();
+            tile.onPlaced(player, stack);
+        }
+        return tiles;
+    }
+
+    private List<LittleTile> placeTileModeOverwrite(LittleTile tileNew, EntityPlayer player, ItemStack stack,
+            boolean doAdd) {
+        List<LittleTile> tiles = new ArrayList<>(tileNew.te.getTiles());
+        List<LittleTile> newTiles = new ArrayList<>();
+
+        for (LittleTile t : tiles) {
+            if (t.overlapsTile(tileNew)) {
+                newTiles.addAll(t.splitByTile(tileNew));
+                boolean cleanUpTileEntity = newTiles.isEmpty();
+                t.destroy(cleanUpTileEntity);
+            }
+        }
+        if (doAdd) {
+            newTiles.add(tileNew);
+        }
+        for (LittleTile tile : newTiles) {
+            tile.place();
+            tile.onPlaced(player, stack);
+        }
+        return newTiles;
+    }
+
+    public List<LittleTile> placeTile(EntityPlayer player, ItemStack stack, TileEntityLittleTiles teLT,
+            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles, LittleTilePlaceMode placeMode) {
         LittleTile LT = preview.getLittleTile(teLT);
         if (LT == null) return null;
 
@@ -58,9 +105,20 @@ public class PreviewTile {
         }
 
         if (teLT.isSpaceForLittleTile(box.copy())) {
+            if (placeMode == LittleTilePlaceMode.STENCIL) {
+                return null;
+            }
             LT.place();
             LT.onPlaced(player, stack);
-            return LT;
+            List<LittleTile> ret = new ArrayList<>();
+            ret.add(LT);
+            return ret;
+        } else if (placeMode == LittleTilePlaceMode.FILL) {
+            return placeTileModeFill(LT, player, stack);
+        } else if (placeMode == LittleTilePlaceMode.OVERWRITE) {
+            return placeTileModeOverwrite(LT, player, stack, true);
+        } else if (placeMode == LittleTilePlaceMode.STENCIL) {
+            return placeTileModeOverwrite(LT, player, stack, false);
         } else if (unplaceableTiles != null) {
             unplaceableTiles.add(LT);
         }

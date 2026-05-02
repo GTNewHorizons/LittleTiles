@@ -113,6 +113,19 @@ public class LittleToolHandler {
         }
     }
 
+    public LittleTilePlaceMode getPlaceMode() {
+        NBTTagCompound tag = getTag(false);
+        if (tag.hasKey("placeMode")) {
+            return LittleTilePlaceMode.fromOrdinal(tag.getByte("placeMode"));
+        }
+        return LittleTilePlaceMode.NORMAL;
+    }
+
+    public void setPlaceMode(int mode) {
+        NBTTagCompound tag = getTag(true);
+        tag.setByte("placeMode", (byte) LittleTilePlaceMode.fromOrdinal(mode).ordinal());
+    }
+
     public static ForgeDirection getDirectionForNormal(Vector3d normal) {
         Plane3d ret = null;
         double biggestDot = -1;

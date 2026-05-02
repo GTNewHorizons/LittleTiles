@@ -49,8 +49,12 @@ public class TileEntityLittleTiles extends TileEntity {
     public boolean needsLightUpdate = true;
 
     public boolean removeTile(LittleTile tile) {
+        return removeTile(tile, true);
+    }
+
+    public boolean removeTile(LittleTile tile, boolean cleanupTileEntityIfLast) {
         boolean result = tiles.remove(tile);
-        updateTiles();
+        updateTiles(cleanupTileEntityIfLast);
         return result;
     }
 
@@ -66,10 +70,14 @@ public class TileEntityLittleTiles extends TileEntity {
     }
 
     public void updateTiles() {
+        updateTiles(true);
+    }
+
+    public void updateTiles(boolean cleanupTileEntityIfLast) {
         if (worldObj != null) {
             update();
             updateNeighbor();
-            if (!worldObj.isRemote && tiles.isEmpty()) {
+            if (!worldObj.isRemote && tiles.isEmpty() && cleanupTileEntityIfLast) {
                 worldObj.setBlockToAir(xCoord, yCoord, zCoord);
             }
         }

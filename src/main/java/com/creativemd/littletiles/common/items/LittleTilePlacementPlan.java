@@ -3,6 +3,7 @@ package com.creativemd.littletiles.common.items;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.Block.SoundType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -74,6 +75,9 @@ public class LittleTilePlacementPlan {
         boolean didPlace = false;
         for (PlacementEntry entry : entries) {
             TileEntityLittleTiles tile = getOrCreateTileEntity(world, entry);
+            if (tile == null) {
+                continue;
+            }
             for (PreviewTile placeTile : entry.placeTiles) {
                 didPlace |= applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles, cutoutInfo);
             }
@@ -98,11 +102,11 @@ public class LittleTilePlacementPlan {
             ChunkCoordinates coord = splittedTiles.getKey(i);
             ArrayList<PreviewTile> placeTiles = splittedTiles.getValues(i);
             TileEntityLittleTiles tile = getTileEntity(world, coord);
+            Block block = world.getBlock(coord.posX, coord.posY, coord.posZ);
 
             // The coord is usable if it already hosts a LittleTiles TE (we'll merge into it) or holds a
-            // replaceable non-BlockTile we can overwrite. Anything else (solid block, BlockTile without a
-            // TE, out of world) is fundamentally not placeable — special place mode can't fix that, only skip it.
-            boolean canPlaceHere = tile != null || canCreateBlockTile(world, coord);
+            // replaceable non-BlockTile we can overwrite.
+            boolean canPlaceHere = tile != null || (!(block instanceof BlockTile) && block.getMaterial().isReplaceable());
             if (!canPlaceHere) {
                 if (specialPlaceMode) continue;
                 return false;
@@ -227,20 +231,18 @@ public class LittleTilePlacementPlan {
 
     private static TileEntityLittleTiles getOrCreateTileEntity(World world, PlacementEntry entry) {
         ChunkCoordinates coord = entry.coord;
-        if (canCreateBlockTile(world, coord)) {
-            world.setBlock(coord.posX, coord.posY, coord.posZ, LittleTiles.blockTile, 0, 3);
-        }
-
         TileEntityLittleTiles tile = getTileEntity(world, coord);
-        if (tile == null) {
-            throw new IllegalStateException("Failed to resolve LittleTiles tile entity for placement plan");
+        if (tile != null) {
+            return tile;
         }
-        return tile;
-    }
 
-    private static boolean canCreateBlockTile(World world, ChunkCoordinates coord) {
-        return !(world.getBlock(coord.posX, coord.posY, coord.posZ) instanceof BlockTile)
-                && world.getBlock(coord.posX, coord.posY, coord.posZ).getMaterial().isReplaceable();
+        world.setBlock(coord.posX, coord.posY, coord.posZ, LittleTiles.blockTile, 0, 3);
+        tile = getTileEntity(world, coord);
+        if (tile != null) {
+            return tile;
+        }
+
+        return null;
     }
 
     private static boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles) {

@@ -106,7 +106,8 @@ public class LittleTilePlacementPlan {
 
             // The coord is usable if it already hosts a LittleTiles TE (we'll merge into it) or holds a
             // replaceable non-BlockTile we can overwrite.
-            boolean canPlaceHere = tile != null || (!(block instanceof BlockTile) && block.getMaterial().isReplaceable());
+            boolean canPlaceHere = tile != null
+                    || (!(block instanceof BlockTile) && block.getMaterial().isReplaceable());
             if (!canPlaceHere) {
                 if (specialPlaceMode) continue;
                 return false;

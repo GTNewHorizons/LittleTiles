@@ -76,16 +76,20 @@ public class PreviewTile {
         for (LittleTile t : tiles) {
             if (t.overlapsTile(tileNew)) {
                 newTiles.addAll(t.splitByTile(tileNew));
-                boolean cleanUpTileEntity = newTiles.isEmpty();
-                t.destroy(cleanUpTileEntity);
+                t.destroy(false);
             }
         }
         if (doAdd) {
             newTiles.add(tileNew);
         }
+
         for (LittleTile tile : newTiles) {
             tile.place();
             tile.onPlaced(player, stack);
+        }
+        if (newTiles.isEmpty()) {
+            // Trigger cleanup in case tile is empty
+            tileNew.te.updateTiles();
         }
         return newTiles;
     }

@@ -14,27 +14,12 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.jme.intersection;
+package com.creativemd.littletiles.client.util3d;
 
-import java.nio.IntBuffer;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 
-import com.jme.math.FastMath;
-import com.jme.math.TransformMatrix;
-import com.jme.math.Vector2f;
-import com.jme.math.Vector3f;
-import com.jme.scene.TriMesh;
-import com.jme.util.geom.BufferUtils;
-
-/**
- * <code>Intersection</code> provides functional methods for calculating the intersection of some objects. All the
- * methods are static to allow for quick and easy calls. <code>Intersection</code> relays requests to specific classes
- * to handle the actual work. By providing checks to just <code>BoundingVolume</code> the client application need not
- * worry about what type of bounding volume is being used.
- *
- * @author Mark Powell
- * @version $Id: Intersection.java 4131 2009-03-19 20:15:28Z blaine.dev $
- */
-public class Intersection {
+public class TriangleIntersect {
 
     /**
      * EPSILON represents the error buffer used to denote a hit.
@@ -66,35 +51,19 @@ public class Intersection {
      * @param mesh2 The second TriMesh.
      * @return True if they intersect, false otherwise.
      */
-    public static boolean meshIntersection(TriMesh mesh1, TriMesh mesh2) {
+    public static boolean meshIntersection(Mesh3d mesh1, Mesh3d mesh2) {
+        Vector3f[] vertA = mesh1.getVertices();
+        Vector3f[] vertB = mesh2.getVertices();
 
-        IntBuffer indexA = mesh1.getIndexBuffer();
-        IntBuffer indexB = mesh2.getIndexBuffer();
-        TransformMatrix aTransform = new TransformMatrix();
-        aTransform.setRotationQuaternion(mesh1.getWorldRotation());
-        aTransform.setTranslation(mesh1.getWorldTranslation());
-        aTransform.setScale(mesh1.getWorldScale());
-
-        TransformMatrix bTransform = new TransformMatrix();
-        bTransform.setRotationQuaternion(mesh2.getWorldRotation());
-        bTransform.setTranslation(mesh2.getWorldTranslation());
-        bTransform.setScale(mesh2.getWorldScale());
-
-        Vector3f[] vertA = BufferUtils.getVector3Array(mesh1.getVertexBuffer());
-        for (int i = 0; i < vertA.length; i++) aTransform.multPoint(vertA[i]);
-
-        Vector3f[] vertB = BufferUtils.getVector3Array(mesh2.getVertexBuffer());
-        for (int i = 0; i < vertB.length; i++) bTransform.multPoint(vertB[i]);
-
-        for (int i = 0; i < mesh1.getTriangleCount(); i++) {
-            for (int j = 0; j < mesh2.getTriangleCount(); j++) {
+        for (int i = 0; i < mesh1.getTriangles().size(); i++) {
+            for (int j = 0; j < mesh2.getTriangles().size(); j++) {
                 if (intersection(
-                        vertA[indexA.get(i * 3 + 0)],
-                        vertA[indexA.get(i * 3 + 1)],
-                        vertA[indexA.get(i * 3 + 2)],
-                        vertB[indexB.get(j * 3 + 0)],
-                        vertB[indexB.get(j * 3 + 1)],
-                        vertB[indexB.get(j * 3 + 2)]))
+                        vertA[i * 3],
+                        vertA[i * 3 + 1],
+                        vertA[i * 3 + 2],
+                        vertB[j * 3],
+                        vertB[j * 3 + 1],
+                        vertB[j * 3 + 2]))
                     return true;
             }
         }
@@ -131,8 +100,8 @@ public class Intersection {
         float xx, yy, xxyy, tmp;
 
         /* compute plane equation of triangle(v0,v1,v2) */
-        v1.subtract(v0, e1);
-        v2.subtract(v0, e2);
+        v1.sub(v0, e1);
+        v2.sub(v0, e2);
         e1.cross(e2, n1);
         d1 = -n1.dot(v0);
         /* plane equation 1: n1.X+d1=0 */
@@ -145,9 +114,9 @@ public class Intersection {
         du2 = n1.dot(u2) + d1;
 
         /* coplanarity robustness check */
-        if (FastMath.abs(du0) < EPSILON) du0 = 0.0f;
-        if (FastMath.abs(du1) < EPSILON) du1 = 0.0f;
-        if (FastMath.abs(du2) < EPSILON) du2 = 0.0f;
+        if (Math.abs(du0) < EPSILON) du0 = 0.0f;
+        if (Math.abs(du1) < EPSILON) du1 = 0.0f;
+        if (Math.abs(du2) < EPSILON) du2 = 0.0f;
         du0du1 = du0 * du1;
         du0du2 = du0 * du2;
 
@@ -156,8 +125,8 @@ public class Intersection {
         }
 
         /* compute plane of triangle (u0,u1,u2) */
-        u1.subtract(u0, e1);
-        u2.subtract(u0, e2);
+        u1.sub(u0, e1);
+        u2.sub(u0, e2);
         e1.cross(e2, n2);
         d2 = -n2.dot(u0);
         /* plane equation 2: n2.X+d2=0 */
@@ -167,9 +136,9 @@ public class Intersection {
         dv1 = n2.dot(v1) + d2;
         dv2 = n2.dot(v2) + d2;
 
-        if (FastMath.abs(dv0) < EPSILON) dv0 = 0.0f;
-        if (FastMath.abs(dv1) < EPSILON) dv1 = 0.0f;
-        if (FastMath.abs(dv2) < EPSILON) dv2 = 0.0f;
+        if (Math.abs(dv0) < EPSILON) dv0 = 0.0f;
+        if (Math.abs(dv1) < EPSILON) dv1 = 0.0f;
+        if (Math.abs(dv2) < EPSILON) dv2 = 0.0f;
 
         dv0dv1 = dv0 * dv1;
         dv0dv2 = dv0 * dv2;
@@ -184,10 +153,10 @@ public class Intersection {
         n1.cross(n2, d);
 
         /* compute and index to the largest component of d */
-        max = FastMath.abs(d.x);
+        max = Math.abs(d.x);
         index = 0;
-        bb = FastMath.abs(d.y);
-        cc = FastMath.abs(d.z);
+        bb = Math.abs(d.y);
+        cc = Math.abs(d.z);
         if (bb > max) {
             max = bb;
             index = 1;
@@ -313,9 +282,9 @@ public class Intersection {
             Vector3f u2) {
         Vector3f a = new Vector3f();
         short i0, i1;
-        a.x = FastMath.abs(n.x);
-        a.y = FastMath.abs(n.y);
-        a.z = FastMath.abs(n.z);
+        a.x = Math.abs(n.x);
+        a.y = Math.abs(n.y);
+        a.z = Math.abs(n.z);
 
         if (a.x > a.y) {
             if (a.x > a.z) {
@@ -337,17 +306,17 @@ public class Intersection {
 
         /* test all edges of triangle 1 against the edges of triangle 2 */
         float[] v0f = new float[3];
-        v0.toArray(v0f);
+        toArray(v0, v0f);
         float[] v1f = new float[3];
-        v1.toArray(v1f);
+        toArray(v1, v1f);
         float[] v2f = new float[3];
-        v2.toArray(v2f);
+        toArray(v2, v2f);
         float[] u0f = new float[3];
-        u0.toArray(u0f);
+        toArray(u0, u0f);
         float[] u1f = new float[3];
-        u1.toArray(u1f);
+        toArray(u1, u1f);
         float[] u2f = new float[3];
-        u2.toArray(u2f);
+        toArray(u2, u2f);
         if (edgeAgainstTriEdges(v0f, v1f, u0f, u1f, u2f, i0, i1)) {
             return true;
         }
@@ -426,5 +395,11 @@ public class Intersection {
             }
         }
         return false;
+    }
+
+    static void toArray(Vector3f vec, float[] arr) {
+        arr[0] = vec.x;
+        arr[1] = vec.y;
+        arr[2] = vec.z;
     }
 }

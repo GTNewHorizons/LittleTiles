@@ -109,6 +109,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
                     PreviewRenderer.firstHit = pos;
                     return true;
                 }
+                cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, pos, pos);
             } else {
                 cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, PreviewRenderer.firstHit, pos);
 

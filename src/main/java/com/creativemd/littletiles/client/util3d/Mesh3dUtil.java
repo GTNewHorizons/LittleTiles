@@ -16,9 +16,11 @@ import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 public class Mesh3dUtil {
 
     private static Mesh3d MESH_SLOPE;
+    private static Mesh3d MESH_SLOPE_CONCAVE;
 
     public static void initializeMeshes() {
         MESH_SLOPE = Mesh3dObjLoader.load("slope");
+        MESH_SLOPE_CONCAVE = Mesh3dObjLoader.load("slope_concave");
     }
 
     public static Mesh3d createMesh(int x, int y, int z, LittleTileCutoutInfo cutoutInfo, double minX, double minY,
@@ -136,6 +138,7 @@ public class Mesh3dUtil {
                 cutoutScale = new Vector3d(1, 1, 1);
                 yield createWallMesh(cutoutInfo);
             }
+            case SLOPE_CONCAVE -> MESH_SLOPE_CONCAVE.copy();
             case BOX -> throw new RuntimeException("Invalid cutout BOX");
             default -> throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
         };

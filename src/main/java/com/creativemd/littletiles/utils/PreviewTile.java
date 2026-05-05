@@ -12,6 +12,7 @@ import com.creativemd.creativecore.common.utils.HashMapList;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -95,12 +96,14 @@ public class PreviewTile {
     }
 
     public List<LittleTile> placeTile(EntityPlayer player, ItemStack stack, TileEntityLittleTiles teLT,
-            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles, LittleTilePlaceMode placeMode) {
+            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles, LittleTilePlaceMode placeMode,
+            LittleTileCutoutInfo cutoutInfoCurrent) {
         LittleTile LT = preview.getLittleTile(teLT);
         if (LT == null) return null;
 
         LT.boundingBox = box.copy();
         LT.updateCorner();
+        LT.setCutoutInfo(cutoutInfoCurrent);
 
         if (structure != null) {
             LT.isStructureBlock = true;
@@ -108,7 +111,7 @@ public class PreviewTile {
             structure.getTiles().add(LT);
         }
 
-        if (teLT.isSpaceForLittleTile(box.copy())) {
+        if (teLT.isSpaceForLittleTile(box.copy(), cutoutInfoCurrent)) {
             if (placeMode == LittleTilePlaceMode.STENCIL) {
                 return null;
             }

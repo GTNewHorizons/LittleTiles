@@ -10,6 +10,7 @@ import net.minecraft.util.Vec3;
 import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -67,7 +68,8 @@ public class PreviewTileAxis extends PreviewTile {
 
     @Override
     public List<LittleTile> placeTile(EntityPlayer player, ItemStack stack, TileEntityLittleTiles teLT,
-            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles, LittleTilePlaceMode placeMode) {
+            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles, LittleTilePlaceMode placeMode,
+            LittleTileCutoutInfo cutoutInfo) {
         if (structure instanceof LittleDoor) {
             LittleDoor door = (LittleDoor) structure;
             door.axisVec = box.getMinVec(); // Check if this would be perfect

@@ -1,37 +1,31 @@
-package com.creativemd.littletiles.client.util3d;/*
-                                                  * Copyright (c) 2009-2010 jMonkeyEngine All rights reserved.
-                                                  * Redistribution and use in source and binary forms, with or without
-                                                  * modification, are permitted provided that the following conditions
-                                                  * are met: * Redistributions of source code must retain the above
-                                                  * copyright notice, this list of conditions and the following
-                                                  * disclaimer. * Redistributions in binary form must reproduce the
-                                                  * above copyright notice, this list of conditions and the following
-                                                  * disclaimer in the documentation and/or other materials provided with
-                                                  * the distribution. * Neither the name of 'jMonkeyEngine' nor the
-                                                  * names of its contributors may be used to endorse or promote products
-                                                  * derived from this software without specific prior written
-                                                  * permission. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-                                                  * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-                                                  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-                                                  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-                                                  * IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-                                                  * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-                                                  * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-                                                  * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-                                                  * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-                                                  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-                                                  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-                                                  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-                                                  */
+/*
+ * Copyright (c) 2009-2010 jMonkeyEngine All rights reserved. Redistribution and use in source and binary forms, with or
+ * without modification, are permitted provided that the following conditions are met: * Redistributions of source code
+ * must retain the above copyright notice, this list of conditions and the following disclaimer. * Redistributions in
+ * binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution. * Neither the name of 'jMonkeyEngine' nor the
+ * names of its contributors may be used to endorse or promote products derived from this software without specific
+ * prior written permission. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
+ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package com.creativemd.littletiles.client.util3d;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 
 import org.joml.Vector3f;
 
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
+
 /**
  * This class includes some utility methods for computing intersection between bounding volumes and triangles.
- * 
+ *
  * @author Kirill
  */
 public class TriangleBoundingBoxIntersect {
@@ -42,6 +36,28 @@ public class TriangleBoundingBoxIntersect {
         if (f2 > minMax.y) minMax.y = f2;
         if (f3 < minMax.x) minMax.x = f3;
         if (f3 > minMax.y) minMax.y = f3;
+    }
+
+    public static boolean intersect(Mesh3d mesh, LittleTileBox box) {
+        Vector3f center = new Vector3f(
+                (box.maxX + box.minX) / 16f / 2,
+                (box.maxY + box.minY) / 16f / 2,
+                (box.maxZ + box.minZ) / 16f / 2);
+        Vector3f extend = new Vector3f(
+                (box.maxX - box.minX) / 16f / 2,
+                (box.maxY - box.minY) / 16f / 2,
+                (box.maxZ - box.minZ) / 16f / 2);
+        BoundingBox bb = new BoundingBox(center, extend);
+        for (Triangle3d triangle : mesh.getTriangles()) {
+            if (intersect(
+                    bb,
+                    triangle.getP1().toVector3f(),
+                    triangle.getP2().toVector3f(),
+                    triangle.getP3().toVector3f())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean intersect(BoundingBox bbox, Vector3f v1, Vector3f v2, Vector3f v3) {
@@ -265,7 +281,7 @@ public class TriangleBoundingBoxIntersect {
             Negative
         }
 
-        private Vector3f normal;
+        private final Vector3f normal = new Vector3f();
         private float constant;
 
         public void setPlanePoints(Vector3f v1, Vector3f v2, Vector3f v3) {

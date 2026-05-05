@@ -24,7 +24,7 @@ public class TriangleTriangleIntersect {
     /**
      * EPSILON represents the error buffer used to denote a hit.
      */
-    public static final double EPSILON = 1e-12;
+    public static final double EPSILON = 1e-3;
 
     private static final Vector3f tempVa = new Vector3f();
 
@@ -120,7 +120,7 @@ public class TriangleTriangleIntersect {
         du0du1 = du0 * du1;
         du0du2 = du0 * du2;
 
-        if (du0du1 > 0.0f && du0du2 > 0.0f) {
+        if (du0du1 >= 0.0f && du0du2 >= 0.0f) {
             return false;
         }
 
@@ -218,7 +218,7 @@ public class TriangleTriangleIntersect {
         sort(isect1);
         sort(isect2);
 
-        if (isect1[1] < isect2[0] || isect2[1] < isect1[0]) {
+        if (isect1[1] < isect2[0] + EPSILON || isect2[1] < isect1[0] + EPSILON) {
             return false;
         }
 
@@ -280,6 +280,9 @@ public class TriangleTriangleIntersect {
 
     private static boolean coplanarTriTri(Vector3f n, Vector3f v0, Vector3f v1, Vector3f v2, Vector3f u0, Vector3f u1,
             Vector3f u2) {
+        if (true) {
+            return false; // We treat coplanar as nontouching
+        }
         Vector3f a = new Vector3f();
         short i0, i1;
         a.x = Math.abs(n.x);

@@ -201,19 +201,7 @@ public class LittleTilePlacementPlan {
         cutoutInfoCurrent.pos.y += (originY - entry.coord.posY) * 16 + originalBox.minY - currentBox.minY;
         cutoutInfoCurrent.pos.z += (originZ - entry.coord.posZ) * 16 + originalBox.minZ - currentBox.minZ;
 
-        Mesh3d mesh = Mesh3dUtil.createMesh(
-                0,
-                0,
-                0,
-                cutoutInfoCurrent,
-                currentBox.minX / 16.0,
-                currentBox.minY / 16.0,
-                currentBox.minZ / 16.0,
-                currentBox.maxX / 16.0,
-                currentBox.maxY / 16.0,
-                currentBox.maxZ / 16.0,
-                null,
-                0);
+        Mesh3d mesh = Mesh3dUtil.meshFromTile(currentBox, cutoutInfoCurrent);
         if (mesh.getTriangles().isEmpty()) {
             return null;
         }

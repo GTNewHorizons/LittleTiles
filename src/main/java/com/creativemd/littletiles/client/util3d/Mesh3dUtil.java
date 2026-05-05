@@ -12,6 +12,7 @@ import org.joml.Vector3i;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 public class Mesh3dUtil {
 
@@ -19,6 +20,22 @@ public class Mesh3dUtil {
 
     public static void initializeMeshes() {
         MESH_SLOPE = Mesh3dObjLoader.load("slope");
+    }
+
+    public static Mesh3d meshFromTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
+        return Mesh3dUtil.createMesh(
+                0,
+                0,
+                0,
+                cutoutInfo,
+                box.minX / 16.0,
+                box.minY / 16.0,
+                box.minZ / 16.0,
+                box.maxX / 16.0,
+                box.maxY / 16.0,
+                box.maxZ / 16.0,
+                null,
+                0);
     }
 
     public static Mesh3d createMesh(int x, int y, int z, LittleTileCutoutInfo cutoutInfo, double minX, double minY,

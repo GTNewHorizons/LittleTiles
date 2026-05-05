@@ -244,7 +244,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
 
     private DropDownMenu addShapeSelector(IntSyncValue sync, LittleToolHandler handler, int y) {
         DropDownMenu shapePicker = new DropDownMenu();
-        shapePicker.pos(5, y).size(75, 20).marginLeft(10);
+        shapePicker.pos(5, y).size(100, 25).marginLeft(10);
         shapePicker.background(GuiTextures.BUTTON_CLEAN);
 
         for (LittleTileShapeMode mode : LittleTileShapeMode.values()) {
@@ -298,7 +298,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         ModularPanel panel = ModularPanel.defaultPanel("blocks");
 
         panel.size(250, 300);
-        panel.child(addBlockDisplay(syncManager, syncBlock, handler, 125));
+        panel.child(addBlockDisplay(syncManager, syncBlock, handler, 130));
         panel.child(addShapeSelector(syncShape, handler, 95));
         panel.child(addGridSelector(syncGrid, handler, 60));
         panel.child(addPlaceModeSelector(syncPlaceMode, handler, 10));

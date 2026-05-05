@@ -16,11 +16,36 @@
 
 package com.creativemd.littletiles.client.util3d;
 
+import net.minecraft.util.Vec3;
+
 import org.joml.Vector3f;
 
 public final class TriangleRayIntersect {
 
-    private static float FLT_EPSILON = 0.0001f;
+    private static float FLT_EPSILON = 0.0000001f;
+
+    public static float intersects(Mesh3d mesh, int blockX, int blockY, int blockZ, Vec3 start, Vec3 end) {
+        float ret = Float.POSITIVE_INFINITY;
+        Vector3f origin = new Vector3f((float) start.xCoord, (float) start.yCoord, (float) start.zCoord);
+        Vector3f direction = new Vector3f((float) end.xCoord, (float) end.yCoord, (float) end.zCoord);
+        origin.sub(blockX, blockY, blockZ);
+        direction.sub(blockX, blockY, blockZ);
+        direction.sub(origin);
+
+        for (Triangle3d triangle : mesh.getTriangles()) {
+            float distance = intersects(
+                    origin,
+                    direction,
+                    triangle.getP1().toVector3f(),
+                    triangle.getP2().toVector3f(),
+                    triangle.getP3().toVector3f());
+            if (distance < ret) {
+                ret = distance;
+            }
+        }
+
+        return ret;
+    }
 
     public static float intersects(Vector3f origin, Vector3f direction, Vector3f v0, Vector3f v1, Vector3f v2) {
         float edge1X = v1.x - v0.x;

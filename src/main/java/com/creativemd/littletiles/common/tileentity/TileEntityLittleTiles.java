@@ -21,6 +21,7 @@ import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.TriangleBoundingBoxIntersect;
+import com.creativemd.littletiles.client.util3d.TriangleRayIntersect;
 import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -296,14 +297,31 @@ public class TileEntityLittleTiles extends TileEntity {
 
     public MovingObjectPosition getMoving(Vec3 pos, Vec3 look, boolean loadTile) {
         MovingObjectPosition hit = null;
+        float EPSILON = 0.0001f; // Need to check overlapping tiles with exactly the same box distance too.
+        float lastCutoutDistance = Float.POSITIVE_INFINITY;
         for (LittleTile tile : tiles) {
             if (tile.boundingBox != null) {
                 MovingObjectPosition Temphit = tile.boundingBox.getBox().getOffsetBoundingBox(xCoord, yCoord, zCoord)
                         .calculateIntercept(pos, look);
                 if (Temphit != null) {
-                    if (hit == null || hit.hitVec.distanceTo(pos) > Temphit.hitVec.distanceTo(pos)) {
-                        hit = Temphit;
-                        if (loadTile) loadedTile = tile;
+                    if (hit == null || hit.hitVec.distanceTo(pos) > Temphit.hitVec.distanceTo(pos) - EPSILON) {
+                        boolean isHit = true;
+                        if (tile.getCutoutInfo() != null) {
+                            Mesh3d mesh = Mesh3dUtil.meshFromTile(tile.boundingBox, tile.getCutoutInfo());
+                            float distance = TriangleRayIntersect.intersects(mesh, xCoord, yCoord, zCoord, pos, look);
+                            if (mesh.getTriangles().isEmpty()) {
+                                // Workaround for buggy, empty meshes
+                                distance = 0;
+                            }
+                            isHit = distance < lastCutoutDistance;
+                            if (isHit) {
+                                lastCutoutDistance = distance;
+                            }
+                        }
+                        if (isHit) {
+                            hit = Temphit;
+                            if (loadTile) loadedTile = tile;
+                        }
                     }
                 }
             }

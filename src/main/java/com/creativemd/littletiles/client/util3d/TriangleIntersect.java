@@ -1,33 +1,17 @@
 /*
- * Copyright (c) 2003-2009 jMonkeyEngine
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- * * Redistributions of source code must retain the above copyright
- *   notice, this list of conditions and the following disclaimer.
- *
- * * Redistributions in binary form must reproduce the above copyright
- *   notice, this list of conditions and the following disclaimer in the
- *   documentation and/or other materials provided with the distribution.
- *
- * * Neither the name of 'jMonkeyEngine' nor the names of its contributors
- *   may be used to endorse or promote products derived from this software
- *   without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Copyright (c) 2003-2009 jMonkeyEngine All rights reserved. Redistribution and use in source and binary forms, with or
+ * without modification, are permitted provided that the following conditions are met: * Redistributions of source code
+ * must retain the above copyright notice, this list of conditions and the following disclaimer. * Redistributions in
+ * binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution. * Neither the name of 'jMonkeyEngine' nor the
+ * names of its contributors may be used to endorse or promote products derived from this software without specific
+ * prior written permission. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
+ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 package com.jme.intersection;
@@ -42,12 +26,10 @@ import com.jme.scene.TriMesh;
 import com.jme.util.geom.BufferUtils;
 
 /**
- * <code>Intersection</code> provides functional methods for calculating the
- * intersection of some objects. All the methods are static to allow for quick
- * and easy calls. <code>Intersection</code> relays requests to specific
- * classes to handle the actual work. By providing checks to just
- * <code>BoundingVolume</code> the client application need not worry about
- * what type of bounding volume is being used.
+ * <code>Intersection</code> provides functional methods for calculating the intersection of some objects. All the
+ * methods are static to allow for quick and easy calls. <code>Intersection</code> relays requests to specific classes
+ * to handle the actual work. By providing checks to just <code>BoundingVolume</code> the client application need not
+ * worry about what type of bounding volume is being used.
  *
  * @author Mark Powell
  * @version $Id: Intersection.java 4131 2009-03-19 20:15:28Z blaine.dev $
@@ -78,13 +60,10 @@ public class Intersection {
     private static final Vector2f tempV2b = new Vector2f();
 
     /**
-     * This is a <b>VERY </b> brute force method of detecting if two TriMesh
-     * objects intersect.
+     * This is a <b>VERY </b> brute force method of detecting if two TriMesh objects intersect.
      *
-     * @param mesh1
-     *            The first TriMesh.
-     * @param mesh2
-     *            The second TriMesh.
+     * @param mesh1 The first TriMesh.
+     * @param mesh2 The second TriMesh.
      * @return True if they intersect, false otherwise.
      */
     public static boolean meshIntersection(TriMesh mesh1, TriMesh mesh2) {
@@ -102,19 +81,20 @@ public class Intersection {
         bTransform.setScale(mesh2.getWorldScale());
 
         Vector3f[] vertA = BufferUtils.getVector3Array(mesh1.getVertexBuffer());
-        for (int i = 0; i < vertA.length; i++)
-            aTransform.multPoint(vertA[i]);
+        for (int i = 0; i < vertA.length; i++) aTransform.multPoint(vertA[i]);
 
         Vector3f[] vertB = BufferUtils.getVector3Array(mesh2.getVertexBuffer());
-        for (int i = 0; i < vertB.length; i++)
-            bTransform.multPoint(vertB[i]);
+        for (int i = 0; i < vertB.length; i++) bTransform.multPoint(vertB[i]);
 
         for (int i = 0; i < mesh1.getTriangleCount(); i++) {
             for (int j = 0; j < mesh2.getTriangleCount(); j++) {
-                if (intersection(vertA[indexA.get(i * 3 + 0)],
-                    vertA[indexA.get(i * 3 + 1)], vertA[indexA.get(i * 3 + 2)],
-                    vertB[indexB.get(j * 3 + 0)], vertB[indexB.get(j * 3 + 1)],
-                    vertB[indexB.get(j * 3 + 2)]))
+                if (intersection(
+                        vertA[indexA.get(i * 3 + 0)],
+                        vertA[indexA.get(i * 3 + 1)],
+                        vertA[indexA.get(i * 3 + 2)],
+                        vertB[indexB.get(j * 3 + 0)],
+                        vertB[indexB.get(j * 3 + 1)],
+                        vertB[indexB.get(j * 3 + 2)]))
                     return true;
             }
         }
@@ -122,26 +102,18 @@ public class Intersection {
     }
 
     /**
-     * This method tests for the intersection between two triangles defined by
-     * their vertexes. Converted to java from C code found at
-     * http://www.acm.org/jgt/papers/Moller97/tritri.html
+     * This method tests for the intersection between two triangles defined by their vertexes. Converted to java from C
+     * code found at http://www.acm.org/jgt/papers/Moller97/tritri.html
      *
-     * @param v0
-     *            First triangle's first vertex.
-     * @param v1
-     *            First triangle's second vertex.
-     * @param v2
-     *            First triangle's third vertex.
-     * @param u0
-     *            Second triangle's first vertex.
-     * @param u1
-     *            Second triangle's second vertex.
-     * @param u2
-     *            Second triangle's third vertex.
+     * @param v0 First triangle's first vertex.
+     * @param v1 First triangle's second vertex.
+     * @param v2 First triangle's third vertex.
+     * @param u0 Second triangle's first vertex.
+     * @param u1 Second triangle's second vertex.
+     * @param u2 Second triangle's third vertex.
      * @return True if the two triangles intersect, false otherwise.
      */
-    public static boolean intersection(Vector3f v0, Vector3f v1, Vector3f v2,
-                                       Vector3f u0, Vector3f u1, Vector3f u2) {
+    public static boolean intersection(Vector3f v0, Vector3f v1, Vector3f v2, Vector3f u0, Vector3f u1, Vector3f u2) {
         Vector3f e1 = tempVa;
         Vector3f e2 = tempVb;
         Vector3f n1 = tempVc;
@@ -166,20 +138,16 @@ public class Intersection {
         /* plane equation 1: n1.X+d1=0 */
 
         /*
-         * put u0,u1,u2 into plane equation 1 to compute signed distances to the
-         * plane
+         * put u0,u1,u2 into plane equation 1 to compute signed distances to the plane
          */
         du0 = n1.dot(u0) + d1;
         du1 = n1.dot(u1) + d1;
         du2 = n1.dot(u2) + d1;
 
         /* coplanarity robustness check */
-        if (FastMath.abs(du0) < EPSILON)
-            du0 = 0.0f;
-        if (FastMath.abs(du1) < EPSILON)
-            du1 = 0.0f;
-        if (FastMath.abs(du2) < EPSILON)
-            du2 = 0.0f;
+        if (FastMath.abs(du0) < EPSILON) du0 = 0.0f;
+        if (FastMath.abs(du1) < EPSILON) du1 = 0.0f;
+        if (FastMath.abs(du2) < EPSILON) du2 = 0.0f;
         du0du1 = du0 * du1;
         du0du2 = du0 * du2;
 
@@ -199,20 +167,16 @@ public class Intersection {
         dv1 = n2.dot(v1) + d2;
         dv2 = n2.dot(v2) + d2;
 
-        if (FastMath.abs(dv0) < EPSILON)
-            dv0 = 0.0f;
-        if (FastMath.abs(dv1) < EPSILON)
-            dv1 = 0.0f;
-        if (FastMath.abs(dv2) < EPSILON)
-            dv2 = 0.0f;
+        if (FastMath.abs(dv0) < EPSILON) dv0 = 0.0f;
+        if (FastMath.abs(dv1) < EPSILON) dv1 = 0.0f;
+        if (FastMath.abs(dv2) < EPSILON) dv2 = 0.0f;
 
         dv0dv1 = dv0 * dv1;
         dv0dv2 = dv0 * dv2;
 
         if (dv0dv1 > 0.0f && dv0dv2 > 0.0f) { /*
-         * same sign on all of them + not
-         * equal 0 ?
-         */
+                                               * same sign on all of them + not equal 0 ?
+                                               */
             return false; /* no intersection occurs */
         }
 
@@ -259,16 +223,14 @@ public class Intersection {
         /* compute interval for triangle 1 */
         Vector3f abc = tempVa;
         Vector2f x0x1 = tempV2a;
-        if (newComputeIntervals(vp0, vp1, vp2, dv0, dv1, dv2, dv0dv1, dv0dv2,
-            abc, x0x1)) {
+        if (newComputeIntervals(vp0, vp1, vp2, dv0, dv1, dv2, dv0dv1, dv0dv2, abc, x0x1)) {
             return coplanarTriTri(n1, v0, v1, v2, u0, u1, u2);
         }
 
         /* compute interval for triangle 2 */
         Vector3f def = tempVb;
         Vector2f y0y1 = tempV2b;
-        if (newComputeIntervals(up0, up1, up2, du0, du1, du2, du0du1, du0du2,
-            def, y0y1)) {
+        if (newComputeIntervals(up0, up1, up2, du0, du1, du2, du0du1, du0du2, def, y0y1)) {
             return coplanarTriTri(n1, v0, v1, v2, u0, u1, u2);
         }
 
@@ -302,14 +264,12 @@ public class Intersection {
         }
     }
 
-    private static boolean newComputeIntervals(float vv0, float vv1, float vv2,
-                                               float d0, float d1, float d2, float d0d1, float d0d2, Vector3f abc,
-                                               Vector2f x0x1) {
+    private static boolean newComputeIntervals(float vv0, float vv1, float vv2, float d0, float d1, float d2,
+            float d0d1, float d0d2, Vector3f abc, Vector2f x0x1) {
         if (d0d1 > 0.0f) {
             /* here we know that d0d2 <=0.0 */
             /*
-             * that is d0, d1 are on the same side, d2 on the other or on the
-             * plane
+             * that is d0, d1 are on the same side, d2 on the other or on the plane
              */
             abc.x = vv2;
             abc.y = (vv0 - vv2) * d2;
@@ -349,8 +309,8 @@ public class Intersection {
         return false;
     }
 
-    private static boolean coplanarTriTri(Vector3f n, Vector3f v0, Vector3f v1,
-                                          Vector3f v2, Vector3f u0, Vector3f u1, Vector3f u2) {
+    private static boolean coplanarTriTri(Vector3f n, Vector3f v0, Vector3f v1, Vector3f v2, Vector3f u0, Vector3f u1,
+            Vector3f u2) {
         Vector3f a = new Vector3f();
         short i0, i1;
         a.x = FastMath.abs(n.x);
@@ -365,7 +325,7 @@ public class Intersection {
                 i0 = 0; /* a[2] is greatest */
                 i1 = 1;
             }
-        } else /* a[0] <=a[1] */{
+        } else /* a[0] <=a[1] */ {
             if (a.z > a.y) {
                 i0 = 0; /* a[2] is greatest */
                 i1 = 1;
@@ -407,8 +367,7 @@ public class Intersection {
         return false;
     }
 
-    private static boolean pointInTri(float[] V0, float[] U0, float[] U1,
-                                      float[] U2, int i0, int i1) {
+    private static boolean pointInTri(float[] V0, float[] U0, float[] U1, float[] U2, int i0, int i1) {
         float a, b, c, d0, d1, d2;
         /* is T1 completly inside T2? */
         /* check if V0 is inside tri(U0,U1,U2) */
@@ -426,14 +385,13 @@ public class Intersection {
         b = -(U0[i0] - U2[i0]);
         c = -a * U2[i0] - b * U2[i1];
         d2 = a * V0[i0] + b * V0[i1] + c;
-        if (d0 * d1 > 0.0 && d0 * d2 > 0.0)
-            return true;
+        if (d0 * d1 > 0.0 && d0 * d2 > 0.0) return true;
 
         return false;
     }
 
-    private static boolean edgeAgainstTriEdges(float[] v0, float[] v1,
-                                               float[] u0, float[] u1, float[] u2, int i0, int i1) {
+    private static boolean edgeAgainstTriEdges(float[] v0, float[] v1, float[] u0, float[] u1, float[] u2, int i0,
+            int i1) {
         float aX, aY;
         aX = v1[i0] - v0[i0];
         aY = v1[i1] - v0[i1];
@@ -452,8 +410,7 @@ public class Intersection {
         return false;
     }
 
-    private static boolean edgeEdgeTest(float[] v0, float[] u0, float[] u1,
-                                        int i0, int i1, float aX, float Ay) {
+    private static boolean edgeEdgeTest(float[] v0, float[] u0, float[] u1, int i0, int i1, float aX, float Ay) {
         float Bx = u0[i0] - u1[i0];
         float By = u0[i1] - u1[i1];
         float Cx = v0[i0] - u0[i0];
@@ -463,11 +420,9 @@ public class Intersection {
         if ((f > 0 && d >= 0 && d <= f) || (f < 0 && d <= 0 && d >= f)) {
             float e = aX * Cy - Ay * Cx;
             if (f > 0) {
-                if (e >= 0 && e <= f)
-                    return true;
+                if (e >= 0 && e <= f) return true;
             } else {
-                if (e <= 0 && e >= f)
-                    return true;
+                if (e <= 0 && e >= f) return true;
             }
         }
         return false;

@@ -307,7 +307,7 @@ public class TileEntityLittleTiles extends TileEntity {
                     if (hit == null || hit.hitVec.distanceTo(pos) > Temphit.hitVec.distanceTo(pos) - EPSILON) {
                         boolean isHit = true;
                         if (tile.getCutoutInfo() != null) {
-                            Mesh3d mesh = Mesh3dUtil.meshFromTile(tile.boundingBox, tile.getCutoutInfo());
+                            Mesh3d mesh = tile.getSimpleMesh();
                             float distance = TriangleRayIntersect.intersects(mesh, xCoord, yCoord, zCoord, pos, look);
                             if (mesh.getTriangles().isEmpty()) {
                                 // Workaround for buggy, empty meshes

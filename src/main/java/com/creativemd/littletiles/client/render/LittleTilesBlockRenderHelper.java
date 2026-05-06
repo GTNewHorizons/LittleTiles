@@ -70,19 +70,13 @@ public class LittleTilesBlockRenderHelper {
     }
 
     private static boolean renderCutout(int x, int y, int z, LittleTilesCubeObject cube, IBlockAccess world) {
-        Mesh3d mesh = Mesh3dUtil.createMesh(
-                x,
-                y,
-                z,
-                cube.cutoutInfo,
-                cube.minX,
-                cube.minY,
-                cube.minZ,
-                cube.maxX,
-                cube.maxY,
-                cube.maxZ,
-                cube.block,
-                cube.meta);
+        Mesh3d cachedMesh = cube.renderCache.getSimpleMesh();
+        if (cachedMesh == null) {
+            return false;
+        }
+        Mesh3d mesh = cachedMesh.copy();
+        mesh.setTextures(cube.block, cube.meta);
+        mesh.translate(new Vector3d(x, y, z));
         Tessellator tess = Tessellator.instance;
 
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);

@@ -76,6 +76,7 @@ public class LittleTileBlock extends LittleTile {
             cube.block = block;
             cube.meta = meta;
             cube.cutoutInfo = this.getCutoutInfo();
+            cube.renderCache = getRenderCache();
             cubes.add(cube);
         }
         return cubes;

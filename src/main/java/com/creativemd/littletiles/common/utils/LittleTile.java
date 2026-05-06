@@ -22,6 +22,8 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.EmptyChunk;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.creativemd.littletiles.client.util3d.Mesh3d;
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -29,6 +31,7 @@ import com.creativemd.littletiles.common.utils.small.LittleTileCoord;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -119,6 +122,8 @@ public abstract class LittleTile {
 
     private LittleTileCutoutInfo cutoutInfo = null;
 
+    private final LittleTileRenderCache renderCache = new LittleTileRenderCache(this);
+
     public AxisAlignedBB getSelectedBox() {
         if (boundingBox != null) {
             return boundingBox.getBox();
@@ -171,6 +176,7 @@ public abstract class LittleTile {
         if (count > 0) {
             boundingBox = new LittleTileBox("bBox" + 0, nbt);
         }
+        invalidateClientMeshCache();
         updateCorner();
     }
 
@@ -243,6 +249,7 @@ public abstract class LittleTile {
         }
 
         cutoutInfo = LittleTileCutoutInfo.loadFromNBT(nbt);
+        invalidateClientMeshCache();
     }
 
     // ================Placing================
@@ -256,6 +263,7 @@ public abstract class LittleTile {
         if (boundingBox != null) {
             cornerVec = new LittleTileVec(boundingBox.minX, boundingBox.minY, boundingBox.minZ);
         } else cornerVec = new LittleTileVec(0, 0, 0);
+        invalidateClientMeshCache();
     }
 
     public void place() {
@@ -305,6 +313,8 @@ public abstract class LittleTile {
         }
         tile.cornerVec = this.cornerVec.copy();
         tile.te = this.te;
+        tile.cutoutInfo = cutoutInfo == null ? null : new LittleTileCutoutInfo(cutoutInfo);
+        tile.invalidateClientMeshCache();
 
         tile.structure = this.structure;
         if (this.coord != null) tile.coord = this.coord.copy();
@@ -451,10 +461,30 @@ public abstract class LittleTile {
 
     public void setCutoutInfo(LittleTileCutoutInfo cutoutInfo) {
         this.cutoutInfo = cutoutInfo;
+        invalidateClientMeshCache();
     }
 
     public LittleTileCutoutInfo getCutoutInfo() {
         return cutoutInfo;
+    }
+
+    public Mesh3d getSimpleMesh() {
+        if (cutoutInfo == null || boundingBox == null) {
+            return null;
+        }
+        if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
+            return renderCache.getSimpleMesh();
+        }
+        return Mesh3dUtil.meshFromTile(boundingBox, cutoutInfo);
+    }
+
+    private void invalidateClientMeshCache() {
+        renderCache.invalidateMesh();
+    }
+
+    @SideOnly(Side.CLIENT)
+    public LittleTileRenderCache getRenderCache() {
+        return renderCache;
     }
 
     public boolean overlapsTile(LittleTile other) {

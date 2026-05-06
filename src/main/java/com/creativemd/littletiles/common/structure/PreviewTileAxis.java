@@ -43,6 +43,11 @@ public class PreviewTileAxis extends PreviewTile {
     }
 
     @Override
+    protected PreviewTile copyWithSharedPreview() {
+        return new PreviewTileAxis(box.copy(), preview, axis);
+    }
+
+    @Override
     public LittleTileBox getPreviewBox() {
         LittleTileBox preview = box.copy();
         int max = 40 * 16;

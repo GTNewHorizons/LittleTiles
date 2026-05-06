@@ -8,7 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 
-import com.creativemd.creativecore.common.utils.HashMapList;
+import com.creativemd.littletiles.common.items.LittleTilePlacementPlan.SplitPreviewMap;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -32,6 +32,10 @@ public class PreviewTile {
 
     public PreviewTile copy() {
         return new PreviewTile(box.copy(), preview.copy());
+    }
+
+    protected PreviewTile copyWithSharedPreview() {
+        return new PreviewTile(box.copy(), preview);
     }
 
     public Vec3 getPreviewColor() {
@@ -132,7 +136,7 @@ public class PreviewTile {
         return null;
     }
 
-    public boolean split(HashMapList<ChunkCoordinates, PreviewTile> tiles, int x, int y, int z) {
+    public boolean split(SplitPreviewMap tiles, int x, int y, int z) {
         if (preview != null && !preview.canSplit && box.needsMultipleBlocks()) return false;
         LittleTileSize size = box.getSize();
 
@@ -157,7 +161,7 @@ public class PreviewTile {
                 posZ = z + offZ;
                 for (int h = 0; spaceZ + size.sizeZ > h * 16; h++) {
 
-                    PreviewTile tile = this.copy();
+                    PreviewTile tile = copyWithSharedPreview();
                     if (i > 0) tile.box.minX = 0;
                     else tile.box.minX = spaceX;
                     if (i * 16 + 16 > spaceX + size.sizeX) {
@@ -180,7 +184,13 @@ public class PreviewTile {
                     } else tile.box.maxZ = 16;
 
                     if (tile.box.isValidBox()) {
-                        tiles.add(new ChunkCoordinates(posX, posY, posZ), tile);
+                        ChunkCoordinates coord = new ChunkCoordinates(posX, posY, posZ);
+                        ArrayList<PreviewTile> groupedTiles = tiles.get(coord);
+                        if (groupedTiles == null) {
+                            groupedTiles = new ArrayList<>();
+                            tiles.put(coord, groupedTiles);
+                        }
+                        groupedTiles.add(tile);
                     }
                     posZ++;
                 }

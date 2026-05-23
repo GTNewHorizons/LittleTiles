@@ -239,11 +239,7 @@ public class LittleTilePlacementPlan {
 
         world.setBlock(coord.posX, coord.posY, coord.posZ, LittleTiles.blockTile, 0, 3);
         tile = getTileEntity(world, coord);
-        if (tile != null) {
-            return tile;
-        }
-
-        return null;
+        return tile;
     }
 
     private static boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles) {

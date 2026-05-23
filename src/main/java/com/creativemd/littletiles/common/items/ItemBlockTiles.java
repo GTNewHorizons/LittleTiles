@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Block.SoundType;
 import net.minecraft.block.BlockAir;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.IIconRegister;
@@ -14,28 +13,20 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
-import com.creativemd.creativecore.common.utils.HashMapList;
 import com.creativemd.creativecore.common.utils.WorldUtils;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
-import com.creativemd.littletiles.client.util3d.Mesh3d;
-import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
-import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.structure.LittleStructure;
-import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
-import com.creativemd.littletiles.common.utils.LittleTile.LittleTilePosition;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
@@ -44,7 +35,6 @@ import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
-import com.creativemd.littletiles.common.utils.small.LittleTileCoord;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import com.creativemd.littletiles.utils.PreviewTile;
@@ -184,133 +174,16 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         return block.isReplaceable(world, x, y, z) || PlacementHelper.canBePlacedInsideBlock(player, x, y, z);
     }
 
-    public static HashMapList<ChunkCoordinates, PreviewTile> getSplittedTiles(ArrayList<PreviewTile> tiles, int x,
-            int y, int z) {
-        HashMapList<ChunkCoordinates, PreviewTile> splitted = new HashMapList<>();
-        for (PreviewTile tile : tiles) {
-            if (!tile.split(splitted, x, y, z)) return null;
-        }
-        return splitted;
-    }
-
-    public static boolean canPlaceTiles(World world, HashMapList<ChunkCoordinates, PreviewTile> splitted,
-            ArrayList<ChunkCoordinates> coordsToCheck) {
-        for (ChunkCoordinates coord : coordsToCheck) {
-            TileEntity mainTile = world.getTileEntity(coord.posX, coord.posY, coord.posZ);
-            if (mainTile instanceof TileEntityLittleTiles) {
-
-                ArrayList<PreviewTile> tiles = splitted.getValues(coord);
-                if (tiles != null) {
-                    for (PreviewTile tile : tiles) if (tile.needsCollisionTest()
-                            && !((TileEntityLittleTiles) mainTile).isSpaceForLittleTile(tile.box))
-                        return false;
-                }
-            } else if (!(world.getBlock(coord.posX, coord.posY, coord.posZ) instanceof BlockTile)
-                    && !world.getBlock(coord.posX, coord.posY, coord.posZ).getMaterial().isReplaceable())
-                return false;
-        }
-        return true;
-    }
-
     public static boolean placeTiles(World world, EntityPlayer player, ArrayList<PreviewTile> previews,
             LittleStructure structure, int x, int y, int z, ItemStack stack, ArrayList<LittleTile> unplaceableTiles,
             LittleTileCutoutInfo cutoutInfo, LittleTilePlaceMode placeMode) {
-
-        HashMapList<ChunkCoordinates, PreviewTile> splitted = getSplittedTiles(previews, x, y, z);
-        if (splitted == null) return false;
-
-        ArrayList<ChunkCoordinates> coordsToCheck = splitted.getKeys();
-        ArrayList<SoundType> soundsToBePlayed = new ArrayList<>();
-        boolean alwaysTryPlace = placeMode != LittleTilePlaceMode.NORMAL && structure == null;
-        if (alwaysTryPlace || canPlaceTiles(world, splitted, coordsToCheck)) {
-            LittleTilePosition pos = null;
-
-            boolean didPlace = false;
-
-            for (int i = 0; i < splitted.size(); i++) {
-                ChunkCoordinates coord = splitted.getKey(i);
-                ArrayList<PreviewTile> placeTiles = splitted.getValues(i);
-                boolean hascollideBlock = false;
-                for (PreviewTile tile : placeTiles) {
-                    if (tile.needsCollisionTest()) {
-                        hascollideBlock = true;
-                        break;
-                    }
-                }
-                if (hascollideBlock) {
-                    if (!(world.getBlock(coord.posX, coord.posY, coord.posZ) instanceof BlockTile)
-                            && world.getBlock(coord.posX, coord.posY, coord.posZ).getMaterial().isReplaceable())
-                        world.setBlock(coord.posX, coord.posY, coord.posZ, LittleTiles.blockTile, 0, 3);
-
-                    TileEntity te = world.getTileEntity(coord.posX, coord.posY, coord.posZ);
-                    if (te instanceof TileEntityLittleTiles) {
-                        TileEntityLittleTiles teLT = (TileEntityLittleTiles) te;
-
-                        for (PreviewTile placeTile : placeTiles) {
-
-                            LittleTileCutoutInfo cutoutInfoCurrent = null;
-                            if (cutoutInfo != null) {
-                                LittleTileBox originalBox = previews.get(0).box;
-                                LittleTileBox currentBox = placeTile.box;
-
-                                cutoutInfoCurrent = new LittleTileCutoutInfo(cutoutInfo);
-                                cutoutInfoCurrent.pos.x += (x - coord.posX) * 16 + originalBox.minX - currentBox.minX;
-                                cutoutInfoCurrent.pos.y += (y - coord.posY) * 16 + originalBox.minY - currentBox.minY;
-                                cutoutInfoCurrent.pos.z += (z - coord.posZ) * 16 + originalBox.minZ - currentBox.minZ;
-
-                                Mesh3d mesh = Mesh3dUtil.createMesh(
-                                        0,
-                                        0,
-                                        0,
-                                        cutoutInfoCurrent,
-                                        currentBox.minX / 16.0,
-                                        currentBox.minY / 16.0,
-                                        currentBox.minZ / 16.0,
-                                        currentBox.maxX / 16.0,
-                                        currentBox.maxY / 16.0,
-                                        currentBox.maxZ / 16.0,
-                                        null,
-                                        0);
-                                if (mesh.getTriangles().isEmpty()) {
-                                    continue;
-                                }
-                            }
-
-                            List<LittleTile> tiles = placeTile
-                                    .placeTile(player, stack, teLT, structure, unplaceableTiles, placeMode);
-                            if (tiles != null) {
-                                for (LittleTile LT : tiles) {
-                                    didPlace = true;
-                                    LT.setCutoutInfo(cutoutInfoCurrent);
-                                    if (!soundsToBePlayed.contains(LT.getSound())) soundsToBePlayed.add(LT.getSound());
-                                    if (structure != null) {
-                                        if (pos == null) {
-                                            structure.mainTile = LT;
-                                            LT.isMainBlock = true;
-                                            LT.updateCorner();
-                                            pos = new LittleTilePosition(coord, LT.cornerVec.copy());
-                                        } else LT.coord = new LittleTileCoord(teLT, pos.coord, pos.position);
-                                    }
-                                }
-                            }
-                        }
-
-                        if (structure != null) teLT.combineTiles(structure);
-                    }
-                }
-            }
-            for (SoundType soundType : soundsToBePlayed) {
-                world.playSoundEffect(
-                        (float) player.posX,
-                        (float) player.posY,
-                        (float) player.posZ,
-                        soundType.func_150496_b(),
-                        (soundType.getVolume() + 1.0F) / 2.0F,
-                        soundType.getPitch() * 0.8F);
-            }
-            return didPlace;
+        LittleTilePlacementPlan plan = new LittleTilePlacementPlan();
+        plan.fillPlan(world, x, y, z, previews, structure, placeMode);
+        if (!plan.canApplyPlan()) {
+            return false;
         }
-        return false;
+
+        return plan.applyPlan(world, player, stack, structure, unplaceableTiles, cutoutInfo);
     }
 
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,

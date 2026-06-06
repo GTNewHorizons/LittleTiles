@@ -218,7 +218,7 @@ public class TriangleTriangleIntersect {
         sort(isect1);
         sort(isect2);
 
-        if (isect1[1] < isect2[0] + EPSILON || isect2[1] < isect1[0] + EPSILON) {
+        if (isect1[1] < isect2[0] || isect2[1] < isect1[0]) {
             return false;
         }
 

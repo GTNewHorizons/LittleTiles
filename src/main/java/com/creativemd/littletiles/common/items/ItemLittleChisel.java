@@ -285,9 +285,10 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
     @Override
     public ModularPanel buildUI(PlayerInventoryGuiData data, PanelSyncManager syncManager, UISettings settings) {
         BlockStateSyncValue syncBlock = new BlockStateSyncValue((block, meta) -> selectBlock(data, block, meta));
-        IntSyncValue syncGrid = SyncHandlers.intNumber(() -> 0, grid -> selectGrid(data, grid));
-        IntSyncValue syncShape = SyncHandlers.intNumber(() -> -1, shape -> selectShape(data, shape));
-        IntSyncValue syncPlaceMode = SyncHandlers.intNumber(() -> -1, placeMode -> selectPlaceMode(data, placeMode));
+        IntSyncValue syncGrid = SyncHandlers.intNumber(() -> 0, grid -> selectGrid(data, grid)).allowC2S();
+        IntSyncValue syncShape = SyncHandlers.intNumber(() -> -1, shape -> selectShape(data, shape)).allowC2S();
+        IntSyncValue syncPlaceMode = SyncHandlers.intNumber(() -> -1, placeMode -> selectPlaceMode(data, placeMode))
+                .allowC2S();
         syncBlock.register(syncManager, "lt_chisel_block");
         syncManager.syncValue("lt_chisel_grid", syncGrid);
         syncManager.syncValue("lt_chisel_shape", syncShape);

@@ -57,7 +57,9 @@ public class TriangleBoundingBoxIntersect {
                 return true;
             }
         }
-        return false;
+
+        // No surface crossings: the box may still sit fully inside the mesh's solid volume.
+        return mesh.containsPoint(center);
     }
 
     public static boolean intersect(BoundingBox bbox, Vector3f v1, Vector3f v2, Vector3f v3) {

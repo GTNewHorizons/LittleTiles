@@ -67,6 +67,14 @@ public class TriangleTriangleIntersect {
                     return true;
             }
         }
+
+        // No surface crossings: one mesh may still be fully contained in the other.
+        // Use interior sample points (not raw vertices) so a vertex shared with the
+        // other mesh's surface — e.g. two complementary slopes meeting at a face —
+        // doesn't produce an ambiguous on-boundary ray test.
+        if (vertA.length > 0 && mesh2.containsPoint(mesh1.getInteriorSamplePoint())) return true;
+        if (vertB.length > 0 && mesh1.containsPoint(mesh2.getInteriorSamplePoint())) return true;
+
         return false;
     }
 

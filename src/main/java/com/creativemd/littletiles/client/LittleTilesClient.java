@@ -2,10 +2,12 @@ package com.creativemd.littletiles.client;
 
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.Item;
+import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.client.MinecraftForgeClient;
 import net.minecraftforge.common.MinecraftForge;
 
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.client.command.DumpMeshCommand;
 import com.creativemd.littletiles.client.render.BlockOverlayRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.client.render.SpecialBlockTilesRenderer;
@@ -59,6 +61,7 @@ public class LittleTilesClient extends LittleTilesServer {
         ClientRegistry.registerKeyBinding(mark);
         ClientRegistry.registerKeyBinding(toolConfig);
         MinecraftForgeClient.registerItemRenderer(LittleTiles.chisel, new BlockOverlayRenderer());
+        ClientCommandHandler.instance.registerCommand(new DumpMeshCommand());
     }
 
 }

@@ -51,6 +51,22 @@ public class Mesh3d {
     }
 
     private static int logCount;
+    private static int dumpCount;
+
+    public File dumpMesh() {
+        File mcDir;
+        if (FMLCommonHandler.instance().getSide().isClient()) {
+            mcDir = Minecraft.getMinecraft().mcDataDir;
+        } else {
+            mcDir = new File(".");
+        }
+        File logsFolder = new File(mcDir, "logs");
+        File outFile = new File(logsFolder, "littleTilesDumpMesh" + dumpCount + ".obj");
+        dumpCount++;
+        exportObj(outFile);
+        FMLLog.getLogger().info("Dumped mesh into " + outFile.getAbsolutePath());
+        return outFile;
+    }
 
     private void dumpFailingMesh() {
         File mcDir;

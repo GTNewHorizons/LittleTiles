@@ -120,14 +120,14 @@ public class LittleTilesBlockRenderHelper {
                 if (!cube.block.canRenderInPass(pass)) {
                     continue;
                 }
+                rendered = true;
+
                 if (cube.cutoutInfo != null) {
                     if (renderCutout(x, y, z, cube, world)) {
-                        rendered = true;
+                        continue;
                     }
-                    continue;
+                    // For buggy meshes, render the default cube
                 }
-
-                rendered = true;
 
                 if (cube.block != null && cube.meta != -1) {
                     extraRenderer.clearOverrideBlockTexture();

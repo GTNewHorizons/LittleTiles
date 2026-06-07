@@ -18,7 +18,7 @@ public class BlockStateSyncValue {
         LongSupplier getter = () -> 0;
         LongConsumer setter = (x) -> callbackChanged
                 .accept(Block.getBlockById((int) (x >> 32)), (int) (x & 0xFFFFFFFFL));
-        sync = SyncHandlers.longNumber(getter, setter);
+        sync = SyncHandlers.longNumber(getter, setter).allowC2S();
     }
 
     public void setValue(Block block, int meta) {

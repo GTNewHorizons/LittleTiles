@@ -104,6 +104,10 @@ public class LittleTilePlacementPlan {
             TileEntityLittleTiles tile = getTileEntity(world, coord);
             Block block = world.getBlock(coord.posX, coord.posY, coord.posZ);
 
+            // STENCIL only removes overlapping tiles, so it needs an existing TE — otherwise we'd stamp
+            // an empty BlockTile onto air. Skip the coord rather than rejecting the whole plan.
+            if (placeMode == LittleTilePlaceMode.STENCIL && tile == null) continue;
+
             // The coord is usable if it already hosts a LittleTiles TE (we'll merge into it) or holds a
             // replaceable non-BlockTile we can overwrite.
             boolean canPlaceHere = tile != null
@@ -201,19 +205,7 @@ public class LittleTilePlacementPlan {
         cutoutInfoCurrent.pos.y += (originY - entry.coord.posY) * 16 + originalBox.minY - currentBox.minY;
         cutoutInfoCurrent.pos.z += (originZ - entry.coord.posZ) * 16 + originalBox.minZ - currentBox.minZ;
 
-        Mesh3d mesh = Mesh3dUtil.createMesh(
-                0,
-                0,
-                0,
-                cutoutInfoCurrent,
-                currentBox.minX / 16.0,
-                currentBox.minY / 16.0,
-                currentBox.minZ / 16.0,
-                currentBox.maxX / 16.0,
-                currentBox.maxY / 16.0,
-                currentBox.maxZ / 16.0,
-                null,
-                0);
+        Mesh3d mesh = Mesh3dUtil.meshFromTile(currentBox, cutoutInfoCurrent);
         if (mesh.getTriangles().isEmpty()) {
             return null;
         }

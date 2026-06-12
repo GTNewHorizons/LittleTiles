@@ -17,8 +17,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public class BlockLTColored extends Block {
 
-    public BlockLTColored() {
-        super(Material.rock);
+    public BlockLTColored(Material material) {
+        super(material);
         this.setBlockTextureName(LittleTiles.modid + ":LTColored0");
         setCreativeTab(CreativeTabs.tabTools);
     }

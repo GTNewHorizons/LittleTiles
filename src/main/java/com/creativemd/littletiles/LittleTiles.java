@@ -1,6 +1,7 @@
 package com.creativemd.littletiles;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Blocks;
@@ -74,10 +75,11 @@ public class LittleTiles {
     public static int maxNewTiles = 512;
 
     public static CreativeTabs creativeTabLittleTiles = new LittleTilesCreativeTab("littletiles");
+    private static final Material materialLittleTile = new Material(MapColor.stoneColor);
 
-    public static BlockTile blockTile = (BlockTile) new BlockTile(Material.rock).setBlockName("LTTile")
+    public static BlockTile blockTile = (BlockTile) new BlockTile(materialLittleTile).setBlockName("LTTile")
             .setCreativeTab(creativeTabLittleTiles);
-    public static Block coloredBlock = new BlockLTColored().setBlockName("LTBlocks")
+    public static Block coloredBlock = new BlockLTColored(materialLittleTile).setBlockName("LTBlocks")
             .setCreativeTab(creativeTabLittleTiles);
 
     public static Item hammer = new ItemHammer().setUnlocalizedName("LTHammer").setCreativeTab(creativeTabLittleTiles);

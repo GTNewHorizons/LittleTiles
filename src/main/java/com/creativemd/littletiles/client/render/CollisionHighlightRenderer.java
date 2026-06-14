@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -29,10 +30,13 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class CollisionHighlightRenderer {
 
     private static final int RADIUS_CHUNKS = 2;
+    private static final int RADIUS_BLOCKS = RADIUS_CHUNKS * 16;
     private static final int REFRESH_INTERVAL_TICKS = 5;
     private static final double EPSILON = 0.002;
+    private static final float MIN_ALPHA = 0.4F;
+    private static final float MAX_ALPHA = 0.7F;
 
-    private final List<double[]> cachedBoxes = new ArrayList<>();
+    private final List<AxisAlignedBB> cachedBoxes = new ArrayList<>();
     private int ticksSinceRefresh = REFRESH_INTERVAL_TICKS;
 
     @SubscribeEvent
@@ -64,7 +68,8 @@ public class CollisionHighlightRenderer {
         final double camY = TileEntityRendererDispatcher.staticPlayerY;
         final double camZ = TileEntityRendererDispatcher.staticPlayerZ;
 
-        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
+        GL11.glPushAttrib(
+                GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glEnable(GL11.GL_CULL_FACE);
@@ -72,13 +77,19 @@ public class CollisionHighlightRenderer {
         GL11.glDepthMask(true);
         GL11.glEnable(GL11.GL_BLEND);
         OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
-        GL11.glColor4f(0.3F, 0.6F, 1.0F, 0.35F);
+        float alpha = MIN_ALPHA
+                + (float) ((Math.sin(System.nanoTime() / 350000000D) + 1D) * 0.5D * (MAX_ALPHA - MIN_ALPHA));
+        GL11.glColor4f(0.3F, 0.6F, 1.0F, alpha);
 
         GL11.glBegin(GL11.GL_QUADS);
-        for (double[] b : cachedBoxes) {
+        for (AxisAlignedBB b : cachedBoxes) {
             emitBoxFaces(
-                b[0] - camX - EPSILON, b[1] - camY - EPSILON, b[2] - camZ - EPSILON,
-                b[3] - camX + EPSILON, b[4] - camY + EPSILON, b[5] - camZ + EPSILON);
+                    b.minX - camX - EPSILON,
+                    b.minY - camY - EPSILON,
+                    b.minZ - camZ - EPSILON,
+                    b.maxX - camX + EPSILON,
+                    b.maxY - camY + EPSILON,
+                    b.maxZ - camZ + EPSILON);
         }
         GL11.glEnd();
 
@@ -100,7 +111,7 @@ public class CollisionHighlightRenderer {
                 @SuppressWarnings("unchecked")
                 final Iterable<TileEntity> tes = chunk.chunkTileEntityMap.values();
                 for (TileEntity te : tes) {
-                    if (!(te instanceof TileEntityLittleTiles)) continue;
+                    if (te.isInvalid() || !(te instanceof TileEntityLittleTiles)) continue;
 
                     final List<LittleTile> tiles = ((TileEntityLittleTiles) te).getTiles();
                     final List<LittleTile> snapshot;
@@ -109,13 +120,7 @@ public class CollisionHighlightRenderer {
                     }
                     for (LittleTile tile : snapshot) {
                         if (!tile.disableCollision || tile.boundingBox == null) continue;
-                        cachedBoxes.add(new double[] {
-                            te.xCoord + tile.boundingBox.minX / 16D,
-                            te.yCoord + tile.boundingBox.minY / 16D,
-                            te.zCoord + tile.boundingBox.minZ / 16D,
-                            te.xCoord + tile.boundingBox.maxX / 16D,
-                            te.yCoord + tile.boundingBox.maxY / 16D,
-                            te.zCoord + tile.boundingBox.maxZ / 16D });
+                        cachedBoxes.add(tile.boundingBox.getBox().offset(te.xCoord, te.yCoord, te.zCoord));
                     }
                 }
             }
@@ -123,22 +128,34 @@ public class CollisionHighlightRenderer {
     }
 
     private static void emitBoxFaces(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
-        GL11.glVertex3d(minX, minY, minZ); GL11.glVertex3d(maxX, minY, minZ);
-        GL11.glVertex3d(maxX, minY, maxZ); GL11.glVertex3d(minX, minY, maxZ);
+        GL11.glVertex3d(minX, minY, minZ);
+        GL11.glVertex3d(maxX, minY, minZ);
+        GL11.glVertex3d(maxX, minY, maxZ);
+        GL11.glVertex3d(minX, minY, maxZ);
 
-        GL11.glVertex3d(minX, maxY, minZ); GL11.glVertex3d(minX, maxY, maxZ);
-        GL11.glVertex3d(maxX, maxY, maxZ); GL11.glVertex3d(maxX, maxY, minZ);
+        GL11.glVertex3d(minX, maxY, minZ);
+        GL11.glVertex3d(minX, maxY, maxZ);
+        GL11.glVertex3d(maxX, maxY, maxZ);
+        GL11.glVertex3d(maxX, maxY, minZ);
 
-        GL11.glVertex3d(minX, minY, minZ); GL11.glVertex3d(minX, maxY, minZ);
-        GL11.glVertex3d(maxX, maxY, minZ); GL11.glVertex3d(maxX, minY, minZ);
+        GL11.glVertex3d(minX, minY, minZ);
+        GL11.glVertex3d(minX, maxY, minZ);
+        GL11.glVertex3d(maxX, maxY, minZ);
+        GL11.glVertex3d(maxX, minY, minZ);
 
-        GL11.glVertex3d(minX, minY, maxZ); GL11.glVertex3d(maxX, minY, maxZ);
-        GL11.glVertex3d(maxX, maxY, maxZ); GL11.glVertex3d(minX, maxY, maxZ);
+        GL11.glVertex3d(minX, minY, maxZ);
+        GL11.glVertex3d(maxX, minY, maxZ);
+        GL11.glVertex3d(maxX, maxY, maxZ);
+        GL11.glVertex3d(minX, maxY, maxZ);
 
-        GL11.glVertex3d(minX, minY, minZ); GL11.glVertex3d(minX, minY, maxZ);
-        GL11.glVertex3d(minX, maxY, maxZ); GL11.glVertex3d(minX, maxY, minZ);
+        GL11.glVertex3d(minX, minY, minZ);
+        GL11.glVertex3d(minX, minY, maxZ);
+        GL11.glVertex3d(minX, maxY, maxZ);
+        GL11.glVertex3d(minX, maxY, minZ);
 
-        GL11.glVertex3d(maxX, minY, minZ); GL11.glVertex3d(maxX, maxY, minZ);
-        GL11.glVertex3d(maxX, maxY, maxZ); GL11.glVertex3d(maxX, minY, maxZ);
+        GL11.glVertex3d(maxX, minY, minZ);
+        GL11.glVertex3d(maxX, maxY, minZ);
+        GL11.glVertex3d(maxX, maxY, maxZ);
+        GL11.glVertex3d(maxX, minY, maxZ);
     }
 }

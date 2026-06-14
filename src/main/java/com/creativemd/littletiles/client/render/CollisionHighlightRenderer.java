@@ -2,6 +2,7 @@ package com.creativemd.littletiles.client.render;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.WeakHashMap;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -18,8 +19,12 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import org.lwjgl.opengl.GL11;
 
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.client.util3d.Mesh3d;
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
@@ -37,7 +42,14 @@ public class CollisionHighlightRenderer {
     private static final float MAX_ALPHA = 0.7F;
 
     private final List<AxisAlignedBB> cachedBoxes = new ArrayList<>();
+    private final List<Mesh3d> cachedMeshes = new ArrayList<>();
+    private final WeakHashMap<LittleTile, TileCache> tileCache = new WeakHashMap<>();
     private int ticksSinceRefresh = REFRESH_INTERVAL_TICKS;
+
+    private static final class TileCache {
+        final List<AxisAlignedBB> boxes = new ArrayList<>();
+        final List<Mesh3d> meshes = new ArrayList<>();
+    }
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
@@ -50,6 +62,8 @@ public class CollisionHighlightRenderer {
         final ItemStack held = player.getHeldItem();
         if (held == null || held.getItem() != LittleTiles.collisionTool) {
             cachedBoxes.clear();
+            cachedMeshes.clear();
+            tileCache.clear();
             ticksSinceRefresh = REFRESH_INTERVAL_TICKS;
             return;
         }
@@ -62,7 +76,7 @@ public class CollisionHighlightRenderer {
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
-        if (cachedBoxes.isEmpty()) return;
+        if (cachedBoxes.isEmpty() && cachedMeshes.isEmpty()) return;
 
         final double camX = TileEntityRendererDispatcher.staticPlayerX;
         final double camY = TileEntityRendererDispatcher.staticPlayerY;
@@ -93,11 +107,22 @@ public class CollisionHighlightRenderer {
         }
         GL11.glEnd();
 
+        GL11.glBegin(GL11.GL_TRIANGLES);
+        for (Mesh3d mesh : cachedMeshes) {
+            for (Triangle3d t : mesh.getTriangles()) {
+                GL11.glVertex3d(t.getP1().x - camX, t.getP1().y - camY, t.getP1().z - camZ);
+                GL11.glVertex3d(t.getP2().x - camX, t.getP2().y - camY, t.getP2().z - camZ);
+                GL11.glVertex3d(t.getP3().x - camX, t.getP3().y - camY, t.getP3().z - camZ);
+            }
+        }
+        GL11.glEnd();
+
         GL11.glPopAttrib();
     }
 
     private void refreshCache(EntityPlayer player) {
         cachedBoxes.clear();
+        cachedMeshes.clear();
 
         final World world = player.worldObj;
         final int centerChunkX = MathHelper.floor_double(player.posX) >> 4;
@@ -119,8 +144,25 @@ public class CollisionHighlightRenderer {
                         snapshot = new ArrayList<>(tiles);
                     }
                     for (LittleTile tile : snapshot) {
-                        if (!tile.disableCollision || tile.boundingBox == null) continue;
-                        cachedBoxes.add(tile.boundingBox.getBox().offset(te.xCoord, te.yCoord, te.zCoord));
+                        if (!tile.disableCollision) continue;
+                        TileCache cached = tileCache.get(tile);
+                        if (cached == null) {
+                            cached = new TileCache();
+                            for (LittleTilesCubeObject cube : tile.getRenderingCubes()) {
+                                if (cube.cutoutInfo == null) {
+                                    cached.boxes.add(cube.getAxis().offset(te.xCoord, te.yCoord, te.zCoord));
+                                } else {
+                                    Mesh3d mesh = Mesh3dUtil.createMesh(te.xCoord, te.yCoord, te.zCoord, cube.cutoutInfo,
+                                            cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ,
+                                            cube.block, cube.meta);
+                                    for (Triangle3d t : mesh.getTriangles()) t.inflate(EPSILON);
+                                    cached.meshes.add(mesh);
+                                }
+                            }
+                            tileCache.put(tile, cached);
+                        }
+                        cachedBoxes.addAll(cached.boxes);
+                        cachedMeshes.addAll(cached.meshes);
                     }
                 }
             }

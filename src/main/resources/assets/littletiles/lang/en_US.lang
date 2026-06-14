@@ -7,6 +7,7 @@ item.LTWrench.name=Little Wrench
 item.LTChisel.name=Little Chisel
 item.LTScrewdriver.name=Little Screwdriver
 item.LTRubberMallet.name=Little Rubber Mallet
+item.LTCollisionTool.name=Little Collision Tool
 item.LTColorTube.name=Little Color Tube
 tile.LTBlocks.name=Dyeable
 tile.LTBlocks.clean.name=Dyeable Clean

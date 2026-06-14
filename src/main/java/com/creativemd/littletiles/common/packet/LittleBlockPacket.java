@@ -43,7 +43,8 @@ public class LittleBlockPacket extends CreativeCorePacket {
         DESTROY,
         SAW,
         COLOR,
-        SPLIT;
+        SPLIT,
+        TOGGLE_COLLISION;
 
         public static Action get(int ordinal) {
             if (ordinal >= 0 && ordinal < values().length) return values()[ordinal];
@@ -239,6 +240,20 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                 player.addChatComponentMessage(
                                         new ChatComponentText("Too much new tiles! Limit=" + LittleTiles.maxNewTiles));
                             }
+                        }
+                        break;
+                    case TOGGLE_COLLISION:
+                        if (player.getCurrentEquippedItem() == null
+                                || player.getCurrentEquippedItem().getItem() != LittleTiles.collisionTool)
+                            break;
+                        TileEntityLittleTiles collisionTE = (TileEntityLittleTiles) tileEntity;
+                        if (collisionTE.updateLoadedTileServer(pos, look)) {
+                            collisionTE.loadedTile.disableCollision = !collisionTE.loadedTile.disableCollision;
+                            collisionTE.update();
+                            player.addChatComponentMessage(
+                                    new ChatComponentText(
+                                            "Tile collision " + (collisionTE.loadedTile.disableCollision ? "disabled"
+                                                    : "enabled")));
                         }
                         break;
                 }

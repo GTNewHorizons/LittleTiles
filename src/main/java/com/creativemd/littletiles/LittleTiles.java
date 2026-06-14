@@ -19,6 +19,7 @@ import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ItemBlockColored;
 import com.creativemd.littletiles.common.events.LittleEvent;
 import com.creativemd.littletiles.common.items.ItemBlockTiles;
+import com.creativemd.littletiles.common.items.ItemCollisionTool;
 import com.creativemd.littletiles.common.items.ItemColorTube;
 import com.creativemd.littletiles.common.items.ItemHammer;
 import com.creativemd.littletiles.common.items.ItemLittleChisel;
@@ -97,6 +98,8 @@ public class LittleTiles {
             .setCreativeTab(creativeTabLittleTiles);
     public static Item rubberMallet = new ItemRubberMallet().setUnlocalizedName("LTRubberMallet")
             .setCreativeTab(creativeTabLittleTiles);
+    public static Item collisionTool = new ItemCollisionTool().setUnlocalizedName("LTCollisionTool")
+            .setCreativeTab(creativeTabLittleTiles);
 
     public static AngelicaCompat angelicaCompat;
 
@@ -112,6 +115,7 @@ public class LittleTiles {
         GameRegistry.registerItem(chisel, "chisel");
         GameRegistry.registerItem(colorTube, "colorTube");
         GameRegistry.registerItem(rubberMallet, "rubberMallet");
+        GameRegistry.registerItem(collisionTool, "collisionTool");
 
         // GameRegistry.registerBlock(coloredBlock, "LTColoredBlock");
         GameRegistry.registerBlock(coloredBlock, ItemBlockColored.class, "LTColoredBlock");

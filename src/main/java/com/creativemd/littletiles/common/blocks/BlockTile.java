@@ -228,7 +228,8 @@ public class BlockTile extends BlockContainer {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
         if (littleTile != null && littleTile.updateLoadedTile(player)) {
             try {
-                if (world.isRemote) PacketHandler.sendPacketToServer(new LittleBlockPacket(x, y, z, player, 0));
+                if (world.isRemote) PacketHandler
+                        .sendPacketToServer(new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.ACTIVATE));
                 return littleTile.loadedTile.onBlockActivated(world, x, y, z, player, side, moveX, moveY, moveZ);
             } catch (Exception ignored) {
 
@@ -293,7 +294,8 @@ public class BlockTile extends BlockContainer {
                     littleTile.loadedTile.destroy();
                     NBTTagCompound nbt = new NBTTagCompound();
                     littleTile.writeToNBT(nbt);
-                    PacketHandler.sendPacketToServer(new LittleBlockPacket(x, y, z, player, 1));
+                    PacketHandler.sendPacketToServer(
+                            new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.DESTROY));
                     littleTile.updateRender();
                 } catch (Exception ignored) {
 

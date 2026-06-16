@@ -30,6 +30,8 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
  */
 public class TriangleBoundingBoxIntersect {
 
+    private static final float EPSILON = 1.0E-6f;
+
     private static void findMinMax(float f1, float f2, float f3, Vector3f minMax) {
         minMax.set(f1, f1, 0);
         if (f2 < minMax.x) minMax.x = f2;
@@ -107,7 +109,7 @@ public class TriangleBoundingBoxIntersect {
         min = min(p0, p2);
         max = max(p0, p2);
         rad = fez * extent.y + fey * extent.z;
-        if (min > rad || max < -rad) {
+        if (axisSeparated(min, max, rad)) {
             return false;
         }
 
@@ -117,7 +119,7 @@ public class TriangleBoundingBoxIntersect {
         min = min(p0, p2);
         max = max(p0, p2);
         rad = fez * extent.x + fex * extent.z;
-        if (min > rad || max < -rad) {
+        if (axisSeparated(min, max, rad)) {
             return false;
         }
 
@@ -127,7 +129,7 @@ public class TriangleBoundingBoxIntersect {
         min = min(p1, p2);
         max = max(p1, p2);
         rad = fey * extent.x + fex * extent.y;
-        if (min > rad || max < -rad) {
+        if (axisSeparated(min, max, rad)) {
             return false;
         }
 
@@ -141,7 +143,7 @@ public class TriangleBoundingBoxIntersect {
         min = min(p0, p2);
         max = max(p0, p2);
         rad = fez * extent.y + fey * extent.z;
-        if (min > rad || max < -rad) {
+        if (axisSeparated(min, max, rad)) {
             return false;
         }
 
@@ -151,7 +153,7 @@ public class TriangleBoundingBoxIntersect {
         min = min(p0, p2);
         max = max(p0, p2);
         rad = fez * extent.x + fex * extent.z;
-        if (min > rad || max < -rad) {
+        if (axisSeparated(min, max, rad)) {
             return false;
         }
 
@@ -161,7 +163,7 @@ public class TriangleBoundingBoxIntersect {
         min = min(p0, p1);
         max = max(p0, p1);
         rad = fey * extent.x + fex * extent.y;
-        if (min > rad || max < -rad) {
+        if (axisSeparated(min, max, rad)) {
             return false;
         }
         //
@@ -175,7 +177,7 @@ public class TriangleBoundingBoxIntersect {
         min = min(p0, p1);
         max = max(p0, p1);
         rad = fez * extent.y + fey * extent.z;
-        if (min > rad || max < -rad) {
+        if (axisSeparated(min, max, rad)) {
             return false;
         }
 
@@ -185,7 +187,7 @@ public class TriangleBoundingBoxIntersect {
         min = min(p0, p1);
         max = max(p0, p1);
         rad = fez * extent.x + fex * extent.y;
-        if (min > rad || max < -rad) {
+        if (axisSeparated(min, max, rad)) {
             return false;
         }
 
@@ -195,7 +197,7 @@ public class TriangleBoundingBoxIntersect {
         min = min(p1, p2);
         max = max(p1, p2);
         rad = fey * extent.x + fex * extent.y;
-        if (min > rad || max < -rad) {
+        if (axisSeparated(min, max, rad)) {
             return false;
         }
 
@@ -209,19 +211,19 @@ public class TriangleBoundingBoxIntersect {
 
         // test in X-direction
         findMinMax(tmp0.x, tmp1.x, tmp2.x, minMax);
-        if (minMax.x > extent.x || minMax.y < -extent.x) {
+        if (axisSeparated(minMax.x, minMax.y, extent.x)) {
             return false;
         }
 
         // test in Y-direction
         findMinMax(tmp0.y, tmp1.y, tmp2.y, minMax);
-        if (minMax.x > extent.y || minMax.y < -extent.y) {
+        if (axisSeparated(minMax.x, minMax.y, extent.y)) {
             return false;
         }
 
         // test in Z-direction
         findMinMax(tmp0.z, tmp1.z, tmp2.z, minMax);
-        if (minMax.x > extent.z || minMax.y < -extent.z) {
+        if (axisSeparated(minMax.x, minMax.y, extent.z)) {
             return false;
         }
 
@@ -233,11 +235,18 @@ public class TriangleBoundingBoxIntersect {
         Plane p = new Plane();
 
         p.setPlanePoints(v1, v2, v3);
-        if (bbox.whichSide(p) == Plane.Side.Negative) {
+        if (bbox.whichSide(p) != Plane.Side.None) {
             return false;
         }
 
         return true; /* box and triangle overlaps */
+    }
+
+    private static boolean axisSeparated(float min, float max, float radius) {
+        if (radius <= EPSILON && Math.abs(min) <= EPSILON && Math.abs(max) <= EPSILON) {
+            return false;
+        }
+        return min >= radius - EPSILON || max <= -radius + EPSILON;
     }
 
     public static class BoundingBox {
@@ -264,10 +273,9 @@ public class TriangleBoundingBoxIntersect {
 
             float distance = plane.pseudoDistance(center);
 
-            // changed to < and > to prevent floating point precision problems
-            if (distance < -radius) {
+            if (distance <= -radius + EPSILON) {
                 return Plane.Side.Negative;
-            } else if (distance > radius) {
+            } else if (distance >= radius - EPSILON) {
                 return Plane.Side.Positive;
             } else {
                 return Plane.Side.None;

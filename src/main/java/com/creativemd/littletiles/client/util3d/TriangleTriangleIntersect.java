@@ -24,7 +24,7 @@ public class TriangleTriangleIntersect {
     /**
      * EPSILON represents the error buffer used to denote a hit.
      */
-    public static final double EPSILON = 1e-3;
+    public static final float EPSILON = 1.0E-6f;
 
     private static final Vector3f tempVa = new Vector3f();
 
@@ -125,10 +125,11 @@ public class TriangleTriangleIntersect {
         if (Math.abs(du0) < EPSILON) du0 = 0.0f;
         if (Math.abs(du1) < EPSILON) du1 = 0.0f;
         if (Math.abs(du2) < EPSILON) du2 = 0.0f;
+
         du0du1 = du0 * du1;
         du0du2 = du0 * du2;
 
-        if (du0du1 >= 0.0f && du0du2 >= 0.0f) {
+        if (!straddlesPlane(du0, du1, du2)) {
             return false;
         }
 
@@ -151,10 +152,8 @@ public class TriangleTriangleIntersect {
         dv0dv1 = dv0 * dv1;
         dv0dv2 = dv0 * dv2;
 
-        if (dv0dv1 > 0.0f && dv0dv2 > 0.0f) { /*
-                                               * same sign on all of them + not equal 0 ?
-                                               */
-            return false; /* no intersection occurs */
+        if (!straddlesPlane(dv0, dv1, dv2)) {
+            return false;
         }
 
         /* compute direction of intersection line */
@@ -226,11 +225,17 @@ public class TriangleTriangleIntersect {
         sort(isect1);
         sort(isect2);
 
-        if (isect1[1] < isect2[0] || isect2[1] < isect1[0]) {
+        if (isect1[1] <= isect2[0] + EPSILON || isect2[1] <= isect1[0] + EPSILON) {
             return false;
         }
 
         return true;
+    }
+
+    private static boolean straddlesPlane(float d0, float d1, float d2) {
+        boolean hasPositive = d0 > 0.0f || d1 > 0.0f || d2 > 0.0f;
+        boolean hasNegative = d0 < 0.0f || d1 < 0.0f || d2 < 0.0f;
+        return hasPositive && hasNegative;
     }
 
     private static void sort(float[] f) {

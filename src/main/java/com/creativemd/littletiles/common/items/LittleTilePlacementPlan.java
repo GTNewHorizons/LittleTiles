@@ -48,13 +48,15 @@ public class LittleTilePlacementPlan {
     private int originY;
     private int originZ;
     private LittleTileBox originalBox;
+    private LittleTileCutoutInfo cutoutInfo;
 
     public void fillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews, LittleStructure structure,
-            LittleTilePlaceMode placeMode) {
+            LittleTilePlaceMode placeMode, LittleTileCutoutInfo cutoutInfo) {
         this.placeMode = placeMode;
         this.originX = x;
         this.originY = y;
         this.originZ = z;
+        this.cutoutInfo = cutoutInfo;
         if (previews.isEmpty()) {
             canApplyPlan = false;
             return;
@@ -122,7 +124,7 @@ public class LittleTilePlacementPlan {
 
             // Collision check against an existing LittleTiles TE. Special place mode bypasses this on
             // purpose — overriding collisions is its whole reason to exist.
-            if (!specialPlaceMode && tile != null && !isSpaceForTiles(tile, placeTiles)) {
+            if (!specialPlaceMode && tile != null && !isSpaceForTiles(tile, placeTiles, coord)) {
                 return false;
             }
 
@@ -165,7 +167,8 @@ public class LittleTilePlacementPlan {
             return false;
         }
 
-        List<LittleTile> tiles = placeTile.placeTile(player, stack, tile, structure, unplaceableTiles, placeMode);
+        List<LittleTile> tiles = placeTile
+                .placeTile(player, stack, tile, structure, unplaceableTiles, placeMode, cutoutInfoCurrent);
         if (tiles == null) {
             return false;
         }
@@ -173,7 +176,6 @@ public class LittleTilePlacementPlan {
         boolean didPlace = false;
         for (LittleTile littleTile : tiles) {
             didPlace = true;
-            littleTile.setCutoutInfo(cutoutInfoCurrent);
             if (structure != null) {
                 if (structureMainPosition == null) {
                     structure.mainTile = littleTile;
@@ -234,9 +236,19 @@ public class LittleTilePlacementPlan {
         return tile;
     }
 
-    private static boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles) {
-        for (PreviewTile tile : placeTiles)
-            if (tile.needsCollisionTest() && !(mainTile).isSpaceForLittleTile(tile.box)) return false;
+    private boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles,
+            ChunkCoordinates coord) {
+        for (PreviewTile tile : placeTiles) {
+            if (!tile.needsCollisionTest()) continue;
+            LittleTileCutoutInfo perTileCutout = null;
+            if (cutoutInfo != null) {
+                perTileCutout = new LittleTileCutoutInfo(cutoutInfo);
+                perTileCutout.pos.x += (originX - coord.posX) * 16 + originalBox.minX - tile.box.minX;
+                perTileCutout.pos.y += (originY - coord.posY) * 16 + originalBox.minY - tile.box.minY;
+                perTileCutout.pos.z += (originZ - coord.posZ) * 16 + originalBox.minZ - tile.box.minZ;
+            }
+            if (!mainTile.isSpaceForLittleTile(tile.box, perTileCutout)) return false;
+        }
         return true;
     }
 }

@@ -179,7 +179,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             LittleStructure structure, int x, int y, int z, ItemStack stack, ArrayList<LittleTile> unplaceableTiles,
             LittleTileCutoutInfo cutoutInfo, LittleTilePlaceMode placeMode) {
         LittleTilePlacementPlan plan = new LittleTilePlacementPlan();
-        plan.fillPlan(world, x, y, z, previews, structure, placeMode);
+        plan.fillPlan(world, x, y, z, previews, structure, placeMode, cutoutInfo);
         if (!plan.canApplyPlan()) {
             return false;
         }

@@ -246,7 +246,7 @@ public class PreviewRenderer {
                         // Needed for block picked cutouts
                         Vector3d cutoutSize = toolHandler.getTileSize();
 
-                        if (shape == LittleTileShapeMode.SLOPE) {
+                        if (shape == LittleTileShapeMode.SLOPE || shape == LittleTileShapeMode.SLOPE_CONCAVE) {
                             cubeX -= size.xCoord / 2;
                             cubeY -= size.yCoord / 2;
                             cubeZ -= size.zCoord / 2;
@@ -286,7 +286,8 @@ public class PreviewRenderer {
                                     new Vector3i(
                                             (int) Math.round(size.xCoord * 16),
                                             (int) Math.round(size.yCoord * 16),
-                                            (int) Math.round(size.zCoord * 16)));
+                                            (int) Math.round(size.zCoord * 16)),
+                                    shape);
                         }
 
                         GL11.glPopMatrix();

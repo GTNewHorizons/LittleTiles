@@ -38,9 +38,10 @@ public class LittleTilesBlockRenderHelper {
             .withInitial(ExtendedRenderBlocks::new);
 
     public static void renderMesh(double x, double y, double z, Vector3d cutoutScale, int orientation, double red,
-            double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax) {
+            double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax,
+            LittleTileShapeMode shapeMode) {
         LittleTileCutoutInfo cutoutInfo = new LittleTileCutoutInfo();
-        cutoutInfo.type = LittleTileShapeMode.SLOPE;
+        cutoutInfo.type = shapeMode;
         Mesh3d mesh = Mesh3dUtil.createMesh(
                 cutoutInfo,
                 cutoutScale,

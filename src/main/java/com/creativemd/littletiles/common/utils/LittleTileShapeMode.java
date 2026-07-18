@@ -6,7 +6,8 @@ public enum LittleTileShapeMode {
 
     BOX("key.littletiles.box"),
     SLOPE("key.littletiles.slope"),
-    PILLAR("key.littletiles.pillar");
+    PILLAR("key.littletiles.pillar"),
+    SLOPE_CONCAVE("key.littletiles.slope_concave");
 
     private final String name;
 

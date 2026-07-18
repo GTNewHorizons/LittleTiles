@@ -10,6 +10,7 @@ import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.joml.Vector3f;
 import org.joml.Vector3i;
 
 import com.creativemd.creativecore.lib.Vector3d;
@@ -287,6 +288,17 @@ public class Mesh3d {
             if (trianglePoints.contains(point)) {
                 ret.add(point);
             }
+        }
+        return ret;
+    }
+
+    public Vector3f[] getVertices() {
+        Vector3f[] ret = new Vector3f[triangles.size() * 3];
+        for (int i = 0; i < triangles.size(); i++) {
+            Triangle3d triangle = triangles.get(i);
+            ret[i * 3] = triangle.getP1().toVector3f();
+            ret[i * 3 + 1] = triangle.getP2().toVector3f();
+            ret[i * 3 + 2] = triangle.getP3().toVector3f();
         }
         return ret;
     }

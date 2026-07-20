@@ -42,6 +42,10 @@ public class LittleTilesBlockRenderHelper {
             LittleTileShapeMode shapeMode) {
         LittleTileCutoutInfo cutoutInfo = new LittleTileCutoutInfo();
         cutoutInfo.type = shapeMode;
+        cutoutInfo.size = new Vector3i(
+                (int) Math.round(cutoutScale.x * 16),
+                (int) Math.round(cutoutScale.y * 16),
+                (int) Math.round(cutoutScale.z * 16));
         Mesh3d mesh = Mesh3dUtil.createMesh(
                 cutoutInfo,
                 cutoutScale,

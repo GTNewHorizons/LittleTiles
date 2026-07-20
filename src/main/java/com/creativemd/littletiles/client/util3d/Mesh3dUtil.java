@@ -170,19 +170,46 @@ public class Mesh3dUtil {
         mesh.translate(posCutout);
         mesh.translate(new Vector3d(posSubMin.x / 16.0, posSubMin.y / 16.0, posSubMin.z / 16.0));
 
+        int meshMinX = posCutout.x + posSubMin.x;
+        int meshMaxX = meshMinX + cutoutInfo.size.x;
+        int meshMinY = posCutout.y + posSubMin.y;
+        int meshMaxY = meshMinY + cutoutInfo.size.y;
+        int meshMinZ = posCutout.z + posSubMin.z;
+        int meshMaxZ = meshMinZ + cutoutInfo.size.z;
         Plane3d plane;
-        plane = Plane3d.UP.moveAlongNormal(-(16 - posSubMax.y) / 16.0);
-        mesh = mesh.cutByPlane(plane);
-        plane = Plane3d.DOWN.moveAlongNormal(-posSubMin.y / 16.0);
-        mesh = mesh.cutByPlane(plane);
-        plane = Plane3d.WEST.moveAlongNormal(-posSubMin.x / 16.0);
-        mesh = mesh.cutByPlane(plane);
-        plane = Plane3d.EAST.moveAlongNormal(-(16 - posSubMax.x) / 16.0);
-        mesh = mesh.cutByPlane(plane);
-        plane = Plane3d.SOUTH.moveAlongNormal(-(16 - posSubMax.z) / 16.0);
-        mesh = mesh.cutByPlane(plane);
-        plane = Plane3d.NORTH.moveAlongNormal(-posSubMin.z / 16.0);
-        mesh = mesh.cutByPlane(plane);
+
+        if (meshMinY > posSubMax.y || meshMaxY < posSubMin.y
+                || meshMinX > posSubMax.x
+                || meshMaxX < posSubMin.x
+                || meshMinZ > posSubMax.z
+                || meshMaxZ < posSubMin.z) {
+            return new Mesh3d(new ArrayList<>());
+        }
+
+        if (meshMaxY > posSubMax.y) {
+            plane = Plane3d.UP.moveAlongNormal(-(16 - posSubMax.y) / 16.0);
+            mesh = mesh.cutByPlane(plane);
+        }
+        if (meshMinY < posSubMin.y) {
+            plane = Plane3d.DOWN.moveAlongNormal(-posSubMin.y / 16.0);
+            mesh = mesh.cutByPlane(plane);
+        }
+        if (meshMinX < posSubMin.x) {
+            plane = Plane3d.WEST.moveAlongNormal(-posSubMin.x / 16.0);
+            mesh = mesh.cutByPlane(plane);
+        }
+        if (meshMaxX > posSubMax.x) {
+            plane = Plane3d.EAST.moveAlongNormal(-(16 - posSubMax.x) / 16.0);
+            mesh = mesh.cutByPlane(plane);
+        }
+        if (meshMaxZ > posSubMax.z) {
+            plane = Plane3d.SOUTH.moveAlongNormal(-(16 - posSubMax.z) / 16.0);
+            mesh = mesh.cutByPlane(plane);
+        }
+        if (meshMinZ < posSubMin.z) {
+            plane = Plane3d.NORTH.moveAlongNormal(-posSubMin.z / 16.0);
+            mesh = mesh.cutByPlane(plane);
+        }
 
         if (block != null) {
             mesh.setTextures(block, meta);

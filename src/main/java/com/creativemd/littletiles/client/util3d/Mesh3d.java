@@ -292,6 +292,30 @@ public class Mesh3d {
         return ret;
     }
 
+    public Vector3f getInteriorSamplePoint() {
+        // First triangle's centroid, nudged opposite its outward normal so the point
+        // lies strictly inside this mesh's volume rather than on its boundary.
+        // Boundary points are unreliable test inputs for containsPoint.
+        Triangle3d t = triangles.get(0);
+        Vector3d p1 = t.getP1();
+        Vector3d p2 = t.getP2();
+        Vector3d p3 = t.getP3();
+        Vector3d normal = t.getNormal();
+        double eps = 1e-4;
+        return new Vector3f(
+                (float) ((p1.x + p2.x + p3.x) / 3.0 - normal.x * eps),
+                (float) ((p1.y + p2.y + p3.y) / 3.0 - normal.y * eps),
+                (float) ((p1.z + p2.z + p3.z) / 3.0 - normal.z * eps));
+    }
+
+    public boolean containsPoint(Vector3f point) {
+        double solidAngle = 0.0;
+        for (Triangle3d triangle : triangles) {
+            solidAngle += triangle.signedSolidAngle(point);
+        }
+        return Math.abs(solidAngle) > 2.0 * Math.PI;
+    }
+
     public Vector3f[] getVertices() {
         Vector3f[] ret = new Vector3f[triangles.size() * 3];
         for (int i = 0; i < triangles.size(); i++) {

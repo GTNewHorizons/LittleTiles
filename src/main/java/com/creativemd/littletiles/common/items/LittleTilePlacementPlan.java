@@ -11,7 +11,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 
-import com.creativemd.creativecore.common.utils.HashMapList;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
@@ -26,7 +25,13 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileCoord;
 import com.creativemd.littletiles.utils.PreviewTile;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+
 public class LittleTilePlacementPlan {
+
+    public static final class SplitPreviewMap
+            extends Object2ObjectLinkedOpenHashMap<ChunkCoordinates, ArrayList<PreviewTile>> {
+    }
 
     private static class PlacementEntry {
 
@@ -95,14 +100,14 @@ public class LittleTilePlacementPlan {
             boolean specialPlaceMode) {
         entries.clear();
 
-        HashMapList<ChunkCoordinates, PreviewTile> splittedTiles = getSplittedTiles(previews, x, y, z);
+        SplitPreviewMap splittedTiles = getSplittedTiles(previews, x, y, z);
         if (splittedTiles == null) return false;
 
         // specialPlaceMode means: place what fits, handle overlaps in a custom fashion
         // Otherwise placement is atomic — any unplaceable coord rejects the whole plan
-        for (int i = 0; i < splittedTiles.size(); i++) {
-            ChunkCoordinates coord = splittedTiles.getKey(i);
-            ArrayList<PreviewTile> placeTiles = splittedTiles.getValues(i);
+        for (var entry : splittedTiles.object2ObjectEntrySet()) {
+            ChunkCoordinates coord = entry.getKey();
+            ArrayList<PreviewTile> placeTiles = entry.getValue();
             TileEntityLittleTiles tile = getTileEntity(world, coord);
             Block block = world.getBlock(coord.posX, coord.posY, coord.posZ);
 
@@ -133,9 +138,8 @@ public class LittleTilePlacementPlan {
         return true;
     }
 
-    private static HashMapList<ChunkCoordinates, PreviewTile> getSplittedTiles(ArrayList<PreviewTile> tiles, int x,
-            int y, int z) {
-        HashMapList<ChunkCoordinates, PreviewTile> splitted = new HashMapList<>();
+    private static SplitPreviewMap getSplittedTiles(ArrayList<PreviewTile> tiles, int x, int y, int z) {
+        SplitPreviewMap splitted = new SplitPreviewMap();
         for (PreviewTile tile : tiles) {
             if (!tile.split(splitted, x, y, z)) return null;
         }

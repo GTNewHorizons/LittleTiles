@@ -104,11 +104,6 @@ public class Plane3d {
         return A * point.x + B * point.y + C * point.z + D;
     }
 
-    public boolean isPointAbove(Vector3d point) {
-        double distance = getDistance(point);
-        return distance > 0;
-    }
-
     public Vector3d intersect(Vector3d p1, Vector3d p2) {
         double d1 = getDistance(p1);
         double d2 = getDistance(p2);

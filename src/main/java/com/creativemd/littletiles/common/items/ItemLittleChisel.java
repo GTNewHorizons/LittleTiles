@@ -244,7 +244,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
 
     private DropDownMenu addShapeSelector(IntSyncValue sync, LittleToolHandler handler, int y) {
         DropDownMenu shapePicker = new DropDownMenu();
-        shapePicker.pos(5, y).size(100, 25).marginLeft(10);
+        shapePicker.pos(5, y).size(150, 25).marginLeft(10);
         shapePicker.background(GuiTextures.BUTTON_CLEAN);
 
         for (LittleTileShapeMode mode : LittleTileShapeMode.values()) {

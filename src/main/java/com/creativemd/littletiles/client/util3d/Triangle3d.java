@@ -73,6 +73,42 @@ public class Triangle3d {
         return edge1;
     }
 
+    /**
+     * Computes this triangle's signed solid angle relative to a point.
+     *
+     * The value is used by {@link Mesh3d#containsPoint(Vector3f)}: a closed mesh sums the signed solid angles from all
+     * its triangles, producing a large absolute value for interior points and approximately zero for exterior points.
+     * The sign depends on the triangle winding order.
+     *
+     * @param point The point to measure from.
+     * @return The signed solid angle in radians.
+     */
+    public double signedSolidAngle(Vector3f point) {
+        double ax = p1.x - point.x;
+        double ay = p1.y - point.y;
+        double az = p1.z - point.z;
+
+        double bx = p2.x - point.x;
+        double by = p2.y - point.y;
+        double bz = p2.z - point.z;
+
+        double cx = p3.x - point.x;
+        double cy = p3.y - point.y;
+        double cz = p3.z - point.z;
+
+        double al = Math.sqrt(ax * ax + ay * ay + az * az);
+        double bl = Math.sqrt(bx * bx + by * by + bz * bz);
+        double cl = Math.sqrt(cx * cx + cy * cy + cz * cz);
+
+        double det = ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx);
+
+        double denom = al * bl * cl + (ax * bx + ay * by + az * bz) * cl
+                + (bx * cx + by * cy + bz * cz) * al
+                + (cx * ax + cy * ay + cz * az) * bl;
+
+        return 2.0 * Math.atan2(det, denom);
+    }
+
     private void flipWindingOrder() {
         Vector3d temp = p2;
         p2 = p3;

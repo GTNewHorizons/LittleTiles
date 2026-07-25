@@ -18,10 +18,20 @@ public class Mesh3dUtil {
 
     private static Mesh3d MESH_SLOPE;
     private static Mesh3d MESH_SLOPE_CONCAVE;
+    private static Mesh3d MESH_SLOPE_CONVEX;
+    private static Mesh3d MESH_SLOPE_TRIANGLE;
+    private static Mesh3d MESH_SLOPE_TRIANGLE_CORNER;
+    private static Mesh3d MESH_SLOPE_OUTER_CORNER;
+    private static Mesh3d MESH_SLOPE_INNER_CORNER;
 
     public static void initializeMeshes() {
         MESH_SLOPE = Mesh3dObjLoader.load("slope");
         MESH_SLOPE_CONCAVE = Mesh3dObjLoader.load("slope_concave");
+        MESH_SLOPE_CONVEX = Mesh3dObjLoader.load("slope_convex");
+        MESH_SLOPE_TRIANGLE = Mesh3dObjLoader.load("slope_triangle");
+        MESH_SLOPE_TRIANGLE_CORNER = Mesh3dObjLoader.load("slope_triangle_corner");
+        MESH_SLOPE_OUTER_CORNER = Mesh3dObjLoader.load("slope_outer");
+        MESH_SLOPE_INNER_CORNER = Mesh3dObjLoader.load("slope_inner");
     }
 
     public static Mesh3d meshFromTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
@@ -156,6 +166,11 @@ public class Mesh3dUtil {
                 yield createWallMesh(cutoutInfo);
             }
             case SLOPE_CONCAVE -> MESH_SLOPE_CONCAVE.copy();
+            case SLOPE_CONVEX -> MESH_SLOPE_CONVEX.copy();
+            case SLOPE_TRIANGLE -> MESH_SLOPE_TRIANGLE.copy();
+            case SLOPE_TRIANGLE_CORNER -> MESH_SLOPE_TRIANGLE_CORNER.copy();
+            case SLOPE_OUTER_CORNER -> MESH_SLOPE_OUTER_CORNER.copy();
+            case SLOPE_INNER_CORNER -> MESH_SLOPE_INNER_CORNER.copy();
             case BOX -> throw new RuntimeException("Invalid cutout BOX");
             default -> throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
         };

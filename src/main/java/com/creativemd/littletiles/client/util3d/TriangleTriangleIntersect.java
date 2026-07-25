@@ -22,7 +22,8 @@ import org.joml.Vector3f;
 public class TriangleTriangleIntersect {
 
     /**
-     * EPSILON represents the error buffer used to denote a hit.
+     * Floating-point tolerance for triangle distance.
+     * Minor collisions smaller than this tolerance are ignored.
      */
     public static final float EPSILON = 1.0E-6f;
 
@@ -49,7 +50,8 @@ public class TriangleTriangleIntersect {
      *
      * @param mesh1 The first TriMesh.
      * @param mesh2 The second TriMesh.
-     * @return True if they intersect, false otherwise.
+     * @return True if the meshes overlap with volume or one mesh is contained by the other, false when they are separate
+     *         or only touch at a shared surface/edge/vertex.
      */
     public static boolean meshIntersection(Mesh3d mesh1, Mesh3d mesh2) {
         Vector3f[] vertA = mesh1.getVertices();
@@ -88,7 +90,7 @@ public class TriangleTriangleIntersect {
      * @param u0 Second triangle's first vertex.
      * @param u1 Second triangle's second vertex.
      * @param u2 Second triangle's third vertex.
-     * @return True if the two triangles intersect, false otherwise.
+     * @return True if the two triangles intersect, false otherwise. Just touching does not count as intersecting.
      */
     public static boolean intersection(Vector3f v0, Vector3f v1, Vector3f v2, Vector3f u0, Vector3f u1, Vector3f u2) {
         Vector3f e1 = tempVa;
@@ -121,7 +123,8 @@ public class TriangleTriangleIntersect {
         du1 = n1.dot(u1) + d1;
         du2 = n1.dot(u2) + d1;
 
-        /* coplanarity robustness check */
+        // Distances this small are just floating-point noise. Treat them as exactly on the plane so touching faces do
+        // not look like one triangle crosses the other.
         if (Math.abs(du0) < EPSILON) du0 = 0.0f;
         if (Math.abs(du1) < EPSILON) du1 = 0.0f;
         if (Math.abs(du2) < EPSILON) du2 = 0.0f;
@@ -145,6 +148,7 @@ public class TriangleTriangleIntersect {
         dv1 = n2.dot(v1) + d2;
         dv2 = n2.dot(v2) + d2;
 
+        // Same as above, but checking the first triangle against the second triangle's plane.
         if (Math.abs(dv0) < EPSILON) dv0 = 0.0f;
         if (Math.abs(dv1) < EPSILON) dv1 = 0.0f;
         if (Math.abs(dv2) < EPSILON) dv2 = 0.0f;
@@ -225,6 +229,7 @@ public class TriangleTriangleIntersect {
         sort(isect1);
         sort(isect2);
 
+        // Treat endpoint contact as non-overlap. This allows complementary slopes to touch without blocking placement.
         if (isect1[1] <= isect2[0] + EPSILON || isect2[1] <= isect1[0] + EPSILON) {
             return false;
         }
@@ -232,6 +237,12 @@ public class TriangleTriangleIntersect {
         return true;
     }
 
+    /**
+     * Returns true only when the triangle crosses the plane.
+     *
+     * At least one vertex must be in front of the plane and at least one vertex must be behind it. Vertices exactly on
+     * the plane count as touching, not crossing.
+     */
     private static boolean straddlesPlane(float d0, float d1, float d2) {
         boolean hasPositive = d0 > 0.0f || d1 > 0.0f || d2 > 0.0f;
         boolean hasNegative = d0 < 0.0f || d1 < 0.0f || d2 < 0.0f;

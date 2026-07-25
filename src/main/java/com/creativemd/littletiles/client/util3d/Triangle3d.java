@@ -73,6 +73,16 @@ public class Triangle3d {
         return edge1;
     }
 
+    /**
+     * Computes this triangle's signed solid angle relative to a point.
+     *
+     * The value is used by {@link Mesh3d#containsPoint(Vector3f)}: a closed mesh sums the signed solid angles from all
+     * its triangles, producing a large absolute value for interior points and approximately zero for exterior points.
+     * The sign depends on the triangle winding order.
+     *
+     * @param point The point to measure from.
+     * @return The signed solid angle in radians.
+     */
     public double signedSolidAngle(Vector3f point) {
         double ax = p1.x - point.x;
         double ay = p1.y - point.y;

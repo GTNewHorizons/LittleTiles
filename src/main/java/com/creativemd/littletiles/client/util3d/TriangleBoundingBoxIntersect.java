@@ -30,6 +30,12 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
  */
 public class TriangleBoundingBoxIntersect {
 
+    /**
+     * Tolerance used by separating-axis and plane-side checks.
+     *
+     * Contact within this tolerance is treated as non-overlap, allowing boxes and slope meshes to sit flush against each
+     * other without being reported as colliding.
+     */
     private static final float EPSILON = 1.0E-6f;
 
     private static void findMinMax(float f1, float f2, float f3, Vector3f minMax) {
@@ -40,6 +46,16 @@ public class TriangleBoundingBoxIntersect {
         if (f3 > minMax.y) minMax.y = f3;
     }
 
+    /**
+     * Tests whether a mesh and LittleTile box overlap.
+     *
+     * Triangle/box surface crossings are checked first. If none are found, the box center is tested against the mesh so
+     * boxes fully contained inside a mesh are still reported as intersections.
+     *
+     * @param mesh The mesh to test.
+     * @param box The LittleTile box to test.
+     * @return True when the box overlaps or is contained by the mesh; false when separate or only touching.
+     */
     public static boolean intersect(Mesh3d mesh, LittleTileBox box) {
         Vector3f center = new Vector3f(
                 (box.maxX + box.minX) / 16f / 2,
@@ -64,6 +80,18 @@ public class TriangleBoundingBoxIntersect {
         return mesh.containsPoint(center);
     }
 
+    /**
+     * Tests whether an axis-aligned box intersects a triangle using the separating axis theorem.
+     *
+     * Shared faces, edges, or vertices within {@link #EPSILON} are treated as non-intersections so adjacent box and slope
+     * geometry can touch without blocking placement.
+     *
+     * @param bbox The axis-aligned box to test.
+     * @param v1 The triangle's first vertex.
+     * @param v2 The triangle's second vertex.
+     * @param v3 The triangle's third vertex.
+     * @return True when the box and triangle overlap beyond the tolerance.
+     */
     public static boolean intersect(BoundingBox bbox, Vector3f v1, Vector3f v2, Vector3f v3) {
         // use separating axis theorem to test overlap between triangle and box
         // need to test for overlap in these directions:
@@ -97,6 +125,7 @@ public class TriangleBoundingBoxIntersect {
 
         // Bullet 3:
         // test the 9 tests first (this was faster)
+        // These all go through axisSeparated so exact contact on an axis does not count as a collision.
         float min, max;
         float p0, p1, p2, rad;
         float fex = Math.abs(e0.x);
@@ -209,6 +238,8 @@ public class TriangleBoundingBoxIntersect {
 
         Vector3f minMax = new Vector3f();
 
+        // For the next three box-side checks, the triangle must reach inside the box. Merely touching the side is still
+        // separated for placement.
         // test in X-direction
         findMinMax(tmp0.x, tmp1.x, tmp2.x, minMax);
         if (axisSeparated(minMax.x, minMax.y, extent.x)) {
@@ -235,6 +266,7 @@ public class TriangleBoundingBoxIntersect {
         Plane p = new Plane();
 
         p.setPlanePoints(v1, v2, v3);
+        // The box must cross the triangle plane. Sitting completely on one side, even just barely, is not a collision.
         if (bbox.whichSide(p) != Plane.Side.None) {
             return false;
         }
@@ -242,10 +274,18 @@ public class TriangleBoundingBoxIntersect {
         return true; /* box and triangle overlaps */
     }
 
+    /**
+     * Returns true when a projected triangle interval is separated from the projected box radius.
+     *
+     * The comparisons are inclusive with {@link #EPSILON}, so touching intervals count as separated. A zero-radius axis
+     * with all projected values near zero is kept as overlapping because it is a degenerate SAT axis.
+     */
     private static boolean axisSeparated(float min, float max, float radius) {
+        // Ignore degenerate axes where both shapes project to the same near-zero interval.
         if (radius <= EPSILON && Math.abs(min) <= EPSILON && Math.abs(max) <= EPSILON) {
             return false;
         }
+        // If the triangle only reaches the box boundary, count it as separated so flush faces can touch.
         return min >= radius - EPSILON || max <= -radius + EPSILON;
     }
 
@@ -273,6 +313,8 @@ public class TriangleBoundingBoxIntersect {
 
             float distance = plane.pseudoDistance(center);
 
+            // EPSILON widens the outside ranges a little, so a box that only touches the plane is still treated as
+            // being on one side. Plane.Side.None means the box crosses through the plane.
             if (distance <= -radius + EPSILON) {
                 return Plane.Side.Negative;
             } else if (distance >= radius - EPSILON) {

@@ -292,10 +292,15 @@ public class Mesh3d {
         return ret;
     }
 
+    /**
+     * Returns a point expected to be inside this closed mesh.
+     *
+     * The point is based on the first triangle's centroid and nudged slightly opposite that triangle's outward normal.
+     * This avoids using an exact surface vertex or face point when a later containment test needs an interior sample.
+     *
+     * @return A point just inside the mesh surface.
+     */
     public Vector3f getInteriorSamplePoint() {
-        // First triangle's centroid, nudged opposite its outward normal so the point
-        // lies strictly inside this mesh's volume rather than on its boundary.
-        // Boundary points are unreliable test inputs for containsPoint.
         Triangle3d t = triangles.get(0);
         Vector3d p1 = t.getP1();
         Vector3d p2 = t.getP2();
@@ -308,6 +313,16 @@ public class Mesh3d {
                 (float) ((p1.z + p2.z + p3.z) / 3.0 - normal.z * eps));
     }
 
+    /**
+     * Tests whether a point is inside this closed mesh using the summed signed solid angle of all triangles.
+     *
+     * Points inside a consistently wound closed mesh produce a total solid angle near +/-4*pi. Points outside produce a
+     * value near 0. The threshold intentionally only accepts clear interior points; callers should avoid points that lie
+     * exactly on a mesh boundary.
+     *
+     * @param point The point to test in mesh coordinates.
+     * @return True when the point is inside the mesh volume.
+     */
     public boolean containsPoint(Vector3f point) {
         double solidAngle = 0.0;
         for (Triangle3d triangle : triangles) {

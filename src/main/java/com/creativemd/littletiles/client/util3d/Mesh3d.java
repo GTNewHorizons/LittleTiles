@@ -132,9 +132,10 @@ public class Mesh3d {
         Vector3d[] points = { triangle.getP1(), triangle.getP2(), triangle.getP3() };
 
         for (Vector3d point : points) {
-            if (Math.abs(plane.getDistance(point)) < 0.0001) {
+            double d = plane.getDistance(point);
+            if (Math.abs(d) < 0.0001) {
                 on.add(point);
-            } else if (plane.isPointAbove(point)) {
+            } else if (d > 0) {
                 above.add(point);
             } else {
                 below.add(point);

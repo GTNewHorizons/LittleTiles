@@ -317,8 +317,8 @@ public class Mesh3d {
      * Tests whether a point is inside this closed mesh using the summed signed solid angle of all triangles.
      *
      * Points inside a consistently wound closed mesh produce a total solid angle near +/-4*pi. Points outside produce a
-     * value near 0. The threshold intentionally only accepts clear interior points; callers should avoid points that lie
-     * exactly on a mesh boundary.
+     * value near 0. The threshold intentionally only accepts clear interior points; callers should avoid points that
+     * lie exactly on a mesh boundary.
      *
      * @param point The point to test in mesh coordinates.
      * @return True when the point is inside the mesh volume.

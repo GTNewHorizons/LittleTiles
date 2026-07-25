@@ -22,8 +22,7 @@ import org.joml.Vector3f;
 public class TriangleTriangleIntersect {
 
     /**
-     * Floating-point tolerance for triangle distance.
-     * Minor collisions smaller than this tolerance are ignored.
+     * Floating-point tolerance for triangle distance. Minor collisions smaller than this tolerance are ignored.
      */
     public static final float EPSILON = 1.0E-6f;
 
@@ -50,8 +49,8 @@ public class TriangleTriangleIntersect {
      *
      * @param mesh1 The first TriMesh.
      * @param mesh2 The second TriMesh.
-     * @return True if the meshes overlap with volume or one mesh is contained by the other, false when they are separate
-     *         or only touch at a shared surface/edge/vertex.
+     * @return True if the meshes overlap with volume or one mesh is contained by the other, false when they are
+     *         separate or only touch at a shared surface/edge/vertex.
      */
     public static boolean meshIntersection(Mesh3d mesh1, Mesh3d mesh2) {
         Vector3f[] vertA = mesh1.getVertices();

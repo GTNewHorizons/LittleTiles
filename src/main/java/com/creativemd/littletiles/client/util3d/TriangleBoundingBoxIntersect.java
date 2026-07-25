@@ -33,8 +33,8 @@ public class TriangleBoundingBoxIntersect {
     /**
      * Tolerance used by separating-axis and plane-side checks.
      *
-     * Contact within this tolerance is treated as non-overlap, allowing boxes and slope meshes to sit flush against each
-     * other without being reported as colliding.
+     * Contact within this tolerance is treated as non-overlap, allowing boxes and slope meshes to sit flush against
+     * each other without being reported as colliding.
      */
     private static final float EPSILON = 1.0E-6f;
 
@@ -53,7 +53,7 @@ public class TriangleBoundingBoxIntersect {
      * boxes fully contained inside a mesh are still reported as intersections.
      *
      * @param mesh The mesh to test.
-     * @param box The LittleTile box to test.
+     * @param box  The LittleTile box to test.
      * @return True when the box overlaps or is contained by the mesh; false when separate or only touching.
      */
     public static boolean intersect(Mesh3d mesh, LittleTileBox box) {
@@ -83,13 +83,13 @@ public class TriangleBoundingBoxIntersect {
     /**
      * Tests whether an axis-aligned box intersects a triangle using the separating axis theorem.
      *
-     * Shared faces, edges, or vertices within {@link #EPSILON} are treated as non-intersections so adjacent box and slope
-     * geometry can touch without blocking placement.
+     * Shared faces, edges, or vertices within {@link #EPSILON} are treated as non-intersections so adjacent box and
+     * slope geometry can touch without blocking placement.
      *
      * @param bbox The axis-aligned box to test.
-     * @param v1 The triangle's first vertex.
-     * @param v2 The triangle's second vertex.
-     * @param v3 The triangle's third vertex.
+     * @param v1   The triangle's first vertex.
+     * @param v2   The triangle's second vertex.
+     * @param v3   The triangle's third vertex.
      * @return True when the box and triangle overlap beyond the tolerance.
      */
     public static boolean intersect(BoundingBox bbox, Vector3f v1, Vector3f v2, Vector3f v3) {

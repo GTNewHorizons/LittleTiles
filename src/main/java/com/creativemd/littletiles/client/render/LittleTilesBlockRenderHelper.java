@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.client.render;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
@@ -10,6 +11,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraft.tileentity.TileEntity;
 
 import org.joml.Vector2d;
 import org.joml.Vector3i;
@@ -24,6 +26,8 @@ import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
+import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
@@ -106,6 +110,56 @@ public class LittleTilesBlockRenderHelper {
         return !mesh.getTriangles().isEmpty();
     }
 
+    private static void addNeighbouringCubes(IBlockAccess world, ArrayList<ArrayList<LittleTilesCubeObject>> neighbours, int x, int y, int z, int dx, int dy, int dz)
+    {
+        TileEntity tileEntity = world.getTileEntity(x + dx, y + dy, z + dz);
+        if (tileEntity instanceof TileEntityLittleTiles) {
+            TileEntityLittleTiles little = (TileEntityLittleTiles) tileEntity;
+            List<LittleTile> tiles = little.getTiles();
+            List<LittleTile> snapshot;
+            synchronized (tiles) {
+                snapshot = new ArrayList<>(tiles);
+            }
+            for (LittleTile tile : snapshot) {
+                ArrayList<LittleTilesCubeObject> neighbourCubeObjects = new ArrayList<>();
+                neighbourCubeObjects = tile.getRenderingCubes();
+                // Ignore any neighbouring cubes that are not adjacent to the block border
+                for (LittleTilesCubeObject cube : neighbourCubeObjects) {
+                    if (dx == 1)
+                    {
+                        if (cube.gridMinX != 0) continue;
+                        neighbours.get(ForgeDirection.EAST.ordinal()).addAll(neighbourCubeObjects);
+                    }
+                    else if (dx == -1)
+                    {
+                        if (cube.gridMaxX != 16) continue;
+                        neighbours.get(ForgeDirection.WEST.ordinal()).addAll(neighbourCubeObjects);
+                    }
+                    else if (dy == 1)
+                    {
+                        if (cube.gridMinY != 0) continue;
+                        neighbours.get(ForgeDirection.UP.ordinal()).addAll(neighbourCubeObjects);
+                    }
+                    else if (dy == -1)
+                    {
+                        if (cube.gridMaxY != 16) continue;
+                        neighbours.get(ForgeDirection.DOWN.ordinal()).addAll(neighbourCubeObjects);
+                    }
+                    else if (dz == 1)
+                    {
+                        if (cube.gridMinZ != 0) continue;
+                        neighbours.get(ForgeDirection.SOUTH.ordinal()).addAll(neighbourCubeObjects);
+                    }
+                    else if (dz == -1)
+                    {
+                        if (cube.gridMaxZ != 16) continue;
+                        neighbours.get(ForgeDirection.NORTH.ordinal()).addAll(neighbourCubeObjects);
+                    }
+                }
+            }
+        }
+    }
+
     public static boolean renderCubes(IBlockAccess world, ArrayList<LittleTilesCubeObject> cubes, int x, int y, int z,
             Block block, RenderBlocks renderer, ForgeDirection direction) {
 
@@ -118,7 +172,19 @@ public class LittleTilesBlockRenderHelper {
         int pass = ForgeHooksClient.getWorldRenderPass();
         boolean rendered = false;
 
-        LittleTilesFaceCuller.computeHiddenSides(cubes);
+        ArrayList<ArrayList<LittleTilesCubeObject>> neighbours = new ArrayList<ArrayList<LittleTilesCubeObject>>(6);
+        for (int i = 0; i < 6; i++)
+        {
+            neighbours.add(i, new ArrayList<>());
+        }
+        addNeighbouringCubes(world, neighbours, x, y, z, 1, 0, 0);
+        addNeighbouringCubes(world, neighbours, x, y, z, -1, 0, 0);
+        addNeighbouringCubes(world, neighbours, x, y, z, 0, 1, 0);
+        addNeighbouringCubes(world, neighbours, x, y, z, 0, -1, 0);
+        addNeighbouringCubes(world, neighbours, x, y, z, 0, 0, 1);
+        addNeighbouringCubes(world, neighbours, x, y, z, 0, 0, -1);
+
+        LittleTilesFaceCuller.computeHiddenSides(cubes, neighbours);
 
         try {
             for (int i = 0; i < cubes.size(); i++) {

@@ -53,15 +53,15 @@ public class PreviewTileAxis extends PreviewTile {
         int max = 40 * 16;
         int min = -max;
         switch (axis) {
-            case Xaxis:
+            case AxisX:
                 preview.minX = min;
                 preview.maxX = max;
                 break;
-            case Yaxis:
+            case AxisY:
                 preview.minY = min;
                 preview.maxY = max;
                 break;
-            case Zaxis:
+            case AxisZ:
                 preview.minZ = min;
                 preview.maxZ = max;
                 break;

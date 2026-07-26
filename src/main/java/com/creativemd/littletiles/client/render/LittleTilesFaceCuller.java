@@ -88,7 +88,7 @@ public final class LittleTilesFaceCuller {
         return RotationUtils.isNegative(side) ? cube.gridMin(axis) == 0 : cube.gridMax(axis) == 16;
     }
 
-    private static boolean hasUncutSolidSide(LittleTilesCubeObject cube, ForgeDirection side) {
+    static boolean hasUncutSolidSide(LittleTilesCubeObject cube, ForgeDirection side) {
         if (cube.cutoutInfo == null) {
             return true;
         }

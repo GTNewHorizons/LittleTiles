@@ -1,12 +1,15 @@
 package com.creativemd.littletiles.client.render;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -24,6 +27,7 @@ import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.Plane3d;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
@@ -69,7 +73,8 @@ public class LittleTilesBlockRenderHelper {
         GL11.glPopMatrix();
     }
 
-    private static boolean renderCutout(int x, int y, int z, LittleTilesCubeObject cube, IBlockAccess world) {
+    private static boolean renderCutout(int x, int y, int z, LittleTilesCubeObject cube, IBlockAccess world,
+            ExtendedRenderBlocks renderer) {
         Mesh3d mesh = Mesh3dUtil.createMesh(
                 x,
                 y,
@@ -87,7 +92,19 @@ public class LittleTilesBlockRenderHelper {
 
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
         tess.setBrightness(brightness);
+
+        IFaceClipper faceClipper = renderer.faceClipper;
+        Set<ForgeDirection> clippedSides = EnumSet.noneOf(ForgeDirection.class);
+        boolean rendered = false;
         for (Triangle3d triangle : mesh.getTriangles()) {
+            if (faceClipper != null) {
+                ForgeDirection side = Plane3d.getPlaneForTriangle(triangle).getDirection();
+                if (LittleTilesFaceCuller.hasUncutSolidSide(cube, side) && faceClipper.getFacePieces(side) != null) {
+                    clippedSides.add(side);
+                    continue;
+                }
+            }
+            rendered = true;
             Vector3d p1 = triangle.getP1();
             Vector3d p2 = triangle.getP2();
             Vector3d p3 = triangle.getP3();
@@ -100,7 +117,26 @@ public class LittleTilesBlockRenderHelper {
             tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
             tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
         }
-        return !mesh.getTriangles().isEmpty();
+        for (ForgeDirection side : clippedSides) {
+            rendered = true;
+            renderMeshSide(renderer, cube, side, x, y, z);
+        }
+        return rendered;
+    }
+
+    /** Reproduces a flat mesh side as the equivalent box quad, allowing ExtendedRenderBlocks to cut it into pieces. */
+    private static void renderMeshSide(ExtendedRenderBlocks renderer, LittleTilesCubeObject cube, ForgeDirection side,
+            int x, int y, int z) {
+        IIcon icon = cube.block.getIcon(side.ordinal(), cube.meta);
+        switch (side) {
+            case DOWN -> renderer.renderFaceYNeg(cube.block, x, y, z, icon);
+            case UP -> renderer.renderFaceYPos(cube.block, x, y, z, icon);
+            case NORTH -> renderer.renderFaceZNeg(cube.block, x, y, z, icon);
+            case SOUTH -> renderer.renderFaceZPos(cube.block, x, y, z, icon);
+            case WEST -> renderer.renderFaceXNeg(cube.block, x, y, z, icon);
+            case EAST -> renderer.renderFaceXPos(cube.block, x, y, z, icon);
+            default -> {}
+        }
     }
 
     public static boolean renderCubes(IBlockAccess world, ArrayList<LittleTilesCubeObject> cubes, int x, int y, int z,
@@ -126,7 +162,13 @@ public class LittleTilesBlockRenderHelper {
                 rendered = true;
 
                 if (cube.cutoutInfo != null) {
-                    if (renderCutout(x, y, z, cube, world)) {
+                    extraRenderer.faceClipper = null;
+                    if (!cube.block.isOpaqueCube()) {
+                        extraRenderer.clearOverrideBlockTexture();
+                        extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
+                        extraRenderer.faceClipper = coverage[i];
+                    }
+                    if (renderCutout(x, y, z, cube, world, extraRenderer)) {
                         continue;
                     }
                     // For buggy meshes, render the default cube

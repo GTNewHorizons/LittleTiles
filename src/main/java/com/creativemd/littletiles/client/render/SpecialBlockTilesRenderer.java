@@ -55,11 +55,12 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
             synchronized (tiles) {
                 snapshot = new ArrayList<>(tiles);
             }
+            ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
             for (LittleTile tile : snapshot) {
-                ArrayList<LittleTilesCubeObject> cubes = tile.getRenderingCubes();
-                if (LittleTilesBlockRenderHelper.renderCubes(world, cubes, x, y, z, block, renderer, null)) {
-                    rendered = true;
-                }
+                cubes.addAll(tile.getRenderingCubes());
+            }
+            if (LittleTilesBlockRenderHelper.renderCubes(world, cubes, x, y, z, block, renderer, null)) {
+                rendered = true;
             }
         }
 

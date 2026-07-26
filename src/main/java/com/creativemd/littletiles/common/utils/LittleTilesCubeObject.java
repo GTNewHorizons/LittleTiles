@@ -1,6 +1,10 @@
 package com.creativemd.littletiles.common.utils;
 
+import static com.creativemd.creativecore.common.utils.RotationUtils.Axis.AxisX;
+import static com.creativemd.creativecore.common.utils.RotationUtils.Axis.AxisY;
+
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
 
 public class LittleTilesCubeObject extends CubeObject {
 
@@ -20,5 +24,13 @@ public class LittleTilesCubeObject extends CubeObject {
         this.gridMaxX = maxX;
         this.gridMaxY = maxY;
         this.gridMaxZ = maxZ;
+    }
+
+    public int gridMin(Axis axis) {
+        return axis == AxisX ? gridMinX : (axis == AxisY ? gridMinY : gridMinZ);
+    }
+
+    public int gridMax(Axis axis) {
+        return axis == AxisX ? gridMaxX : (axis == AxisY ? gridMaxY : gridMaxZ);
     }
 }

@@ -8,10 +8,10 @@ import net.minecraft.block.BlockAir;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.init.Blocks;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraft.tileentity.TileEntity;
 
 import org.joml.Vector2d;
 import org.joml.Vector3i;
@@ -110,8 +110,8 @@ public class LittleTilesBlockRenderHelper {
         return !mesh.getTriangles().isEmpty();
     }
 
-    private static void addNeighbouringCubes(IBlockAccess world, ArrayList<ArrayList<LittleTilesCubeObject>> neighbours, int x, int y, int z, int dx, int dy, int dz)
-    {
+    private static void addNeighbouringCubes(IBlockAccess world, ArrayList<ArrayList<LittleTilesCubeObject>> neighbours,
+            int x, int y, int z, int dx, int dy, int dz) {
         TileEntity tileEntity = world.getTileEntity(x + dx, y + dy, z + dz);
         if (tileEntity instanceof TileEntityLittleTiles) {
             TileEntityLittleTiles little = (TileEntityLittleTiles) tileEntity;
@@ -125,33 +125,22 @@ public class LittleTilesBlockRenderHelper {
                 neighbourCubeObjects = tile.getRenderingCubes();
                 // Ignore any neighbouring cubes that are not adjacent to the block border
                 for (LittleTilesCubeObject cube : neighbourCubeObjects) {
-                    if (dx == 1)
-                    {
+                    if (dx == 1) {
                         if (cube.gridMinX != 0) continue;
                         neighbours.get(ForgeDirection.EAST.ordinal()).addAll(neighbourCubeObjects);
-                    }
-                    else if (dx == -1)
-                    {
+                    } else if (dx == -1) {
                         if (cube.gridMaxX != 16) continue;
                         neighbours.get(ForgeDirection.WEST.ordinal()).addAll(neighbourCubeObjects);
-                    }
-                    else if (dy == 1)
-                    {
+                    } else if (dy == 1) {
                         if (cube.gridMinY != 0) continue;
                         neighbours.get(ForgeDirection.UP.ordinal()).addAll(neighbourCubeObjects);
-                    }
-                    else if (dy == -1)
-                    {
+                    } else if (dy == -1) {
                         if (cube.gridMaxY != 16) continue;
                         neighbours.get(ForgeDirection.DOWN.ordinal()).addAll(neighbourCubeObjects);
-                    }
-                    else if (dz == 1)
-                    {
+                    } else if (dz == 1) {
                         if (cube.gridMinZ != 0) continue;
                         neighbours.get(ForgeDirection.SOUTH.ordinal()).addAll(neighbourCubeObjects);
-                    }
-                    else if (dz == -1)
-                    {
+                    } else if (dz == -1) {
                         if (cube.gridMaxZ != 16) continue;
                         neighbours.get(ForgeDirection.NORTH.ordinal()).addAll(neighbourCubeObjects);
                     }
@@ -173,8 +162,7 @@ public class LittleTilesBlockRenderHelper {
         boolean rendered = false;
 
         ArrayList<ArrayList<LittleTilesCubeObject>> neighbours = new ArrayList<ArrayList<LittleTilesCubeObject>>(6);
-        for (int i = 0; i < 6; i++)
-        {
+        for (int i = 0; i < 6; i++) {
             neighbours.add(i, new ArrayList<>());
         }
         addNeighbouringCubes(world, neighbours, x, y, z, 1, 0, 0);

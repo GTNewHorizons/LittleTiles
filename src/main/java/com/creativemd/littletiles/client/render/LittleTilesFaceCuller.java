@@ -114,29 +114,70 @@ public final class LittleTilesFaceCuller {
     }
 
     /**
-     * Whether the two meshes meet end to end with the very same cross-section, so that each hides the other's face on
-     * {@code side} completely. That needs the same shape and orientation, both facing each other with an uncut
-     * cross-section.
+     * Whether the two meshes meet with the very same cross-section, so that each hides the other's face on
+     * {@code side} completely. This covers both repeating prisms and pieces clipped from one source mesh.
      */
-    private static boolean isMatchingPrismSide(LittleTilesCubeObject cube, LittleTilesCubeObject occluder,
-            ForgeDirection side) {
+    private static boolean isMatchingMeshSide(LittleTilesCubeObject cube, LittleTilesCubeObject occluder,
+            ForgeDirection side, int occluderOffsetX, int occluderOffsetY, int occluderOffsetZ) {
         if (cube.cutoutInfo == null || occluder.cutoutInfo == null
                 || cube.cutoutInfo.type != occluder.cutoutInfo.type
                 || cube.cutoutInfo.orientation != occluder.cutoutInfo.orientation) {
             return false;
         }
-        if (!hasUncutPrismSide(cube, side) || !hasUncutPrismSide(occluder, side.getOpposite())) {
+
+        boolean alignedFace = isAlignedOnAxis(
+                        cube, occluder, PLANE_X_AXIS[side.ordinal()], occluderOffsetX, occluderOffsetY, occluderOffsetZ)
+                && isAlignedOnAxis(
+                        cube, occluder, PLANE_Y_AXIS[side.ordinal()], occluderOffsetX, occluderOffsetY, occluderOffsetZ);
+        if (!alignedFace) {
             return false;
         }
-        return isAlignedOnAxis(cube, occluder, PLANE_X_AXIS[side.ordinal()])
-                && isAlignedOnAxis(cube, occluder, PLANE_Y_AXIS[side.ordinal()]);
+
+        // Identical prisms can repeat end to end.
+        if (hasUncutPrismSide(cube, side) && hasUncutPrismSide(occluder, side.getOpposite())) {
+            return true;
+        }
+
+        // A tile can be divided either inside one block or at a block boundary. In that case both pieces still carry
+        // the complete source mesh, translated relative to their respective boxes. Reconstructing that source origin
+        // lets us recognize the two generated cut faces as the same cross-section of one continuous mesh.
+        return isClippedAtSide(cube, side)
+                && isClippedAtSide(occluder, side.getOpposite())
+                && hasSameSourceMesh(
+                        cube, occluder, occluderOffsetX, occluderOffsetY, occluderOffsetZ);
     }
 
     /** Whether both the boxes and the meshes inside them span the exact same range on the given axis. */
-    private static boolean isAlignedOnAxis(LittleTilesCubeObject cube, LittleTilesCubeObject occluder, Axis axis) {
-        return cube.gridMin(axis) == occluder.gridMin(axis) && cube.gridMax(axis) == occluder.gridMax(axis)
+    private static boolean isAlignedOnAxis(LittleTilesCubeObject cube, LittleTilesCubeObject occluder, Axis axis,
+            int occluderOffsetX, int occluderOffsetY, int occluderOffsetZ) {
+        int offset = component(occluderOffsetX, occluderOffsetY, occluderOffsetZ, axis);
+        return cube.gridMin(axis) == occluder.gridMin(axis) + offset
+                && cube.gridMax(axis) == occluder.gridMax(axis) + offset
                 && component(cube.cutoutInfo.pos, axis) == component(occluder.cutoutInfo.pos, axis)
                 && component(cube.cutoutInfo.size, axis) == component(occluder.cutoutInfo.size, axis);
+    }
+
+    private static boolean hasSameSourceMesh(LittleTilesCubeObject cube, LittleTilesCubeObject occluder,
+            int occluderOffsetX, int occluderOffsetY, int occluderOffsetZ) {
+        for (Axis axis : Axis.values()) {
+            int occluderOffset = component(occluderOffsetX, occluderOffsetY, occluderOffsetZ, axis);
+            int cubeOrigin = cube.gridMin(axis) + component(cube.cutoutInfo.pos, axis);
+            int occluderOrigin =
+                    occluder.gridMin(axis) + component(occluder.cutoutInfo.pos, axis) + occluderOffset;
+            if (cubeOrigin != occluderOrigin
+                    || component(cube.cutoutInfo.size, axis) != component(occluder.cutoutInfo.size, axis)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Whether clipping the source mesh to this tile box generated a face on this side. */
+    private static boolean isClippedAtSide(LittleTilesCubeObject cube, ForgeDirection side) {
+        Axis axis = Axis.getAxis(side);
+        int meshMin = cube.gridMin(axis) + component(cube.cutoutInfo.pos, axis);
+        int meshMax = meshMin + component(cube.cutoutInfo.size, axis);
+        return RotationUtils.isNegative(side) ? meshMin < cube.gridMin(axis) : meshMax > cube.gridMax(axis);
     }
 
     /**
@@ -154,6 +195,10 @@ public final class LittleTilesFaceCuller {
 
     private static int component(Vector3i vector, Axis axis) {
         return axis == AxisX ? vector.x : (axis == AxisY ? vector.y : vector.z);
+    }
+
+    private static int component(int x, int y, int z, Axis axis) {
+        return axis == AxisX ? x : (axis == AxisY ? y : z);
     }
 
     private static ForgeDirection rotate(ForgeDirection side, int orientation) {
@@ -192,7 +237,14 @@ public final class LittleTilesFaceCuller {
                 }
                 for (LittleTilesCubeObject occluder : neighbourCubes) {
                     if (canOcclude(occluder, cube)) {
-                        coverFlushSide(clippers[i], cube, occluder, side);
+                        coverFlushSide(
+                                clippers[i],
+                                cube,
+                                occluder,
+                                side,
+                                side.offsetX * 16,
+                                side.offsetY * 16,
+                                side.offsetZ * 16);
                     }
                 }
             }
@@ -221,7 +273,9 @@ public final class LittleTilesFaceCuller {
         for (LittleTile tile : snapshot) {
             for (LittleTilesCubeObject cube : tile.getRenderingCubes()) {
                 if (!ignoreForCulling(cube) && touchesBorder(cube, border)
-                        && (hasUncutSolidSide(cube, border) || hasUncutPrismSide(cube, border))) {
+                        && (hasUncutSolidSide(cube, border)
+                                || hasUncutPrismSide(cube, border)
+                                || (cube.cutoutInfo != null && isClippedAtSide(cube, border)))) {
                     cubes.add(cube);
                 }
             }
@@ -256,7 +310,7 @@ public final class LittleTilesFaceCuller {
             boolean flush = RotationUtils.isNegative(side) ? occluder.gridMax(axis) == cube.gridMin(axis)
                     : occluder.gridMin(axis) == cube.gridMax(axis);
             if (flush) {
-                coverFlushSide(clipper, cube, occluder, side);
+                coverFlushSide(clipper, cube, occluder, side, 0, 0, 0);
             }
         }
     }
@@ -266,10 +320,11 @@ public final class LittleTilesFaceCuller {
      * the box face, or, for two meshes meeting end to end, the whole face.
      */
     private static void coverFlushSide(FaceClipper clipper, LittleTilesCubeObject cube, LittleTilesCubeObject occluder,
-            ForgeDirection side) {
+            ForgeDirection side, int occluderOffsetX, int occluderOffsetY, int occluderOffsetZ) {
         if (hasUncutSolidSide(occluder, side.getOpposite())) {
             coverSide(clipper, cube, occluder, side);
-        } else if (isMatchingPrismSide(cube, occluder, side)) {
+        } else if (isMatchingMeshSide(
+                cube, occluder, side, occluderOffsetX, occluderOffsetY, occluderOffsetZ)) {
             clipper.cullSide(side);
         }
     }

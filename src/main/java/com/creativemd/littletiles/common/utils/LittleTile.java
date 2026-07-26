@@ -303,6 +303,7 @@ public abstract class LittleTile {
         if (boundingBox != null) {
             tile.boundingBox = boundingBox.copy();
         }
+        tile.cutoutInfo = cutoutInfo != null ? new LittleTileCutoutInfo(cutoutInfo) : null;
         tile.cornerVec = this.cornerVec.copy();
         tile.te = this.te;
 
@@ -471,6 +472,11 @@ public abstract class LittleTile {
         for (LittleTileBox box : newBoxes) {
             LittleTile tile = this.copy();
             tile.boundingBox = box;
+            if (tile.cutoutInfo != null) {
+                tile.cutoutInfo.pos.x += boundingBox.minX - box.minX;
+                tile.cutoutInfo.pos.y += boundingBox.minY - box.minY;
+                tile.cutoutInfo.pos.z += boundingBox.minZ - box.minZ;
+            }
             ret.add(tile);
         }
         return ret;

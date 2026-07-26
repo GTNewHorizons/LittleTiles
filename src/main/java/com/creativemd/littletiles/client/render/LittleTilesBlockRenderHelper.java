@@ -20,7 +20,6 @@ import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.creativecore.client.rendering.ExtendedRenderBlocks;
-import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.lib.Vector3d;
@@ -74,7 +73,7 @@ public class LittleTilesBlockRenderHelper {
     }
 
     private static boolean renderCutout(int x, int y, int z, LittleTilesCubeObject cube, IBlockAccess world,
-            ExtendedRenderBlocks renderer) {
+            ExtendedRenderBlocks renderer, FaceClipper faceClipper) {
         Mesh3d mesh = Mesh3dUtil.createMesh(
                 x,
                 y,
@@ -93,18 +92,19 @@ public class LittleTilesBlockRenderHelper {
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
         tess.setBrightness(brightness);
 
-        IFaceClipper faceClipper = renderer.faceClipper;
         Set<ForgeDirection> clippedSides = EnumSet.noneOf(ForgeDirection.class);
-        boolean rendered = false;
         for (Triangle3d triangle : mesh.getTriangles()) {
             if (faceClipper != null) {
                 ForgeDirection side = Plane3d.getPlaneForTriangle(triangle).getDirection();
+                // A culled side is hidden as a whole, so its triangles simply go away
+                if (faceClipper.isSideCulled(side)) {
+                    continue;
+                }
                 if (LittleTilesFaceCuller.hasUncutSolidSide(cube, side) && faceClipper.getFacePieces(side) != null) {
                     clippedSides.add(side);
                     continue;
                 }
             }
-            rendered = true;
             Vector3d p1 = triangle.getP1();
             Vector3d p2 = triangle.getP2();
             Vector3d p3 = triangle.getP3();
@@ -118,10 +118,10 @@ public class LittleTilesBlockRenderHelper {
             tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
         }
         for (ForgeDirection side : clippedSides) {
-            rendered = true;
             renderMeshSide(renderer, cube, side, x, y, z);
         }
-        return rendered;
+        // An empty mesh means the shape could not be built, only then the plain box is the better fallback
+        return !mesh.getTriangles().isEmpty();
     }
 
     /** Reproduces a flat mesh side as the equivalent box quad, allowing ExtendedRenderBlocks to cut it into pieces. */
@@ -151,7 +151,7 @@ public class LittleTilesBlockRenderHelper {
         int pass = ForgeHooksClient.getWorldRenderPass();
         boolean rendered = false;
 
-        IFaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(world, cubes, x, y, z);
+        FaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(world, cubes, x, y, z);
 
         try {
             for (int i = 0; i < cubes.size(); i++) {
@@ -162,13 +162,14 @@ public class LittleTilesBlockRenderHelper {
                 rendered = true;
 
                 if (cube.cutoutInfo != null) {
-                    extraRenderer.faceClipper = null;
+                    FaceClipper faceClipper = null;
                     if (!cube.block.isOpaqueCube()) {
                         extraRenderer.clearOverrideBlockTexture();
                         extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
-                        extraRenderer.faceClipper = coverage[i];
+                        faceClipper = coverage[i];
                     }
-                    if (renderCutout(x, y, z, cube, world, extraRenderer)) {
+                    extraRenderer.faceClipper = faceClipper;
+                    if (renderCutout(x, y, z, cube, world, extraRenderer, faceClipper)) {
                         continue;
                     }
                     // For buggy meshes, render the default cube

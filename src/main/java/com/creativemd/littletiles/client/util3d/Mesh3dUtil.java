@@ -26,8 +26,9 @@ public class Mesh3dUtil {
     private static Mesh3d MESH_SLOPE_TRIANGLE_CORNER;
     private static Mesh3d MESH_SLOPE_OUTER_CORNER;
     private static Mesh3d MESH_SLOPE_INNER_CORNER;
-    private static final boolean[] EMPTY_SOLID_SIDES = new boolean[6];
+    private static final boolean[] EMPTY_SIDES = new boolean[6];
     private static final Map<LittleTileShapeMode, boolean[]> SOLID_SIDES = new EnumMap<>(LittleTileShapeMode.class);
+    private static final Map<LittleTileShapeMode, boolean[]> PRISM_SIDES = new EnumMap<>(LittleTileShapeMode.class);
 
     public static void initializeMeshes() {
         MESH_SLOPE = Mesh3dObjLoader.load("slope");
@@ -52,11 +53,28 @@ public class Mesh3dUtil {
         SOLID_SIDES.put(
                 LittleTileShapeMode.SLOPE_INNER_CORNER,
                 solidSides(ForgeDirection.DOWN, ForgeDirection.NORTH, ForgeDirection.EAST));
+
+        // The slope meshes are prisms along X, so their two X sides are the shape's flat cross-section.
+        PRISM_SIDES.clear();
+        PRISM_SIDES.put(LittleTileShapeMode.SLOPE, solidSides(ForgeDirection.WEST, ForgeDirection.EAST));
+        PRISM_SIDES.put(LittleTileShapeMode.SLOPE_CONCAVE, solidSides(ForgeDirection.WEST, ForgeDirection.EAST));
+        PRISM_SIDES.put(LittleTileShapeMode.SLOPE_CONVEX, solidSides(ForgeDirection.WEST, ForgeDirection.EAST));
     }
 
+    /** The sides on which the shape has a flat face covering the whole box side, in the mesh's base orientation. */
     public static boolean[] getSolidSides(LittleTileShapeMode shape) {
         boolean[] sides = SOLID_SIDES.get(shape);
-        return sides != null ? sides : EMPTY_SOLID_SIDES;
+        return sides != null ? sides : EMPTY_SIDES;
+    }
+
+    /**
+     * The sides on which the shape has a flat face that is its cross-section, in the mesh's base orientation. Unlike a
+     * solid side such a face does not cover the whole box side - a slope's ends are triangles - so it can only ever be
+     * hidden by the identical cross-section of another mesh of the same shape.
+     */
+    public static boolean[] getPrismSides(LittleTileShapeMode shape) {
+        boolean[] sides = PRISM_SIDES.get(shape);
+        return sides != null ? sides : EMPTY_SIDES;
     }
 
     private static boolean[] solidSides(ForgeDirection... sides) {

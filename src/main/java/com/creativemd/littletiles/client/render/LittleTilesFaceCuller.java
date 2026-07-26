@@ -16,7 +16,6 @@ import org.joml.Matrix3f;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 
-import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
@@ -61,7 +60,7 @@ public final class LittleTilesFaceCuller {
      * Must be given all cubes, not just the ones of the current render pass: a tile drawn in pass 0 still hides the
      * faces of a tile drawn in pass 1.
      */
-    public static IFaceClipper[] computeCoverage(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x, int y,
+    public static FaceClipper[] computeCoverage(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x, int y,
             int z) {
         FaceClipper[] clippers = new FaceClipper[cubes.size()];
         for (int i = 0; i < cubes.size(); i++) {
@@ -92,10 +91,21 @@ public final class LittleTilesFaceCuller {
         if (cube.cutoutInfo == null) {
             return true;
         }
+        return hasUncutMeshSide(cube, side, Mesh3dUtil.getSolidSides(cube.cutoutInfo.type));
+    }
 
-        boolean[] solidSides = Mesh3dUtil.getSolidSides(cube.cutoutInfo.type);
+    /** Whether this side of the mesh is one of the shape's cross-sections, see {@link Mesh3dUtil#getPrismSides}. */
+    private static boolean hasUncutPrismSide(LittleTilesCubeObject cube, ForgeDirection side) {
+        if (cube.cutoutInfo == null) {
+            return false;
+        }
+        return hasUncutMeshSide(cube, side, Mesh3dUtil.getPrismSides(cube.cutoutInfo.type));
+    }
+
+    /** Whether one of the given sides of the shape ends up on {@code side} and survived the clipping to the box. */
+    private static boolean hasUncutMeshSide(LittleTilesCubeObject cube, ForgeDirection side, boolean[] baseSides) {
         for (ForgeDirection baseSide : ForgeDirection.VALID_DIRECTIONS) {
-            if (solidSides[baseSide.ordinal()] && rotate(baseSide, cube.cutoutInfo.orientation) == side
+            if (baseSides[baseSide.ordinal()] && rotate(baseSide, cube.cutoutInfo.orientation) == side
                     && !isSideCut(cube, side)) {
                 return true;
             }
@@ -104,16 +114,42 @@ public final class LittleTilesFaceCuller {
     }
 
     /**
-     * Whether clipping the complete cutout mesh to this little-tile box introduced the given side. Such a side is flat,
-     * but it is not one of the shape's original solid sides and must not occlude a neighbouring box.
+     * Whether the two meshes meet end to end with the very same cross-section, so that each hides the other's face on
+     * {@code side} completely. That needs the same shape and orientation, both facing each other with an uncut
+     * cross-section.
+     */
+    private static boolean isMatchingPrismSide(LittleTilesCubeObject cube, LittleTilesCubeObject occluder,
+            ForgeDirection side) {
+        if (cube.cutoutInfo == null || occluder.cutoutInfo == null
+                || cube.cutoutInfo.type != occluder.cutoutInfo.type
+                || cube.cutoutInfo.orientation != occluder.cutoutInfo.orientation) {
+            return false;
+        }
+        if (!hasUncutPrismSide(cube, side) || !hasUncutPrismSide(occluder, side.getOpposite())) {
+            return false;
+        }
+        return isAlignedOnAxis(cube, occluder, PLANE_X_AXIS[side.ordinal()])
+                && isAlignedOnAxis(cube, occluder, PLANE_Y_AXIS[side.ordinal()]);
+    }
+
+    /** Whether both the boxes and the meshes inside them span the exact same range on the given axis. */
+    private static boolean isAlignedOnAxis(LittleTilesCubeObject cube, LittleTilesCubeObject occluder, Axis axis) {
+        return cube.gridMin(axis) == occluder.gridMin(axis) && cube.gridMax(axis) == occluder.gridMax(axis)
+                && component(cube.cutoutInfo.pos, axis) == component(occluder.cutoutInfo.pos, axis)
+                && component(cube.cutoutInfo.size, axis) == component(occluder.cutoutInfo.size, axis);
+    }
+
+    /**
+     * Whether the shape's face on the given side did not survive the clipping to this little-tile box, so that the box
+     * side is not covered by it. Mesh3dUtil places the mesh at the cutout offset relative to the box and then clips it
+     * to the box, so the face is only left intact if the mesh ends exactly on the box side: sticking out means it got
+     * cut off, ending short means the face is somewhere inside the box instead of on its side.
      */
     private static boolean isSideCut(LittleTilesCubeObject cube, ForgeDirection side) {
         Axis axis = Axis.getAxis(side);
-        // Mesh3dUtil places the mesh at the cutout offset relative to the box and then clips it to the box, so the
-        // mesh sticking out on a side is the case there it got cut
         int meshMin = cube.gridMin(axis) + component(cube.cutoutInfo.pos, axis);
         int meshMax = meshMin + component(cube.cutoutInfo.size, axis);
-        return RotationUtils.isNegative(side) ? meshMin < cube.gridMin(axis) : meshMax > cube.gridMax(axis);
+        return RotationUtils.isNegative(side) ? meshMin != cube.gridMin(axis) : meshMax != cube.gridMax(axis);
     }
 
     private static int component(Vector3i vector, Axis axis) {
@@ -155,8 +191,8 @@ public final class LittleTilesFaceCuller {
                     }
                 }
                 for (LittleTilesCubeObject occluder : neighbourCubes) {
-                    if (canOcclude(occluder, cube) && hasUncutSolidSide(occluder, side.getOpposite())) {
-                        coverSide(clippers[i], cube, occluder, side);
+                    if (canOcclude(occluder, cube)) {
+                        coverFlushSide(clippers[i], cube, occluder, side);
                     }
                 }
             }
@@ -184,7 +220,8 @@ public final class LittleTilesFaceCuller {
         ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
         for (LittleTile tile : snapshot) {
             for (LittleTilesCubeObject cube : tile.getRenderingCubes()) {
-                if (!ignoreForCulling(cube) && touchesBorder(cube, border) && hasUncutSolidSide(cube, border)) {
+                if (!ignoreForCulling(cube) && touchesBorder(cube, border)
+                        && (hasUncutSolidSide(cube, border) || hasUncutPrismSide(cube, border))) {
                     cubes.add(cube);
                 }
             }
@@ -218,10 +255,22 @@ public final class LittleTilesFaceCuller {
             Axis axis = Axis.getAxis(side);
             boolean flush = RotationUtils.isNegative(side) ? occluder.gridMax(axis) == cube.gridMin(axis)
                     : occluder.gridMin(axis) == cube.gridMax(axis);
-            if (!flush || !hasUncutSolidSide(occluder, side.getOpposite())) {
-                continue;
+            if (flush) {
+                coverFlushSide(clipper, cube, occluder, side);
             }
+        }
+    }
+
+    /**
+     * Hides what the occluder sitting flush against the given side of {@code cube} covers there: either a rectangle of
+     * the box face, or, for two meshes meeting end to end, the whole face.
+     */
+    private static void coverFlushSide(FaceClipper clipper, LittleTilesCubeObject cube, LittleTilesCubeObject occluder,
+            ForgeDirection side) {
+        if (hasUncutSolidSide(occluder, side.getOpposite())) {
             coverSide(clipper, cube, occluder, side);
+        } else if (isMatchingPrismSide(cube, occluder, side)) {
+            clipper.cullSide(side);
         }
     }
 

@@ -23,6 +23,9 @@ public class FaceClipper implements IFaceClipper {
     @SuppressWarnings("unchecked")
     private final List<FacePiece>[] covers = new List[6];
 
+    /** Sides hidden as a whole, which no rectangular cover can express because the face is not a rectangle. */
+    private final boolean[] culled = new boolean[6];
+
     public FaceClipper(LittleTilesCubeObject cube) {
         this.minX = cube.gridMinX;
         this.minY = cube.gridMinY;
@@ -40,6 +43,15 @@ public class FaceClipper implements IFaceClipper {
             covers[side.ordinal()] = sideCovers;
         }
         sideCovers.add(new FacePiece(minPlaneX, maxPlaneX, minPlaneY, maxPlaneY));
+    }
+
+    /** Marks a whole side as hidden, for faces that are not rectangular. */
+    public void cullSide(ForgeDirection side) {
+        culled[side.ordinal()] = true;
+    }
+
+    public boolean isSideCulled(ForgeDirection side) {
+        return culled[side.ordinal()];
     }
 
     @Override

@@ -115,7 +115,7 @@ public class LittleTilesBlockRenderHelper {
         int pass = ForgeHooksClient.getWorldRenderPass();
         boolean rendered = false;
 
-        IFaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(cubes);
+        IFaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(world, cubes, x, y, z);
 
         try {
             for (int i = 0; i < cubes.size(); i++) {

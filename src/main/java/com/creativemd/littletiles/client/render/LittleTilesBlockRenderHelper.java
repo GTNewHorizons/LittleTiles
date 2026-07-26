@@ -118,6 +118,8 @@ public class LittleTilesBlockRenderHelper {
         int pass = ForgeHooksClient.getWorldRenderPass();
         boolean rendered = false;
 
+        LittleTilesFaceCuller.computeHiddenSides(cubes);
+
         try {
             for (int i = 0; i < cubes.size(); i++) {
                 final LittleTilesCubeObject cube = cubes.get(i);
@@ -139,6 +141,7 @@ public class LittleTilesBlockRenderHelper {
                     extraRenderer.meta = cube.meta;
                     fake.overrideMeta = cube.meta;
                     extraRenderer.color = cube.color;
+                    extraRenderer.hiddenSides = cube.hiddenSides;
                     extraRenderer.lockBlockBounds = true;
                     if (LittleTiles.angelicaCompat != null) {
                         LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
@@ -154,6 +157,7 @@ public class LittleTilesBlockRenderHelper {
                 }
             }
         } finally {
+            extraRenderer.hiddenSides = 0;
             fake.world = null;
         }
         return rendered;

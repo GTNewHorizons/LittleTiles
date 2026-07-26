@@ -6,6 +6,7 @@ import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.creativecore.common.utils.ColorUtils;
@@ -16,6 +17,7 @@ public class ExtendedRenderBlocks extends RenderBlocks {
 
     public int side = -1;
     public int color = ColorUtils.WHITE;
+    public int hiddenSides;
 
     @Override
     public IIcon getBlockIcon(Block par1Block, IBlockAccess par2IBlockAccess, int par3, int par4, int par5, int par6) {
@@ -41,6 +43,46 @@ public class ExtendedRenderBlocks extends RenderBlocks {
         this.useInventoryTint = renderer.useInventoryTint;
         this.renderFromInside = renderer.renderFromInside;
         this.enableAO = renderer.enableAO;
+    }
+
+    private boolean isSideHidden(ForgeDirection side) {
+        return (hiddenSides & side.flag) != 0;
+    }
+
+    @Override
+    public void renderFaceYNeg(Block block, double x, double y, double z, IIcon icon) {
+        if (isSideHidden(ForgeDirection.DOWN)) return;
+        super.renderFaceYNeg(block, x, y, z, icon);
+    }
+
+    @Override
+    public void renderFaceYPos(Block block, double x, double y, double z, IIcon icon) {
+        if (isSideHidden(ForgeDirection.UP)) return;
+        super.renderFaceYPos(block, x, y, z, icon);
+    }
+
+    @Override
+    public void renderFaceZNeg(Block block, double x, double y, double z, IIcon icon) {
+        if (isSideHidden(ForgeDirection.NORTH)) return;
+        super.renderFaceZNeg(block, x, y, z, icon);
+    }
+
+    @Override
+    public void renderFaceZPos(Block block, double x, double y, double z, IIcon icon) {
+        if (isSideHidden(ForgeDirection.SOUTH)) return;
+        super.renderFaceZPos(block, x, y, z, icon);
+    }
+
+    @Override
+    public void renderFaceXNeg(Block block, double x, double y, double z, IIcon icon) {
+        if (isSideHidden(ForgeDirection.WEST)) return;
+        super.renderFaceXNeg(block, x, y, z, icon);
+    }
+
+    @Override
+    public void renderFaceXPos(Block block, double x, double y, double z, IIcon icon) {
+        if (isSideHidden(ForgeDirection.EAST)) return;
+        super.renderFaceXPos(block, x, y, z, icon);
     }
 
     @Override

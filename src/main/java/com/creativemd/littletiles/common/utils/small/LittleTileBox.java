@@ -91,7 +91,15 @@ public class LittleTileBox {
     }
 
     public LittleTilesCubeObject getCube() {
-        return new LittleTilesCubeObject(minX / 16D, minY / 16D, minZ / 16D, maxX / 16D, maxY / 16D, maxZ / 16D);
+        LittleTilesCubeObject cube = new LittleTilesCubeObject(
+                minX / 16D,
+                minY / 16D,
+                minZ / 16D,
+                maxX / 16D,
+                maxY / 16D,
+                maxZ / 16D);
+        cube.setGridBounds(minX, minY, minZ, maxX, maxY, maxZ);
+        return cube;
     }
 
     public void writeToNBT(String name, NBTTagCompound nbt) {

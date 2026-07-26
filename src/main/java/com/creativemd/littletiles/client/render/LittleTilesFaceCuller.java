@@ -170,7 +170,6 @@ public final class LittleTilesFaceCuller {
             if (!flush) {
                 continue;
             }
-
             coverSide(clipper, cube, occluder, side);
         }
     }
@@ -184,7 +183,7 @@ public final class LittleTilesFaceCuller {
         int minPlaneY = Math.max(cube.gridMin(planeY), occluder.gridMin(planeY));
         int maxPlaneY = Math.min(cube.gridMax(planeY), occluder.gridMax(planeY));
         if (minPlaneX < maxPlaneX && minPlaneY < maxPlaneY) {
-            clipper.cover(side, minPlaneX, minPlaneY, maxPlaneX, maxPlaneY);
+            clipper.cover(side, minPlaneX, maxPlaneX, minPlaneY, maxPlaneY);
         }
     }
 }

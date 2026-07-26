@@ -33,7 +33,7 @@ public class FaceClipper implements IFaceClipper {
     }
 
     /** Marks the given area of a side as hidden, in the axes spanning that side's plane. */
-    public void cover(ForgeDirection side, int minPlaneX, int minPlaneY, int maxPlaneX, int maxPlaneY) {
+    public void cover(ForgeDirection side, int minPlaneX, int maxPlaneX, int minPlaneY, int maxPlaneY) {
         List<FacePiece> sideCovers = covers[side.ordinal()];
         if (sideCovers == null) {
             sideCovers = new ArrayList<>();

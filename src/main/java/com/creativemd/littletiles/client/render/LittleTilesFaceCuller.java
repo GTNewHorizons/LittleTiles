@@ -12,9 +12,15 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.joml.Matrix3f;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
+
 import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.OrientationMapper;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
@@ -82,6 +88,52 @@ public final class LittleTilesFaceCuller {
         return RotationUtils.isNegative(side) ? cube.gridMin(axis) == 0 : cube.gridMax(axis) == 16;
     }
 
+    private static boolean hasUncutSolidSide(LittleTilesCubeObject cube, ForgeDirection side) {
+        if (cube.cutoutInfo == null) {
+            return true;
+        }
+
+        boolean[] solidSides = Mesh3dUtil.getSolidSides(cube.cutoutInfo.type);
+        for (ForgeDirection baseSide : ForgeDirection.VALID_DIRECTIONS) {
+            if (solidSides[baseSide.ordinal()] && rotate(baseSide, cube.cutoutInfo.orientation) == side
+                    && !isSideCut(cube, side)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether clipping the complete cutout mesh to this little-tile box introduced the given side. Such a side is flat,
+     * but it is not one of the shape's original solid sides and must not occlude a neighbouring box.
+     */
+    private static boolean isSideCut(LittleTilesCubeObject cube, ForgeDirection side) {
+        Axis axis = Axis.getAxis(side);
+        // Mesh3dUtil places the mesh at the cutout offset relative to the box and then clips it to the box, so the
+        // mesh sticking out on a side is the case there it got cut
+        int meshMin = cube.gridMin(axis) + component(cube.cutoutInfo.pos, axis);
+        int meshMax = meshMin + component(cube.cutoutInfo.size, axis);
+        return RotationUtils.isNegative(side) ? meshMin < cube.gridMin(axis) : meshMax > cube.gridMax(axis);
+    }
+
+    private static int component(Vector3i vector, Axis axis) {
+        return axis == AxisX ? vector.x : (axis == AxisY ? vector.y : vector.z);
+    }
+
+    private static ForgeDirection rotate(ForgeDirection side, int orientation) {
+        Matrix3f matrix = OrientationMapper.fromId(orientation);
+        Vector3f rotated = matrix.transform(new Vector3f(side.offsetX, side.offsetY, side.offsetZ));
+        int x = Math.round(rotated.x);
+        int y = Math.round(rotated.y);
+        int z = Math.round(rotated.z);
+        for (ForgeDirection direction : ForgeDirection.VALID_DIRECTIONS) {
+            if (direction.offsetX == x && direction.offsetY == y && direction.offsetZ == z) {
+                return direction;
+            }
+        }
+        return ForgeDirection.UNKNOWN;
+    }
+
     private static void coverNeighbours(IBlockAccess world, List<LittleTilesCubeObject> cubes, FaceClipper[] clippers,
             int x, int y, int z) {
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
@@ -103,7 +155,7 @@ public final class LittleTilesFaceCuller {
                     }
                 }
                 for (LittleTilesCubeObject occluder : neighbourCubes) {
-                    if (canOcclude(occluder, cube)) {
+                    if (canOcclude(occluder, cube) && hasUncutSolidSide(occluder, side.getOpposite())) {
                         coverSide(clippers[i], cube, occluder, side);
                     }
                 }
@@ -132,7 +184,7 @@ public final class LittleTilesFaceCuller {
         ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
         for (LittleTile tile : snapshot) {
             for (LittleTilesCubeObject cube : tile.getRenderingCubes()) {
-                if (!ignoreForCulling(cube) && touchesBorder(cube, border)) {
+                if (!ignoreForCulling(cube) && touchesBorder(cube, border) && hasUncutSolidSide(cube, border)) {
                     cubes.add(cube);
                 }
             }
@@ -141,11 +193,10 @@ public final class LittleTilesFaceCuller {
     }
 
     /**
-     * Invalid blocks have nothing to cull and cutouts are meshes rather than boxes. Clipping opaque blocks costs more
-     * CPU than the saved GPU work is worth.
+     * Invalid blocks have nothing to cull. Clipping opaque blocks costs more CPU than the saved GPU work is worth.
      */
     private static boolean ignoreForCulling(LittleTilesCubeObject cube) {
-        return cube.block == null || cube.meta == -1 || cube.cutoutInfo != null || cube.block.isOpaqueCube();
+        return cube.block == null || cube.meta == -1 || cube.block.isOpaqueCube();
     }
 
     /*
@@ -167,7 +218,7 @@ public final class LittleTilesFaceCuller {
             Axis axis = Axis.getAxis(side);
             boolean flush = RotationUtils.isNegative(side) ? occluder.gridMax(axis) == cube.gridMin(axis)
                     : occluder.gridMin(axis) == cube.gridMax(axis);
-            if (!flush) {
+            if (!flush || !hasUncutSolidSide(occluder, side.getOpposite())) {
                 continue;
             }
             coverSide(clipper, cube, occluder, side);

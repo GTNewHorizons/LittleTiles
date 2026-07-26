@@ -1,9 +1,12 @@
 package com.creativemd.littletiles.client.util3d;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 import net.minecraft.block.Block;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Matrix3f;
 import org.joml.Vector3f;
@@ -23,6 +26,8 @@ public class Mesh3dUtil {
     private static Mesh3d MESH_SLOPE_TRIANGLE_CORNER;
     private static Mesh3d MESH_SLOPE_OUTER_CORNER;
     private static Mesh3d MESH_SLOPE_INNER_CORNER;
+    private static final boolean[] EMPTY_SOLID_SIDES = new boolean[6];
+    private static final Map<LittleTileShapeMode, boolean[]> SOLID_SIDES = new EnumMap<>(LittleTileShapeMode.class);
 
     public static void initializeMeshes() {
         MESH_SLOPE = Mesh3dObjLoader.load("slope");
@@ -32,6 +37,34 @@ public class Mesh3dUtil {
         MESH_SLOPE_TRIANGLE_CORNER = Mesh3dObjLoader.load("slope_triangle_corner");
         MESH_SLOPE_OUTER_CORNER = Mesh3dObjLoader.load("slope_outer");
         MESH_SLOPE_INNER_CORNER = Mesh3dObjLoader.load("slope_inner");
+
+        SOLID_SIDES.clear();
+        SOLID_SIDES.put(LittleTileShapeMode.SLOPE, solidSides(ForgeDirection.DOWN, ForgeDirection.NORTH));
+        SOLID_SIDES.put(LittleTileShapeMode.SLOPE_CONCAVE, solidSides(ForgeDirection.DOWN, ForgeDirection.NORTH));
+        SOLID_SIDES.put(LittleTileShapeMode.SLOPE_CONVEX, solidSides(ForgeDirection.DOWN, ForgeDirection.NORTH));
+        SOLID_SIDES.put(LittleTileShapeMode.SLOPE_TRIANGLE, solidSides());
+        SOLID_SIDES.put(
+                LittleTileShapeMode.SLOPE_TRIANGLE_CORNER,
+                solidSides(ForgeDirection.DOWN, ForgeDirection.NORTH, ForgeDirection.EAST));
+        SOLID_SIDES.put(
+                LittleTileShapeMode.SLOPE_OUTER_CORNER,
+                solidSides(ForgeDirection.DOWN, ForgeDirection.NORTH, ForgeDirection.EAST));
+        SOLID_SIDES.put(
+                LittleTileShapeMode.SLOPE_INNER_CORNER,
+                solidSides(ForgeDirection.DOWN, ForgeDirection.NORTH, ForgeDirection.EAST));
+    }
+
+    public static boolean[] getSolidSides(LittleTileShapeMode shape) {
+        boolean[] sides = SOLID_SIDES.get(shape);
+        return sides != null ? sides : EMPTY_SOLID_SIDES;
+    }
+
+    private static boolean[] solidSides(ForgeDirection... sides) {
+        boolean[] solidSides = new boolean[6];
+        for (ForgeDirection side : sides) {
+            solidSides[side.ordinal()] = true;
+        }
+        return solidSides;
     }
 
     public static Mesh3d meshFromTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {

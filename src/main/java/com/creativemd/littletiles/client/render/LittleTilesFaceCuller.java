@@ -25,6 +25,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
+ * Computes which parts of little-tile boxes and meshes are hidden by adjacent geometry.
  * <p>
  * A box has rectangular faces, so {@link #computeCoverage} subtracts covered rectangles with integer math and hands the
  * result to {@link FaceClipper}; fully covered faces produce no pieces and therefore emit no quad. A cutout is an
@@ -194,16 +195,16 @@ public final class LittleTilesFaceCuller {
         }
     }
 
-    // ================Cutouts================
+    // ================Triangle culling================
 
     /** Geometry shared by all triangle culling done for one tile entity. */
-    public static final class CutoutCulling {
+    public static final class CullingContext {
 
-        private final List<LittleTilesCubeObject> cubes;
+        private final List<LittleTilesCubeObject> localCubes;
         private final List<Neighbour> neighbours;
 
-        private CutoutCulling(List<LittleTilesCubeObject> cubes, List<Neighbour> neighbours) {
-            this.cubes = cubes;
+        private CullingContext(List<LittleTilesCubeObject> localCubes, List<Neighbour> neighbours) {
+            this.localCubes = localCubes;
             this.neighbours = neighbours;
         }
     }
@@ -226,21 +227,21 @@ public final class LittleTilesFaceCuller {
      * Takes a snapshot of each neighbouring tile entity and moves its border geometry into this block's space. The
      * result can be reused for every cube in the current render.
      */
-    public static CutoutCulling prepareCutoutCulling(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x,
-            int y, int z) {
+    public static CullingContext prepareCulling(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x, int y,
+            int z) {
         List<Neighbour> neighbours = new ArrayList<>();
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             if (!anyTouchesBorder(cubes, side)) {
                 continue;
             }
             ForgeDirection facingUs = side.getOpposite();
-            List<LittleTilesCubeObject> neighbors = getNeighbourBorderCubes(
+            List<LittleTilesCubeObject> neighbourCubes = getNeighbourBorderCubes(
                     world,
                     x + side.offsetX,
                     y + side.offsetY,
                     z + side.offsetZ,
                     facingUs);
-            for (LittleTilesCubeObject neighbour : neighbors) {
+            for (LittleTilesCubeObject neighbour : neighbourCubes) {
                 // copies, since these get moved and the mesh is the one cached on the neighbouring tile
                 List<Triangle3d> triangles;
                 if (neighbour.cutoutInfo != null) {
@@ -254,7 +255,7 @@ public final class LittleTilesFaceCuller {
                 neighbours.add(new Neighbour(neighbour, side, triangles));
             }
         }
-        return new CutoutCulling(cubes, neighbours);
+        return new CullingContext(cubes, neighbours);
     }
 
     private static boolean anyTouchesBorder(List<LittleTilesCubeObject> cubes, ForgeDirection side) {
@@ -270,7 +271,7 @@ public final class LittleTilesFaceCuller {
      * The triangles of a cutout's mesh that are still visible, after removing what the meshes around it hide - both the
      * ones in the same tile entity and the ones in the six neighbours.
      */
-    public static List<Triangle3d> visibleTriangles(CutoutCulling culling, LittleTilesCubeObject cube) {
+    public static List<Triangle3d> visibleTriangles(CullingContext culling, LittleTilesCubeObject cube) {
         List<Triangle3d> occludingTriangles = getOccludingTriangles(culling, cube, false);
         List<Triangle3d> visible = new ArrayList<>();
         for (Triangle3d triangle : cube.renderCache.getSimpleMesh().getTriangles()) {
@@ -280,16 +281,10 @@ public final class LittleTilesFaceCuller {
     }
 
     /**
-     * The counterpart of {@link #visibleTriangles}: the faces of a plain box that a mesh eats into, rebuilt as
-     * triangles. {@link FaceClipper} can only subtract rectangles, so a side a mesh reaches into is marked as fully
-     * covered there and drawn here instead - with every occluding triangle subtracted, box neighbours included, since
-     * the rectangle clipping of that side is given up along with it.
-     *
-     * @param clipper the box's clipper, which this marks the replaced sides on
-     * @return the triangles to draw in place of the replaced sides, empty when no side had to be replaced or every
-     *         replaced side turned out to be covered entirely
+     * The counterpart of {@link #visibleTriangles}: the faces of a box that remain visible after culling against
+     * meshes and other boxes.
      */
-    public static List<Triangle3d> visibleBoxTriangles(CutoutCulling culling, LittleTilesCubeObject cube,
+    public static List<Triangle3d> visibleBoxTriangles(CullingContext culling, LittleTilesCubeObject cube,
             FaceClipper clipper) {
         List<Triangle3d> meshOccludingTriangles = getOccludingTriangles(culling, cube, true);
         if (meshOccludingTriangles.isEmpty()) {
@@ -299,7 +294,7 @@ public final class LittleTilesFaceCuller {
         List<Triangle3d> visible = new ArrayList<>();
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             List<Triangle3d> face = boxFaceTriangles(cube, side);
-            if (!touchesAny(face, meshOccludingTriangles)) {
+            if (!overlapsAny(face, meshOccludingTriangles)) {
                 continue; // no mesh in this plane, the rectangle clipping of the box renderer covers this side
             }
             coverSide(clipper, cube, cube, side);
@@ -311,7 +306,7 @@ public final class LittleTilesFaceCuller {
     }
 
     /** Whether an occluding triangle shares a plane with one of the triangles and could therefore hide part of it. */
-    private static boolean touchesAny(List<Triangle3d> triangles, List<Triangle3d> occludingTriangles) {
+    private static boolean overlapsAny(List<Triangle3d> triangles, List<Triangle3d> occludingTriangles) {
         for (Triangle3d triangle : triangles) {
             for (Triangle3d occludingTriangle : occludingTriangles) {
                 if (triangle.boundsOverlap(occludingTriangle) && triangle.isCoplanar(occludingTriangle)) {
@@ -326,11 +321,11 @@ public final class LittleTilesFaceCuller {
      * Every triangle that could hide something of the cube, in this block's space: the meshes around it, plus (if
      * {@code meshOccludersOnly} is false) the faces of the boxes sitting flush against it.
      */
-    private static List<Triangle3d> getOccludingTriangles(CutoutCulling culling, LittleTilesCubeObject cube,
+    private static List<Triangle3d> getOccludingTriangles(CullingContext culling, LittleTilesCubeObject cube,
             boolean meshOccludersOnly) {
         List<Triangle3d> occludingTriangles = new ArrayList<>();
 
-        for (LittleTilesCubeObject occluder : culling.cubes) {
+        for (LittleTilesCubeObject occluder : culling.localCubes) {
             if (!canOcclude(occluder, cube)) {
                 continue;
             }
@@ -363,66 +358,46 @@ public final class LittleTilesFaceCuller {
         double maxX = cube.gridMaxX / 16.0;
         double maxY = cube.gridMaxY / 16.0;
         double maxZ = cube.gridMaxZ / 16.0;
-        List<Triangle3d> triangles = new ArrayList<>(2);
-
-        switch (side) {
-            case DOWN:
-                addQuad(
-                        triangles,
-                        new Vector3d(minX, minY, minZ),
-                        new Vector3d(maxX, minY, minZ),
-                        new Vector3d(maxX, minY, maxZ),
-                        new Vector3d(minX, minY, maxZ));
-                break;
-            case UP:
-                addQuad(
-                        triangles,
-                        new Vector3d(minX, maxY, minZ),
-                        new Vector3d(minX, maxY, maxZ),
-                        new Vector3d(maxX, maxY, maxZ),
-                        new Vector3d(maxX, maxY, minZ));
-                break;
-            case NORTH:
-                addQuad(
-                        triangles,
-                        new Vector3d(minX, minY, minZ),
-                        new Vector3d(minX, maxY, minZ),
-                        new Vector3d(maxX, maxY, minZ),
-                        new Vector3d(maxX, minY, minZ));
-                break;
-            case SOUTH:
-                addQuad(
-                        triangles,
-                        new Vector3d(minX, minY, maxZ),
-                        new Vector3d(maxX, minY, maxZ),
-                        new Vector3d(maxX, maxY, maxZ),
-                        new Vector3d(minX, maxY, maxZ));
-                break;
-            case WEST:
-                addQuad(
-                        triangles,
-                        new Vector3d(minX, minY, minZ),
-                        new Vector3d(minX, minY, maxZ),
-                        new Vector3d(minX, maxY, maxZ),
-                        new Vector3d(minX, maxY, minZ));
-                break;
-            case EAST:
-                addQuad(
-                        triangles,
-                        new Vector3d(maxX, minY, minZ),
-                        new Vector3d(maxX, maxY, minZ),
-                        new Vector3d(maxX, maxY, maxZ),
-                        new Vector3d(maxX, minY, maxZ));
-                break;
-            default:
-                break;
-        }
-        return triangles;
+        return switch (side) {
+            case DOWN -> quad(
+                new Vector3d(minX, minY, minZ),
+                new Vector3d(maxX, minY, minZ),
+                new Vector3d(maxX, minY, maxZ),
+                new Vector3d(minX, minY, maxZ));
+            case UP -> quad(
+                new Vector3d(minX, maxY, minZ),
+                new Vector3d(minX, maxY, maxZ),
+                new Vector3d(maxX, maxY, maxZ),
+                new Vector3d(maxX, maxY, minZ));
+            case NORTH -> quad(
+                new Vector3d(minX, minY, minZ),
+                new Vector3d(minX, maxY, minZ),
+                new Vector3d(maxX, maxY, minZ),
+                new Vector3d(maxX, minY, minZ));
+            case SOUTH -> quad(
+                new Vector3d(minX, minY, maxZ),
+                new Vector3d(maxX, minY, maxZ),
+                new Vector3d(maxX, maxY, maxZ),
+                new Vector3d(minX, maxY, maxZ));
+            case WEST -> quad(
+                new Vector3d(minX, minY, minZ),
+                new Vector3d(minX, minY, maxZ),
+                new Vector3d(minX, maxY, maxZ),
+                new Vector3d(minX, maxY, minZ));
+            case EAST -> quad(
+                new Vector3d(maxX, minY, minZ),
+                new Vector3d(maxX, maxY, minZ),
+                new Vector3d(maxX, maxY, maxZ),
+                new Vector3d(maxX, minY, maxZ));
+            default -> Collections.emptyList();
+        };
     }
 
-    private static void addQuad(List<Triangle3d> triangles, Vector3d p1, Vector3d p2, Vector3d p3, Vector3d p4) {
+    private static List<Triangle3d> quad(Vector3d p1, Vector3d p2, Vector3d p3, Vector3d p4) {
+        List<Triangle3d> triangles = new ArrayList<>(2);
         triangles.add(new Triangle3d(p1, p2, p3));
         triangles.add(new Triangle3d(new Vector3d(p1), new Vector3d(p3), p4));
+        return triangles;
     }
 
     /**

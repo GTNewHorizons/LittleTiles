@@ -24,7 +24,7 @@ import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
-import com.creativemd.littletiles.client.render.LittleTilesFaceCuller.CutoutCulling;
+import com.creativemd.littletiles.client.render.LittleTilesFaceCuller.CullingContext;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
@@ -82,7 +82,7 @@ public class LittleTilesBlockRenderHelper {
         FAILED
     }
 
-    private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CutoutCulling culling,
+    private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
             IBlockAccess world) {
         if (!cube.renderCache.hasValidMesh()) {
             return CutoutResult.FAILED;
@@ -134,7 +134,7 @@ public class LittleTilesBlockRenderHelper {
         boolean rendered = false;
 
         IFaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(world, cubes, x, y, z);
-        CutoutCulling cutoutCulling = LittleTilesFaceCuller.prepareCutoutCulling(world, cubes, x, y, z);
+        CullingContext cullingContext = LittleTilesFaceCuller.prepareCulling(world, cubes, x, y, z);
 
         try {
             for (int i = 0; i < cubes.size(); i++) {
@@ -143,7 +143,7 @@ public class LittleTilesBlockRenderHelper {
                     continue;
                 }
                 if (cube.cutoutInfo != null) {
-                    CutoutResult result = renderCutout(x, y, z, cube, cutoutCulling, world);
+                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, world);
                     if (result == CutoutResult.DRAWN) {
                         rendered = true;
                         continue;
@@ -159,7 +159,7 @@ public class LittleTilesBlockRenderHelper {
                     List<Triangle3d> boxTriangles = Collections.emptyList();
                     if (cube.cutoutInfo == null && coverage[i] instanceof FaceClipper) {
                         FaceClipper clipper = (FaceClipper) coverage[i];
-                        boxTriangles = LittleTilesFaceCuller.visibleBoxTriangles(cutoutCulling, cube, clipper);
+                        boxTriangles = LittleTilesFaceCuller.visibleBoxTriangles(cullingContext, cube, clipper);
                     }
                     rendered = true;
                     extraRenderer.clearOverrideBlockTexture();

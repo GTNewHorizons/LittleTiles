@@ -88,7 +88,7 @@ public class LittleTilesBlockRenderHelper {
             return CutoutResult.FAILED;
         }
 
-        List<Triangle3d> visible = LittleTilesFaceCuller.visibleTriangles(culling, cube);
+        List<Triangle3d> visible = LittleTilesFaceCuller.visibleCutoutTriangles(culling, cube);
         if (visible.isEmpty()) {
             return CutoutResult.HIDDEN;
         }

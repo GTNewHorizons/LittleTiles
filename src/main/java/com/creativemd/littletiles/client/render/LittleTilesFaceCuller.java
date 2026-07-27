@@ -29,8 +29,8 @@ import cpw.mods.fml.relauncher.SideOnly;
  * <p>
  * A box has rectangular faces, so {@link #computeCoverage} subtracts covered rectangles with integer math and hands the
  * result to {@link FaceClipper}; fully covered faces produce no pieces and therefore emit no quad. A cutout is an
- * arbitrary mesh instead, so {@link #visibleTriangles} subtracts triangles from its faces directly. Both halves share
- * the same grid box tests to find out what touches what.
+ * arbitrary mesh instead, so {@link #visibleCutoutTriangles} subtracts triangles from its faces directly. Both halves
+ * share the same grid box tests to find out what touches what.
  * <p>
  * Boxes and meshes can hide each other. Box faces are converted to triangles when rectangular clipping cannot represent
  * the visible area.
@@ -271,7 +271,7 @@ public final class LittleTilesFaceCuller {
      * The triangles of a cutout's mesh that are still visible, after removing what the meshes around it hide - both the
      * ones in the same tile entity and the ones in the six neighbours.
      */
-    public static List<Triangle3d> visibleTriangles(CullingContext culling, LittleTilesCubeObject cube) {
+    public static List<Triangle3d> visibleCutoutTriangles(CullingContext culling, LittleTilesCubeObject cube) {
         List<Triangle3d> occludingTriangles = getOccludingTriangles(culling, cube, false);
         List<Triangle3d> visible = new ArrayList<>();
         for (Triangle3d triangle : cube.renderCache.getSimpleMesh().getTriangles()) {
@@ -281,7 +281,7 @@ public final class LittleTilesFaceCuller {
     }
 
     /**
-     * The counterpart of {@link #visibleTriangles}: the faces of a box that remain visible after culling against
+     * The counterpart of {@link #visibleCutoutTriangles}: the faces of a box that remain visible after culling against
      * meshes and other boxes.
      */
     public static List<Triangle3d> visibleBoxTriangles(CullingContext culling, LittleTilesCubeObject cube,

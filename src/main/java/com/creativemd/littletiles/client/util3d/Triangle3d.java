@@ -16,7 +16,7 @@ import com.creativemd.creativecore.lib.Vector3d;
 
 public class Triangle3d {
 
-    private static final double SPLIT_EPSILON = 1.0E-7;
+    private static final double SPLIT_EPSILON = 1.0E-5;
 
     private Vector3d p1, p2, p3;
     private Vector2d tex1, tex2, tex3;

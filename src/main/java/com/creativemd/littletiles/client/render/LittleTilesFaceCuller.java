@@ -360,35 +360,35 @@ public final class LittleTilesFaceCuller {
         double maxZ = cube.gridMaxZ / 16.0;
         return switch (side) {
             case DOWN -> quad(
-                new Vector3d(minX, minY, minZ),
-                new Vector3d(maxX, minY, minZ),
-                new Vector3d(maxX, minY, maxZ),
-                new Vector3d(minX, minY, maxZ));
+                    new Vector3d(minX, minY, minZ),
+                    new Vector3d(maxX, minY, minZ),
+                    new Vector3d(maxX, minY, maxZ),
+                    new Vector3d(minX, minY, maxZ));
             case UP -> quad(
-                new Vector3d(minX, maxY, minZ),
-                new Vector3d(minX, maxY, maxZ),
-                new Vector3d(maxX, maxY, maxZ),
-                new Vector3d(maxX, maxY, minZ));
+                    new Vector3d(minX, maxY, minZ),
+                    new Vector3d(minX, maxY, maxZ),
+                    new Vector3d(maxX, maxY, maxZ),
+                    new Vector3d(maxX, maxY, minZ));
             case NORTH -> quad(
-                new Vector3d(minX, minY, minZ),
-                new Vector3d(minX, maxY, minZ),
-                new Vector3d(maxX, maxY, minZ),
-                new Vector3d(maxX, minY, minZ));
+                    new Vector3d(minX, minY, minZ),
+                    new Vector3d(minX, maxY, minZ),
+                    new Vector3d(maxX, maxY, minZ),
+                    new Vector3d(maxX, minY, minZ));
             case SOUTH -> quad(
-                new Vector3d(minX, minY, maxZ),
-                new Vector3d(maxX, minY, maxZ),
-                new Vector3d(maxX, maxY, maxZ),
-                new Vector3d(minX, maxY, maxZ));
+                    new Vector3d(minX, minY, maxZ),
+                    new Vector3d(maxX, minY, maxZ),
+                    new Vector3d(maxX, maxY, maxZ),
+                    new Vector3d(minX, maxY, maxZ));
             case WEST -> quad(
-                new Vector3d(minX, minY, minZ),
-                new Vector3d(minX, minY, maxZ),
-                new Vector3d(minX, maxY, maxZ),
-                new Vector3d(minX, maxY, minZ));
+                    new Vector3d(minX, minY, minZ),
+                    new Vector3d(minX, minY, maxZ),
+                    new Vector3d(minX, maxY, maxZ),
+                    new Vector3d(minX, maxY, minZ));
             case EAST -> quad(
-                new Vector3d(maxX, minY, minZ),
-                new Vector3d(maxX, maxY, minZ),
-                new Vector3d(maxX, maxY, maxZ),
-                new Vector3d(maxX, minY, maxZ));
+                    new Vector3d(maxX, minY, minZ),
+                    new Vector3d(maxX, maxY, minZ),
+                    new Vector3d(maxX, maxY, maxZ),
+                    new Vector3d(maxX, minY, maxZ));
             default -> Collections.emptyList();
         };
     }

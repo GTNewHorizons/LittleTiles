@@ -47,6 +47,7 @@ public class CollisionHighlightRenderer {
     private int ticksSinceRefresh = REFRESH_INTERVAL_TICKS;
 
     private static final class TileCache {
+
         final List<AxisAlignedBB> boxes = new ArrayList<>();
         final List<Mesh3d> meshes = new ArrayList<>();
     }
@@ -152,9 +153,19 @@ public class CollisionHighlightRenderer {
                                 if (cube.cutoutInfo == null) {
                                     cached.boxes.add(cube.getAxis().offset(te.xCoord, te.yCoord, te.zCoord));
                                 } else {
-                                    Mesh3d mesh = Mesh3dUtil.createMesh(te.xCoord, te.yCoord, te.zCoord, cube.cutoutInfo,
-                                            cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ,
-                                            cube.block, cube.meta);
+                                    Mesh3d mesh = Mesh3dUtil.createMesh(
+                                            te.xCoord,
+                                            te.yCoord,
+                                            te.zCoord,
+                                            cube.cutoutInfo,
+                                            cube.minX,
+                                            cube.minY,
+                                            cube.minZ,
+                                            cube.maxX,
+                                            cube.maxY,
+                                            cube.maxZ,
+                                            cube.block,
+                                            cube.meta);
                                     for (Triangle3d t : mesh.getTriangles()) t.inflate(EPSILON);
                                     cached.meshes.add(mesh);
                                 }

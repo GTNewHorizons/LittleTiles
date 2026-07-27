@@ -17,6 +17,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.creativecore.client.rendering.ExtendedRenderBlocks;
+import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.lib.Vector3d;
@@ -114,6 +115,8 @@ public class LittleTilesBlockRenderHelper {
         int pass = ForgeHooksClient.getWorldRenderPass();
         boolean rendered = false;
 
+        IFaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(world, cubes, x, y, z);
+
         try {
             for (int i = 0; i < cubes.size(); i++) {
                 final LittleTilesCubeObject cube = cubes.get(i);
@@ -135,6 +138,7 @@ public class LittleTilesBlockRenderHelper {
                     extraRenderer.meta = cube.meta;
                     fake.overrideMeta = cube.meta;
                     extraRenderer.color = cube.color;
+                    extraRenderer.faceClipper = coverage[i];
                     extraRenderer.lockBlockBounds = true;
                     if (LittleTiles.angelicaCompat != null) {
                         LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
@@ -150,6 +154,7 @@ public class LittleTilesBlockRenderHelper {
                 }
             }
         } finally {
+            extraRenderer.faceClipper = null;
             fake.world = null;
         }
         return rendered;

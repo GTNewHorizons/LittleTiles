@@ -8,17 +8,17 @@ public class RotationUtils {
 
     public static enum Axis {
 
-        Xaxis,
-        Yaxis,
-        Zaxis;
+        AxisX,
+        AxisY,
+        AxisZ;
 
         public boolean isAxis(ForgeDirection direction) {
             switch (this) {
-                case Xaxis:
+                case AxisX:
                     return direction == ForgeDirection.EAST || direction == ForgeDirection.WEST;
-                case Yaxis:
+                case AxisY:
                     return direction == ForgeDirection.UP || direction == ForgeDirection.DOWN;
-                case Zaxis:
+                case AxisZ:
                     return direction == ForgeDirection.SOUTH || direction == ForgeDirection.NORTH;
                 default:
                     return false;
@@ -27,11 +27,11 @@ public class RotationUtils {
 
         public int toInt() {
             switch (this) {
-                case Xaxis:
+                case AxisX:
                     return 0;
-                case Yaxis:
+                case AxisY:
                     return 1;
-                case Zaxis:
+                case AxisZ:
                     return 2;
                 default:
                     return 0;
@@ -40,11 +40,11 @@ public class RotationUtils {
 
         public ForgeDirection getDirection() {
             switch (this) {
-                case Xaxis:
+                case AxisX:
                     return ForgeDirection.EAST;
-                case Yaxis:
+                case AxisY:
                     return ForgeDirection.UP;
-                case Zaxis:
+                case AxisZ:
                     return ForgeDirection.SOUTH;
                 default:
                     return ForgeDirection.UNKNOWN;
@@ -52,16 +52,16 @@ public class RotationUtils {
         }
 
         public static Axis getAxis(ForgeDirection direction) {
-            if (direction == ForgeDirection.EAST || direction == ForgeDirection.WEST) return Axis.Xaxis;
-            if (direction == ForgeDirection.UP || direction == ForgeDirection.DOWN) return Axis.Yaxis;
-            if (direction == ForgeDirection.SOUTH || direction == ForgeDirection.NORTH) return Axis.Zaxis;
+            if (direction == ForgeDirection.EAST || direction == ForgeDirection.WEST) return Axis.AxisX;
+            if (direction == ForgeDirection.UP || direction == ForgeDirection.DOWN) return Axis.AxisY;
+            if (direction == ForgeDirection.SOUTH || direction == ForgeDirection.NORTH) return Axis.AxisZ;
             return null;
         }
 
         public static Axis getAxis(int id) {
-            if (id == 0) return Xaxis;
-            if (id == 1) return Yaxis;
-            if (id == 2) return Zaxis;
+            if (id == 0) return AxisX;
+            if (id == 1) return AxisY;
+            if (id == 2) return AxisZ;
             return null;
         }
     }

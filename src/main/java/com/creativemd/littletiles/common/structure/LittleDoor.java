@@ -105,14 +105,14 @@ public class LittleDoor extends LittleStructure {
         GuiTileViewer viewer = (GuiTileViewer) event.source.parent.getControl("tileviewer");
         if (event.source.is("swap axis")) {
             switch (viewer.axisDirection) {
-                case Xaxis:
-                    axis = Axis.Yaxis;
+                case AxisX:
+                    axis = Axis.AxisY;
                     break;
-                case Yaxis:
-                    axis = Axis.Zaxis;
+                case AxisY:
+                    axis = Axis.AxisZ;
                     break;
-                case Zaxis:
-                    axis = Axis.Xaxis;
+                case AxisZ:
+                    axis = Axis.AxisX;
                     break;
                 default:
                     break;
@@ -134,20 +134,20 @@ public class LittleDoor extends LittleStructure {
             // viewer.viewDirection = ForgeDirection.getOrientation(((GuiStateButton) event.source).getState()+2);
         } else if (event.source instanceof GuiButton) {
             if (event.source.is("<-")) {
-                if (viewer.axisDirection == Axis.Xaxis) viewer.axisZ++;
+                if (viewer.axisDirection == Axis.AxisX) viewer.axisZ++;
                 else viewer.axisX--;
             }
             if (event.source.is("->")) {
-                if (viewer.axisDirection == Axis.Xaxis) viewer.axisZ--;
+                if (viewer.axisDirection == Axis.AxisX) viewer.axisZ--;
                 else viewer.axisX++;
             }
             if (event.source.is("up")) {
-                if (viewer.axisDirection == Axis.Yaxis) viewer.axisZ--;
+                if (viewer.axisDirection == Axis.AxisY) viewer.axisZ--;
                 else viewer.axisY++;
 
             }
             if (event.source.is("down")) {
-                if (viewer.axisDirection == Axis.Yaxis) viewer.axisZ++;
+                if (viewer.axisDirection == Axis.AxisY) viewer.axisZ++;
                 else viewer.axisY--;
             } else if (event.source.is("swap normal")) {
                 viewer.changeNormalAxis();
@@ -206,9 +206,9 @@ public class LittleDoor extends LittleStructure {
         // if(RotationUtils.isNegative(normalDirection))
         // normalDirection = normalDirection.getOpposite();
         /*
-         * Axis before = axis; if(axisDirection == Axis.Yaxis) { switch(axis) { case Xaxis: this.axis = Axis.Yaxis;
-         * break; case Yaxis: this.axis = Axis.Xaxis; break; default: break; } }else{ switch(axis) { case Xaxis:
-         * this.axis = Axis.Zaxis; break; case Zaxis: this.axis = Axis.Xaxis; break; default: break; } }
+         * Axis before = axis; if(axisDirection == Axis.AxisY) { switch(axis) { case AxisX: this.axis = Axis.AxisY;
+         * break; case AxisY: this.axis = Axis.AxisX; break; default: break; } }else{ switch(axis) { case AxisX:
+         * this.axis = Axis.AxisZ; break; case AxisZ: this.axis = Axis.AxisX; break; default: break; } }
          */
         // if(before != axis)
         // updateNormalDirection();
@@ -277,11 +277,11 @@ public class LittleDoor extends LittleStructure {
         structure.normalDirection = this.normalDirection.getRotation(rotationAxis);
 
         /*
-         * Axis directionAxis = Axis.getAxis(this.axis); switch(directionAxis) { case Xaxis: if(directionAxis ==
-         * Axis.Yaxis) structure.normalAxis = Axis.Zaxis; else structure.normalAxis = Axis.Yaxis; break; case Yaxis:
-         * if(directionAxis == Axis.Zaxis) structure.normalAxis = Axis.Xaxis; else structure.normalAxis = Axis.Zaxis;
-         * break; case Zaxis: if(directionAxis == Axis.Yaxis) structure.normalAxis = Axis.Xaxis; else
-         * structure.normalAxis = Axis.Yaxis; break; default: break; }
+         * Axis directionAxis = Axis.getAxis(this.axis); switch(directionAxis) { case AxisX: if(directionAxis ==
+         * Axis.AxisY) structure.normalAxis = Axis.AxisZ; else structure.normalAxis = Axis.AxisY; break; case AxisY:
+         * if(directionAxis == Axis.AxisZ) structure.normalAxis = Axis.AxisX; else structure.normalAxis = Axis.AxisZ;
+         * break; case AxisZ: if(directionAxis == Axis.AxisY) structure.normalAxis = Axis.AxisX; else
+         * structure.normalAxis = Axis.AxisY; break; default: break; }
          */
 
         if (ItemBlockTiles.placeTiles(
@@ -369,7 +369,7 @@ public class LittleDoor extends LittleStructure {
             boolean inverse = false;
 
             switch (axis) {
-                case Xaxis:
+                case AxisX:
                     // System.out.println(player.rotationPitch);
                     System.out.println(normalDirection);
                     rotation = Rotation.UPX;
@@ -391,7 +391,7 @@ public class LittleDoor extends LittleStructure {
                     }
                     inverse = rotation == Rotation.UPX;
                     break;
-                case Yaxis:
+                case AxisY:
                     rotation = Rotation.SOUTH;
                     switch (normalDirection) {
                         case EAST:
@@ -411,7 +411,7 @@ public class LittleDoor extends LittleStructure {
                     }
                     inverse = rotation == Rotation.SOUTH;
                     break;
-                case Zaxis:
+                case AxisZ:
                     // System.out.println(player.rotationPitch);
                     // System.out.println(normalDirection);
                     rotation = Rotation.UP;
@@ -461,14 +461,14 @@ public class LittleDoor extends LittleStructure {
 
     public void updateNormalDirection() {
         switch (axis) {
-            case Xaxis:
-                normalDirection = Axis.Zaxis.getDirection();
+            case AxisX:
+                normalDirection = Axis.AxisZ.getDirection();
                 break;
-            case Yaxis:
-                normalDirection = Axis.Xaxis.getDirection();
+            case AxisY:
+                normalDirection = Axis.AxisX.getDirection();
                 break;
-            case Zaxis:
-                normalDirection = Axis.Yaxis.getDirection();
+            case AxisZ:
+                normalDirection = Axis.AxisY.getDirection();
                 break;
             default:
                 break;

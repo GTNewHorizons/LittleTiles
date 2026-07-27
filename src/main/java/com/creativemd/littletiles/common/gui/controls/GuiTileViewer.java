@@ -40,7 +40,7 @@ public class GuiTileViewer extends GuiControl {
     public boolean visibleAxis = false;
 
     public Axis normalAxis = null;
-    public Axis axisDirection = Axis.Yaxis;
+    public Axis axisDirection = Axis.AxisY;
     public int axisX = 0;
     public int axisY = 0;
     public int axisZ = 0;
@@ -76,17 +76,17 @@ public class GuiTileViewer extends GuiControl {
         double sizeZ = maxZ - minZ;
 
         switch (axisDirection) {
-            case Xaxis:
-                if (sizeY >= sizeZ) normalAxis = Axis.Zaxis;
-                else normalAxis = Axis.Yaxis;
+            case AxisX:
+                if (sizeY >= sizeZ) normalAxis = Axis.AxisZ;
+                else normalAxis = Axis.AxisY;
                 break;
-            case Yaxis:
-                if (sizeX >= sizeZ) normalAxis = Axis.Zaxis;
-                else normalAxis = Axis.Xaxis;
+            case AxisY:
+                if (sizeX >= sizeZ) normalAxis = Axis.AxisZ;
+                else normalAxis = Axis.AxisX;
                 break;
-            case Zaxis:
-                if (sizeX >= sizeY) normalAxis = Axis.Yaxis;
-                else normalAxis = Axis.Xaxis;
+            case AxisZ:
+                if (sizeX >= sizeY) normalAxis = Axis.AxisY;
+                else normalAxis = Axis.AxisX;
                 break;
             default:
                 break;
@@ -95,17 +95,17 @@ public class GuiTileViewer extends GuiControl {
 
     public void changeNormalAxis() {
         switch (axisDirection) {
-            case Xaxis:
-                if (normalAxis == Axis.Zaxis) normalAxis = Axis.Yaxis;
-                else normalAxis = Axis.Zaxis;
+            case AxisX:
+                if (normalAxis == Axis.AxisZ) normalAxis = Axis.AxisY;
+                else normalAxis = Axis.AxisZ;
                 break;
-            case Yaxis:
-                if (normalAxis == Axis.Zaxis) normalAxis = Axis.Xaxis;
-                else normalAxis = Axis.Zaxis;
+            case AxisY:
+                if (normalAxis == Axis.AxisZ) normalAxis = Axis.AxisX;
+                else normalAxis = Axis.AxisZ;
                 break;
-            case Zaxis:
-                if (normalAxis == Axis.Yaxis) normalAxis = Axis.Xaxis;
-                else normalAxis = Axis.Yaxis;
+            case AxisZ:
+                if (normalAxis == Axis.AxisY) normalAxis = Axis.AxisX;
+                else normalAxis = Axis.AxisY;
                 break;
             default:
                 break;
@@ -195,17 +195,17 @@ public class GuiTileViewer extends GuiControl {
             cube.block = Blocks.wool;
             cube.meta = 0;
             switch (normalAxis) {
-                case Xaxis:
+                case AxisX:
                     // cube.minZ = min;
                     // cube.maxZ = max;
                     cube.minX = min;
                     cube.maxX = max;
                     break;
-                case Yaxis:
+                case AxisY:
                     cube.minY = min;
                     cube.maxY = max;
                     break;
-                case Zaxis:
+                case AxisZ:
                     // cube.minX = min;
                     // cube.maxX = max;
                     cube.minZ = min;
@@ -220,17 +220,17 @@ public class GuiTileViewer extends GuiControl {
             cube.meta = 5;
 
             switch (axisDirection) {
-                case Xaxis:
+                case AxisX:
                     // cube.minZ = min;
                     // cube.maxZ = max;
                     cube.minX = min;
                     cube.maxX = max;
                     break;
-                case Yaxis:
+                case AxisY:
                     cube.minY = min;
                     cube.maxY = max;
                     break;
-                case Zaxis:
+                case AxisZ:
                     // cube.minX = min;
                     // cube.maxX = max;
                     cube.minZ = min;
@@ -337,14 +337,14 @@ public class GuiTileViewer extends GuiControl {
 
     public void updateViewDirection() {
         switch (axisDirection) {
-            case Xaxis:
-                viewDirection = Axis.Zaxis.getDirection();
+            case AxisX:
+                viewDirection = Axis.AxisZ.getDirection();
                 break;
-            case Yaxis:
-                viewDirection = Axis.Yaxis.getDirection();
+            case AxisY:
+                viewDirection = Axis.AxisY.getDirection();
                 break;
-            case Zaxis:
-                viewDirection = Axis.Xaxis.getDirection();
+            case AxisZ:
+                viewDirection = Axis.AxisX.getDirection();
                 break;
             default:
                 break;

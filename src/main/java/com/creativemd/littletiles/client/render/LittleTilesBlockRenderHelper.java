@@ -98,8 +98,8 @@ public class LittleTilesBlockRenderHelper {
 
     private static void renderTriangles(int x, int y, int z, LittleTilesCubeObject cube, List<Triangle3d> triangles,
             IBlockAccess world) {
-        // the culler returns copies, an uncut mesh is the one cached on the tile and must not be textured in place
-        Mesh3d mesh = new Mesh3d(triangles);
+        // cut results are cached on the tile and must not be textured or translated in place
+        Mesh3d mesh = new Mesh3d(triangles).copy();
         mesh.setTextures(cube.block, cube.meta);
         mesh.translate(new Vector3d(x, y, z));
         Tessellator tess = Tessellator.instance;
@@ -121,6 +121,28 @@ public class LittleTilesBlockRenderHelper {
         }
     }
 
+    /**
+     * Whether any cube still has to be culled, rather than being served from its cached cut result. Gathering the
+     * geometry to cull against reaches into the six neighbouring tile entities, which is not worth doing when every
+     * cube of this one already knows what is visible of it.
+     */
+    private static boolean needsCulling(List<LittleTilesCubeObject> cubes, IFaceClipper[] coverage, int pass) {
+        for (int i = 0; i < cubes.size(); i++) {
+            LittleTilesCubeObject cube = cubes.get(i);
+            if (!cube.block.canRenderInPass(pass)) {
+                continue;
+            }
+            if (cube.cutoutInfo != null) {
+                if (cube.renderCache.hasValidMesh() && cube.renderCache.getVisibleCutoutTriangles() == null) {
+                    return true;
+                }
+            } else if (coverage[i] instanceof FaceClipper && cube.renderCache.getVisibleBoxTriangles() == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean renderCubes(IBlockAccess world, ArrayList<LittleTilesCubeObject> cubes, int x, int y, int z,
             Block block, RenderBlocks renderer, ForgeDirection direction) {
 
@@ -134,7 +156,9 @@ public class LittleTilesBlockRenderHelper {
         boolean rendered = false;
 
         IFaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(world, cubes, x, y, z);
-        CullingContext cullingContext = LittleTilesFaceCuller.prepareCulling(world, cubes, x, y, z);
+        CullingContext cullingContext = needsCulling(cubes, coverage, pass)
+                ? LittleTilesFaceCuller.prepareCulling(world, cubes, x, y, z)
+                : null;
 
         try {
             for (int i = 0; i < cubes.size(); i++) {

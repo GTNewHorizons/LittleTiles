@@ -213,6 +213,31 @@ public class Triangle3d {
         return edge1;
     }
 
+    /** Cheap broad-phase test used before attempting the allocating polygon split. */
+    public boolean boundsOverlap(Triangle3d other) {
+        return min(p1.x, p2.x, p3.x) <= max(other.p1.x, other.p2.x, other.p3.x) + SPLIT_EPSILON
+                && max(p1.x, p2.x, p3.x) + SPLIT_EPSILON >= min(other.p1.x, other.p2.x, other.p3.x)
+                && min(p1.y, p2.y, p3.y) <= max(other.p1.y, other.p2.y, other.p3.y) + SPLIT_EPSILON
+                && max(p1.y, p2.y, p3.y) + SPLIT_EPSILON >= min(other.p1.y, other.p2.y, other.p3.y)
+                && min(p1.z, p2.z, p3.z) <= max(other.p1.z, other.p2.z, other.p3.z) + SPLIT_EPSILON
+                && max(p1.z, p2.z, p3.z) + SPLIT_EPSILON >= min(other.p1.z, other.p2.z, other.p3.z);
+    }
+
+    /** Whether this triangle and another lie in the same plane. */
+    public boolean isCoplanar(Triangle3d other) {
+        Vector3d normal = unnormalizedNormal();
+        double normalLength = normal.length();
+        return normalLength > SPLIT_EPSILON && other.isCoplanarWith(this, normal, normalLength);
+    }
+
+    private static double min(double a, double b, double c) {
+        return Math.min(a, Math.min(b, c));
+    }
+
+    private static double max(double a, double b, double c) {
+        return Math.max(a, Math.max(b, c));
+    }
+
     /** Whether all corners of this triangle lie in the plane of {@code plane}, whose (unnormalized) normal is given. */
     private boolean isCoplanarWith(Triangle3d plane, Vector3d normal, double normalLength) {
         return plane.distanceToPlane(p1, normal) <= SPLIT_EPSILON * normalLength

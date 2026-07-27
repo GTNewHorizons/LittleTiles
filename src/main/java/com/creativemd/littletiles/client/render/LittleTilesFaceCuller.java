@@ -15,6 +15,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
+import com.creativemd.creativecore.lib.Vector3d;
+import com.creativemd.littletiles.client.util3d.Mesh3d;
+import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
@@ -23,9 +26,11 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Computes which parts of a tile entity's cube faces are covered by other cubes in the same or adjacent tile entities.
  * <p>
- * Covered faces are split by {@link FaceClipper}; fully covered faces produce no pieces and therefore emit no quad.
+ * A box has rectangular faces, so {@link #computeCoverage} subtracts covered rectangles with integer math and hands the
+ * result to {@link FaceClipper}; fully covered faces produce no pieces and therefore emit no quad. A cutout is an
+ * arbitrary mesh instead, so {@link #visibleTriangles} subtracts triangles from its faces directly. Both halves share
+ * the same grid box tests to find out what touches what.
  */
 @SideOnly(Side.CLIENT)
 public final class LittleTilesFaceCuller {
@@ -141,14 +146,13 @@ public final class LittleTilesFaceCuller {
     }
 
     /**
-     * Invalid blocks have nothing to cull and cutouts are meshes rather than boxes. Clipping opaque blocks costs more
-     * CPU than the saved GPU work is worth.
+     * Invalid blocks have nothing to cull. Clipping opaque blocks costs more CPU than the saved GPU work is worth.
      */
     private static boolean ignoreForCulling(LittleTilesCubeObject cube) {
-        return cube.block == null || cube.meta == -1 || cube.cutoutInfo != null || cube.block.isOpaqueCube();
+        return cube.block == null || cube.meta == -1 || cube.block.isOpaqueCube();
     }
 
-    /*
+    /**
      * We only care about occlusion between transparent/translucent blocks of the same type - there we need to cull.
      * Opaque blocks are ignored here.
      */
@@ -161,16 +165,19 @@ public final class LittleTilesFaceCuller {
         return occluder.block == cube.block && occluder.meta == cube.meta && occluder.color == cube.color;
     }
 
+    /** Whether the occluder sits directly against the given side of the cube, without overlapping it. */
+    private static boolean isFlush(LittleTilesCubeObject cube, LittleTilesCubeObject occluder, ForgeDirection side) {
+        Axis axis = Axis.getAxis(side);
+        return RotationUtils.isNegative(side) ? occluder.gridMax(axis) == cube.gridMin(axis)
+                : occluder.gridMin(axis) == cube.gridMax(axis);
+    }
+
     /** Marks the areas the given occluder covers on the faces of {@code cube} it sits flush against. */
     private static void cover(FaceClipper clipper, LittleTilesCubeObject cube, LittleTilesCubeObject occluder) {
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
-            Axis axis = Axis.getAxis(side);
-            boolean flush = RotationUtils.isNegative(side) ? occluder.gridMax(axis) == cube.gridMin(axis)
-                    : occluder.gridMin(axis) == cube.gridMax(axis);
-            if (!flush) {
-                continue;
+            if (isFlush(cube, occluder, side)) {
+                coverSide(clipper, cube, occluder, side);
             }
-            coverSide(clipper, cube, occluder, side);
         }
     }
 
@@ -185,5 +192,126 @@ public final class LittleTilesFaceCuller {
         if (minPlaneX < maxPlaneX && minPlaneY < maxPlaneY) {
             clipper.cover(side, minPlaneX, maxPlaneX, minPlaneY, maxPlaneY);
         }
+    }
+
+    // ================Cutouts================
+
+    /** Geometry shared by all cutouts rendered for one tile entity. */
+    public static final class CutoutCulling {
+
+        private final List<LittleTilesCubeObject> cubes;
+        private final List<Neighbour> neighbours;
+
+        private CutoutCulling(List<LittleTilesCubeObject> cubes, List<Neighbour> neighbours) {
+            this.cubes = cubes;
+            this.neighbours = neighbours;
+        }
+    }
+
+    private static final class Neighbour {
+
+        private final LittleTilesCubeObject cube;
+        private final ForgeDirection side;
+        private final List<Triangle3d> triangles;
+
+        private Neighbour(LittleTilesCubeObject cube, ForgeDirection side, List<Triangle3d> triangles) {
+            this.cube = cube;
+            this.side = side;
+            this.triangles = triangles;
+        }
+    }
+
+    /**
+     * Takes a snapshot of each neighbouring tile entity and moves its border meshes into this block's space. The result
+     * can be reused for every cutout in the current render.
+     */
+    public static CutoutCulling prepareCutoutCulling(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x,
+            int y, int z) {
+        List<Neighbour> neighbours = new ArrayList<>();
+        boolean hasCutout = false;
+        for (LittleTilesCubeObject cube : cubes) {
+            if (cube.renderCache.hasValidMesh()) {
+                hasCutout = true;
+                break;
+            }
+        }
+        if (!hasCutout) {
+            return new CutoutCulling(cubes, neighbours);
+        }
+
+        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
+            List<LittleTilesCubeObject> neighbors = getNeighbourBorderCubes(
+                    world,
+                    x + side.offsetX,
+                    y + side.offsetY,
+                    z + side.offsetZ,
+                    side.getOpposite());
+            for (LittleTilesCubeObject neighbor : neighbors) {
+                if (!neighbor.renderCache.hasValidMesh()) {
+                    continue;
+                }
+                Mesh3d moved = neighbor.renderCache.getSimpleMesh().copy();
+                moved.translate(new Vector3d(side.offsetX, side.offsetY, side.offsetZ));
+                neighbours.add(new Neighbour(neighbor, side, moved.getTriangles()));
+            }
+        }
+        return new CutoutCulling(cubes, neighbours);
+    }
+
+    /**
+     * The triangles of a cutout's mesh that are still visible, after removing what the meshes around it hide - both the
+     * ones in the same tile entity and the ones in the six neighbours.
+     */
+    public static List<Triangle3d> visibleTriangles(CutoutCulling culling, LittleTilesCubeObject cube) {
+        List<Triangle3d> occludingTriangles = getOccludingTriangles(culling, cube);
+        List<Triangle3d> visible = new ArrayList<>();
+        for (Triangle3d triangle : cube.renderCache.getSimpleMesh().getTriangles()) {
+            visible.addAll(cutTriangle(triangle, occludingTriangles));
+        }
+        return visible;
+    }
+
+    /** Every triangle that could hide something of the cube, in this block's space. */
+    private static List<Triangle3d> getOccludingTriangles(CutoutCulling culling, LittleTilesCubeObject cube) {
+        List<Triangle3d> occludingTriangles = new ArrayList<>();
+
+        for (LittleTilesCubeObject occluder : culling.cubes) {
+            if (occluder != cube && occluder.renderCache.hasValidMesh() && canOcclude(occluder, cube)) {
+                occludingTriangles.addAll(occluder.renderCache.getSimpleMesh().getTriangles());
+            }
+        }
+        for (Neighbour neighbour : culling.neighbours) {
+            if (touchesBorder(cube, neighbour.side) && canOcclude(neighbour.cube, cube)) {
+                occludingTriangles.addAll(neighbour.triangles);
+            }
+        }
+        return occludingTriangles;
+    }
+
+    /**
+     * Cuts a triangle and returns whatever is left of the triangle once all occluding triangles are subtracted from it,
+     * empty when it is covered entirely. The triangle counterpart of {@link #coverSide}.
+     */
+    private static List<Triangle3d> cutTriangle(Triangle3d triangle, List<Triangle3d> occludingTriangles) {
+        List<Triangle3d> remaining = Collections.singletonList(triangle.copy());
+        for (Triangle3d occludingTriangle : occludingTriangles) {
+            // Quick check to avoid unnecessary work. We're O(n2) already...
+            if (!triangle.boundsOverlap(occludingTriangle) || !triangle.isCoplanar(occludingTriangle)) {
+                continue;
+            }
+            List<Triangle3d> next = new ArrayList<>();
+            for (Triangle3d piece : remaining) {
+                if (piece.boundsOverlap(occludingTriangle)) {
+                    next.addAll(piece.split(occludingTriangle));
+                } else {
+                    next.add(piece);
+                }
+            }
+            remaining = next;
+            if (remaining.isEmpty()) {
+                break; // fully hidden, the rest of the occluding triangles cannot change that
+            }
+        }
+        return remaining;
     }
 }

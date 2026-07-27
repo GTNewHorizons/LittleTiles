@@ -25,6 +25,11 @@ public class LittleTileRenderCache {
         return simpleMesh;
     }
 
+    public boolean hasValidMesh() {
+        Mesh3d mesh = getSimpleMesh();
+        return mesh != null && !mesh.getTriangles().isEmpty();
+    }
+
     public void invalidateMesh() {
         simpleMesh = null;
     }

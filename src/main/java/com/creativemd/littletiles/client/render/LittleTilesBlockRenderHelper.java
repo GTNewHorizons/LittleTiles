@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.client.render;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -99,7 +100,6 @@ public class LittleTilesBlockRenderHelper {
             IBlockAccess world) {
         // the culler returns copies, an uncut mesh is the one cached on the tile and must not be textured in place
         Mesh3d mesh = new Mesh3d(triangles);
-
         mesh.setTextures(cube.block, cube.meta);
         mesh.translate(new Vector3d(x, y, z));
         Tessellator tess = Tessellator.instance;
@@ -155,6 +155,12 @@ public class LittleTilesBlockRenderHelper {
                 }
 
                 if (cube.block != null && cube.meta != -1) {
+                    // sides a mesh cuts into cannot be drawn as rectangles, the culler hands them back as triangles
+                    List<Triangle3d> boxTriangles = Collections.emptyList();
+                    if (cube.cutoutInfo == null && coverage[i] instanceof FaceClipper) {
+                        FaceClipper clipper = (FaceClipper) coverage[i];
+                        boxTriangles = LittleTilesFaceCuller.visibleBoxTriangles(cutoutCulling, cube, clipper);
+                    }
                     rendered = true;
                     extraRenderer.clearOverrideBlockTexture();
                     extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
@@ -174,6 +180,9 @@ public class LittleTilesBlockRenderHelper {
                     }
                     extraRenderer.lockBlockBounds = false;
                     extraRenderer.color = ColorUtils.WHITE;
+                    if (!boxTriangles.isEmpty()) {
+                        renderTriangles(x, y, z, cube, boxTriangles, world);
+                    }
                 }
             }
         } finally {

@@ -64,9 +64,13 @@ public class Triangle3d {
     }
 
     public void translate(Vector3d vec) {
-        p1.add(vec);
-        p2.add(vec);
-        p3.add(vec);
+        translate(vec.x, vec.y, vec.z);
+    }
+
+    public void translate(double x, double y, double z) {
+        p1.add(x, y, z);
+        p2.add(x, y, z);
+        p3.add(x, y, z);
     }
 
     public Vector3d getNormal() {

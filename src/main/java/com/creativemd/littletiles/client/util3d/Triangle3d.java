@@ -1,5 +1,9 @@
 package com.creativemd.littletiles.client.util3d;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import net.minecraft.block.Block;
 import net.minecraft.util.IIcon;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -11,6 +15,8 @@ import org.joml.Vector3f;
 import com.creativemd.creativecore.lib.Vector3d;
 
 public class Triangle3d {
+
+    private static final double SPLIT_EPSILON = 1.0E-7;
 
     private Vector3d p1, p2, p3;
     private Vector2d tex1, tex2, tex3;
@@ -64,13 +70,9 @@ public class Triangle3d {
     }
 
     public Vector3d getNormal() {
-        Vector3d edge1 = new Vector3d(p2);
-        edge1.sub(p1);
-        Vector3d edge2 = new Vector3d(p3);
-        edge2.sub(p1);
-        edge1.cross(edge1, edge2);
-        edge1.normalize();
-        return edge1;
+        Vector3d normal = unnormalizedNormal();
+        normal.normalize();
+        return normal;
     }
 
     /**
@@ -153,6 +155,147 @@ public class Triangle3d {
         p1 = rotateVector(p1, matrix);
         p2 = rotateVector(p2, matrix);
         p3 = rotateVector(p3, matrix);
+    }
+
+    /**
+     * Removes the area covered by another coplanar triangle.
+     *
+     * @param other triangle whose area is removed from this triangle
+     * @return triangles covering the part of this triangle not covered by {@code other}
+     */
+    public List<Triangle3d> split(Triangle3d other) {
+        List<Triangle3d> result = new ArrayList<>();
+        Vector3d normal = unnormalizedNormal();
+        double doubleArea = normal.length();
+
+        if (doubleArea <= SPLIT_EPSILON || !other.isCoplanarWith(this, normal, doubleArea)) {
+            result.add(copy());
+            return result;
+        }
+        normal.scale(1 / doubleArea);
+
+        // ordered counter-clockwise around the normal, so that a point is inside the cutter when it is left of all
+        // three of its edges
+        List<Vector3d> cutter = other.corners();
+        double cutterWinding = signedArea(cutter.get(0), cutter.get(1), cutter.get(2), normal);
+        if (Math.abs(cutterWinding) <= SPLIT_EPSILON) {
+            result.add(copy());
+            return result;
+        }
+        if (cutterWinding < 0) {
+            Collections.reverse(cutter);
+        }
+
+        List<Vector3d> inside = corners();
+        for (int i = 0; i < 3 && !inside.isEmpty(); i++) {
+            List<Vector3d> outside = new ArrayList<>();
+            inside = clip(inside, cutter.get(i), cutter.get((i + 1) % 3), normal, outside);
+            addTriangulated(result, outside, normal);
+        }
+
+        return result;
+    }
+
+    private List<Vector3d> corners() {
+        List<Vector3d> corners = new ArrayList<>(3);
+        corners.add(new Vector3d(p1));
+        corners.add(new Vector3d(p2));
+        corners.add(new Vector3d(p3));
+        return corners;
+    }
+
+    private Vector3d unnormalizedNormal() {
+        Vector3d edge1 = new Vector3d(p2);
+        edge1.sub(p1);
+        Vector3d edge2 = new Vector3d(p3);
+        edge2.sub(p1);
+        edge1.cross(edge1, edge2);
+        return edge1;
+    }
+
+    /** Whether all corners of this triangle lie in the plane of {@code plane}, whose (unnormalized) normal is given. */
+    private boolean isCoplanarWith(Triangle3d plane, Vector3d normal, double normalLength) {
+        return plane.distanceToPlane(p1, normal) <= SPLIT_EPSILON * normalLength
+                && plane.distanceToPlane(p2, normal) <= SPLIT_EPSILON * normalLength
+                && plane.distanceToPlane(p3, normal) <= SPLIT_EPSILON * normalLength;
+    }
+
+    private double distanceToPlane(Vector3d point, Vector3d normal) {
+        Vector3d offset = new Vector3d(point);
+        offset.sub(p1);
+        return Math.abs(offset.dot(normal));
+    }
+
+    /** Twice the signed area of the triangle {@code a, b, point}, positive when the point is left of {@code a -> b}. */
+    private static double signedArea(Vector3d a, Vector3d b, Vector3d point, Vector3d normal) {
+        Vector3d edge = new Vector3d(b);
+        edge.sub(a);
+        Vector3d toPoint = new Vector3d(point);
+        toPoint.sub(a);
+        edge.cross(edge, toPoint);
+        return edge.dot(normal);
+    }
+
+    /**
+     * Splits the polygon along the line {@code edgeStart -> edgeEnd}. Corners on the line end up in both halves, so
+     * that neither half leaves a gap.
+     *
+     * @param outside collects the part right of the line
+     * @return the part left of the line
+     */
+    private static List<Vector3d> clip(List<Vector3d> polygon, Vector3d edgeStart, Vector3d edgeEnd, Vector3d normal,
+            List<Vector3d> outside) {
+        List<Vector3d> inside = new ArrayList<>();
+        Vector3d previous = polygon.get(polygon.size() - 1);
+        double previousSide = signedArea(edgeStart, edgeEnd, previous, normal);
+        boolean previousInside = previousSide >= -SPLIT_EPSILON;
+        boolean previousOutside = previousSide <= SPLIT_EPSILON;
+
+        for (Vector3d current : polygon) {
+            double currentSide = signedArea(edgeStart, edgeEnd, current, normal);
+            boolean currentInside = currentSide >= -SPLIT_EPSILON;
+            boolean currentOutside = currentSide <= SPLIT_EPSILON;
+
+            if (currentInside != previousInside || currentOutside != previousOutside) {
+                double denominator = previousSide - currentSide;
+                double amount = Math.abs(denominator) <= SPLIT_EPSILON ? 0 : previousSide / denominator;
+                amount = Math.max(0, Math.min(1, amount));
+                Vector3d crossing = new Vector3d(previous);
+                crossing.interpolate(current, amount);
+                if (currentInside != previousInside) {
+                    inside.add(crossing);
+                }
+                if (currentOutside != previousOutside) {
+                    outside.add(new Vector3d(crossing));
+                }
+            }
+            if (currentInside) {
+                inside.add(new Vector3d(current));
+            }
+            if (currentOutside) {
+                outside.add(new Vector3d(current));
+            }
+
+            previous = current;
+            previousSide = currentSide;
+            previousInside = currentInside;
+            previousOutside = currentOutside;
+        }
+        return inside;
+    }
+
+    private static void addTriangulated(List<Triangle3d> triangles, List<Vector3d> polygon, Vector3d normal) {
+        // the polygon is always convex, since it originates from a triangle cut by straight lines
+        for (int i = 1; i < polygon.size() - 1; i++) {
+            Triangle3d triangle = new Triangle3d(
+                    new Vector3d(polygon.get(0)),
+                    new Vector3d(polygon.get(i)),
+                    new Vector3d(polygon.get(i + 1)));
+            if (triangle.unnormalizedNormal().length() > SPLIT_EPSILON) {
+                triangle.ensureWindingOrder(normal);
+                triangles.add(triangle);
+            }
+        }
     }
 
     public Triangle3d copy() {

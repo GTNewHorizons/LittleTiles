@@ -3,7 +3,7 @@ package com.creativemd.littletiles.common.utils;
 import net.minecraft.util.StatCollector;
 
 public enum LittleTileShapeMode {
-
+    // Only add new enums at the end, otherwise existing shapes will break.
     BOX("key.littletiles.box"),
     SLOPE("key.littletiles.slope"),
     PILLAR("key.littletiles.pillar"),
@@ -12,7 +12,8 @@ public enum LittleTileShapeMode {
     SLOPE_TRIANGLE("key.littletiles.slope_triangle"),
     SLOPE_TRIANGLE_CORNER("key.littletiles.slope_triangle_corner"),
     SLOPE_OUTER_CORNER("key.littletiles.slope_outer_corner"),
-    SLOPE_INNER_CORNER("key.littletiles.slope_inner_corner");
+    SLOPE_INNER_CORNER("key.littletiles.slope_inner_corner"),
+    SLOPE_TRIANGLE_ALT("key.littletiles.slope_triangle_alt");
 
     private final String name;
 

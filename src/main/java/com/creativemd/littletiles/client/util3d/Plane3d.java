@@ -117,13 +117,21 @@ public class Plane3d {
         return normal;
     }
 
+    /**
+     * A face at 45 degrees to two axes fits both of their planes equally well. Which one is picked does not matter, but
+     * it has to be the same one for every triangle of that face, otherwise their textures do not line up. Requiring a
+     * plane to be better by more than {@link #PLANE_EPSILON} keeps the first of the tied planes, instead of letting
+     * rounding noise of an individual triangle decide.
+     */
+    private static final double PLANE_EPSILON = 1.0E-4;
+
     public static Plane3d getPlaneForTriangle(Triangle3d triangle) {
         Vector3d normal = triangle.getNormal();
         Plane3d ret = null;
         double biggestDot = -1;
         for (Plane3d plane : planes) {
             double dot = plane.getNormal().dot(normal);
-            if (dot > biggestDot) {
+            if (dot > biggestDot + PLANE_EPSILON) {
                 biggestDot = dot;
                 ret = plane;
             }

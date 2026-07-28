@@ -25,7 +25,8 @@ public class OrientationMapper {
                     Matrix3f matrix = new Matrix3f();
                     matrix.rotateX((float) Math.PI / 2 * xRot);
                     matrix.rotateY((float) Math.PI / 2 * yRot);
-                    matrix.rotateZ((float) Math.PI / 2 * zRot);;
+                    matrix.rotateZ((float) Math.PI / 2 * zRot);
+                    snapToCubeOrientation(matrix);
 
                     String key = toKey(matrix);
                     if (!LOOKUP.containsKey(key)) {
@@ -38,6 +39,23 @@ public class OrientationMapper {
 
         if (ORIENTATIONS.size() != NUM_ORIENTATIONS)
             throw new RuntimeException("Expected 24 orientations, got " + ORIENTATIONS.size());
+    }
+
+    /**
+     * These matrices only describe quarter-turn cube orientations, so every component is exactly -1, 0 or 1.
+     * Trigonometric construction leaves small float errors which otherwise make touching mesh faces appear to be on
+     * different planes.
+     */
+    private static void snapToCubeOrientation(Matrix3f matrix) {
+        matrix.m00 = Math.round(matrix.m00);
+        matrix.m01 = Math.round(matrix.m01);
+        matrix.m02 = Math.round(matrix.m02);
+        matrix.m10 = Math.round(matrix.m10);
+        matrix.m11 = Math.round(matrix.m11);
+        matrix.m12 = Math.round(matrix.m12);
+        matrix.m20 = Math.round(matrix.m20);
+        matrix.m21 = Math.round(matrix.m21);
+        matrix.m22 = Math.round(matrix.m22);
     }
 
     /** Convert matrix to key string */

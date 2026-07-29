@@ -20,6 +20,9 @@ import cpw.mods.fml.common.FMLLog;
 
 public class Mesh3d {
 
+    private static final double DEGENERATE_EPSILON = 1.0E-8;
+    private static final double DEGENERATE_EPSILON_SQUARED = DEGENERATE_EPSILON * DEGENERATE_EPSILON;
+
     private final List<Triangle3d> triangles;
 
     public Mesh3d(List<Triangle3d> triangles) {
@@ -51,6 +54,22 @@ public class Mesh3d {
     }
 
     private static int logCount;
+    private static int dumpCount;
+
+    public File dumpMesh() {
+        File mcDir;
+        if (FMLCommonHandler.instance().getSide().isClient()) {
+            mcDir = Minecraft.getMinecraft().mcDataDir;
+        } else {
+            mcDir = new File(".");
+        }
+        File logsFolder = new File(mcDir, "logs");
+        File outFile = new File(logsFolder, "littleTilesDumpMesh" + dumpCount + ".obj");
+        dumpCount++;
+        exportObj(outFile);
+        FMLLog.getLogger().info("Dumped mesh into " + outFile.getAbsolutePath());
+        return outFile;
+    }
 
     private void dumpFailingMesh() {
         File mcDir;
@@ -84,9 +103,11 @@ public class Mesh3d {
 
             if (above.isEmpty()) {
                 // Entire triangle is below the plane, keep it
-                newTriangles.add(triangle);
-                if (on.size() == 2) {
-                    existingEdges.add(new Edge3d(on.get(0), on.get(1)));
+                if (!isDegenerate(triangle.getP1(), triangle.getP2(), triangle.getP3())) {
+                    newTriangles.add(triangle);
+                    if (on.size() == 2) {
+                        existingEdges.add(new Edge3d(on.get(0), on.get(1)));
+                    }
                 }
             } else if (below.isEmpty()) {
                 // SKIP
@@ -144,7 +165,9 @@ public class Mesh3d {
     }
 
     public static boolean isDegenerate(Vector3d p1, Vector3d p2, Vector3d p3) {
-        if (p1.equals(p2) || p1.equals(p3) || p2.equals(p3)) {
+        if (distanceSquared(p1, p2) <= DEGENERATE_EPSILON_SQUARED
+                || distanceSquared(p1, p3) <= DEGENERATE_EPSILON_SQUARED
+                || distanceSquared(p2, p3) <= DEGENERATE_EPSILON_SQUARED) {
             return true;
         }
 
@@ -153,7 +176,14 @@ public class Mesh3d {
         Vector3d edge2 = new Vector3d(p3);
         edge2.sub(p1);
         edge1.cross(edge1, edge2);
-        return edge1.lengthSquared() == 0;
+        return edge1.lengthSquared() <= DEGENERATE_EPSILON_SQUARED;
+    }
+
+    private static double distanceSquared(Vector3d p1, Vector3d p2) {
+        double dx = p1.x - p2.x;
+        double dy = p1.y - p2.y;
+        double dz = p1.z - p2.z;
+        return dx * dx + dy * dy + dz * dz;
     }
 
     // Handles case when 2 vertices are below the plane, 1 is above

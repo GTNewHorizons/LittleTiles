@@ -15,6 +15,7 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
@@ -366,8 +367,26 @@ public class TileEntityLittleTiles extends TileEntity {
 
     @SideOnly(Side.CLIENT)
     public void updateRender() {
+        // Culling looks across block borders, so what the neighbours had cut away can be stale now as well.
+        invalidateCutCaches();
+        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
+            TileEntity neighbour = worldObj
+                    .getTileEntity(xCoord + side.offsetX, yCoord + side.offsetY, zCoord + side.offsetZ);
+            if (neighbour instanceof TileEntityLittleTiles) {
+                ((TileEntityLittleTiles) neighbour).invalidateCutCaches();
+            }
+        }
         needsLightUpdate = true;
-        worldObj.markBlockRangeForRenderUpdate(xCoord, yCoord, zCoord, xCoord, yCoord, zCoord);
+        worldObj.markBlockRangeForRenderUpdate(xCoord - 1, yCoord - 1, zCoord - 1, xCoord + 1, yCoord + 1, zCoord + 1);
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void invalidateCutCaches() {
+        synchronized (tiles) {
+            for (LittleTile tile : tiles) {
+                tile.invalidateClientCutCache();
+            }
+        }
     }
 
     public ChunkCoordinates getCoord() {

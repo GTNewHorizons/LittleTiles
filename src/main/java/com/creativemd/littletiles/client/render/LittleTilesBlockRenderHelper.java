@@ -1,6 +1,8 @@
 package com.creativemd.littletiles.client.render;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
@@ -22,6 +24,7 @@ import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.client.render.LittleTilesFaceCuller.CullingContext;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
@@ -73,12 +76,34 @@ public class LittleTilesBlockRenderHelper {
         GL11.glPopMatrix();
     }
 
-    private static boolean renderCutout(int x, int y, int z, LittleTilesCubeObject cube, IBlockAccess world) {
-        Mesh3d cachedMesh = cube.renderCache.getSimpleMesh();
-        if (cachedMesh == null) {
-            return false;
+    /** What became of a cutout tile. */
+    private enum CutoutResult {
+        /** Its mesh went into the tessellator. */
+        DRAWN,
+        /** Every face of it is covered - nothing to draw, and the cube must not be drawn in its place either. */
+        HIDDEN,
+        /** It has no usable mesh, so it falls back to being drawn as a plain cube. */
+        FAILED
+    }
+
+    private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
+            IBlockAccess world) {
+        if (!cube.renderCache.hasValidMesh()) {
+            return CutoutResult.FAILED;
         }
-        Mesh3d mesh = cachedMesh.copy();
+
+        List<Triangle3d> visible = LittleTilesFaceCuller.visibleCutoutTriangles(culling, cube);
+        if (visible.isEmpty()) {
+            return CutoutResult.HIDDEN;
+        }
+        renderTriangles(x, y, z, cube, visible, world);
+        return CutoutResult.DRAWN;
+    }
+
+    private static void renderTriangles(int x, int y, int z, LittleTilesCubeObject cube, List<Triangle3d> triangles,
+            IBlockAccess world) {
+        // cut results are cached on the tile and must not be textured or translated in place
+        Mesh3d mesh = new Mesh3d(triangles).copy();
         mesh.setTextures(cube.block, cube.meta);
         mesh.translate(new Vector3d(x, y, z));
         Tessellator tess = Tessellator.instance;
@@ -92,13 +117,34 @@ public class LittleTilesBlockRenderHelper {
             Vector2d tex1 = triangle.getTex1();
             Vector2d tex2 = triangle.getTex2();
             Vector2d tex3 = triangle.getTex3();
-            tess.setColorOpaque_F(1, 1, 1);
+            tess.setColorOpaque_I(cube.color);
             tess.addVertexWithUV(p1.x, p1.y, p1.z, tex1.x, tex1.y);
             tess.addVertexWithUV(p2.x, p2.y, p2.z, tex2.x, tex2.y);
             tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
             tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
         }
-        return !mesh.getTriangles().isEmpty();
+    }
+
+    /**
+     * Whether any cube still has to be culled, rather than being served from its cached cut result. Gathering the
+     * geometry to cull against reaches into the six neighbouring tile entities, which is not worth doing when every
+     * cube of this one already knows what is visible of it.
+     */
+    private static boolean needsCulling(List<LittleTilesCubeObject> cubes, IFaceClipper[] coverage, int pass) {
+        for (int i = 0; i < cubes.size(); i++) {
+            LittleTilesCubeObject cube = cubes.get(i);
+            if (!cube.block.canRenderInPass(pass)) {
+                continue;
+            }
+            if (cube.cutoutInfo != null) {
+                if (cube.renderCache.hasValidMesh() && cube.renderCache.getVisibleCutoutTriangles() == null) {
+                    return true;
+                }
+            } else if (coverage[i] instanceof FaceClipper && cube.renderCache.getVisibleBoxTriangles() == null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean renderCubes(IBlockAccess world, ArrayList<LittleTilesCubeObject> cubes, int x, int y, int z,
@@ -114,6 +160,9 @@ public class LittleTilesBlockRenderHelper {
         boolean rendered = false;
 
         IFaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(world, cubes, x, y, z);
+        CullingContext cullingContext = needsCulling(cubes, coverage, pass)
+                ? LittleTilesFaceCuller.prepareCulling(world, cubes, x, y, z)
+                : null;
 
         try {
             for (int i = 0; i < cubes.size(); i++) {
@@ -121,16 +170,26 @@ public class LittleTilesBlockRenderHelper {
                 if (!cube.block.canRenderInPass(pass)) {
                     continue;
                 }
-                rendered = true;
-
                 if (cube.cutoutInfo != null) {
-                    if (renderCutout(x, y, z, cube, world)) {
+                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, world);
+                    if (result == CutoutResult.DRAWN) {
+                        rendered = true;
+                        continue;
+                    }
+                    if (result == CutoutResult.HIDDEN) {
                         continue;
                     }
                     // For buggy meshes, render the default cube
                 }
 
                 if (cube.block != null && cube.meta != -1) {
+                    // sides a mesh cuts into cannot be drawn as rectangles, the culler hands them back as triangles
+                    List<Triangle3d> boxTriangles = Collections.emptyList();
+                    if (cube.cutoutInfo == null && coverage[i] instanceof FaceClipper) {
+                        FaceClipper clipper = (FaceClipper) coverage[i];
+                        boxTriangles = LittleTilesFaceCuller.visibleBoxTriangles(cullingContext, cube, clipper);
+                    }
+                    rendered = true;
                     extraRenderer.clearOverrideBlockTexture();
                     extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
                     extraRenderer.meta = cube.meta;
@@ -149,6 +208,9 @@ public class LittleTilesBlockRenderHelper {
                     }
                     extraRenderer.lockBlockBounds = false;
                     extraRenderer.color = ColorUtils.WHITE;
+                    if (!boxTriangles.isEmpty()) {
+                        renderTriangles(x, y, z, cube, boxTriangles, world);
+                    }
                 }
             }
         } finally {

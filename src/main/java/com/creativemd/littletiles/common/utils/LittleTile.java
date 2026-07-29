@@ -482,6 +482,11 @@ public abstract class LittleTile {
         renderCache.invalidateMesh();
     }
 
+    /** Drops what culling produced for this tile, without dropping the mesh it was cut from. */
+    public void invalidateClientCutCache() {
+        renderCache.invalidateCuts();
+    }
+
     @SideOnly(Side.CLIENT)
     public LittleTileRenderCache getRenderCache() {
         return renderCache;

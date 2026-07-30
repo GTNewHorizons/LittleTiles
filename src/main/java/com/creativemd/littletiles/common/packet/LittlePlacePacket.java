@@ -80,8 +80,7 @@ public class LittlePlacePacket extends CreativeCorePacket {
         ItemStack serverHeldStack = player.getCurrentEquippedItem();
         // Prefer server-authoritative held item for regular placement to avoid stale packet NBT.
         // Keep packet-provided synthetic stack when the held item is the chisel workflow.
-        if (serverHeldStack != null
-                && serverHeldStack.getItem() != LittleTiles.chisel
+        if (serverHeldStack != null && serverHeldStack.getItem() != LittleTiles.chisel
                 && PlacementHelper.isLittleBlock(serverHeldStack)) {
             placementStack = serverHeldStack;
         }

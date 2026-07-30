@@ -21,10 +21,12 @@ import com.creativemd.littletiles.common.events.LittleEvent;
 import com.creativemd.littletiles.common.items.ItemBlockTiles;
 import com.creativemd.littletiles.common.items.ItemColorTube;
 import com.creativemd.littletiles.common.items.ItemHammer;
+import com.creativemd.littletiles.common.items.ItemLittleBag;
 import com.creativemd.littletiles.common.items.ItemLittleChisel;
 import com.creativemd.littletiles.common.items.ItemLittleSaw;
 import com.creativemd.littletiles.common.items.ItemLittleWrench;
 import com.creativemd.littletiles.common.items.ItemMultiTiles;
+import com.creativemd.littletiles.common.items.ItemPartialTiles;
 import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.items.ItemRubberMallet;
 import com.creativemd.littletiles.common.items.ItemTileContainer;
@@ -52,6 +54,7 @@ import cpw.mods.fml.common.Mod.Instance;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
+import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 @Mod(
@@ -89,6 +92,8 @@ public class LittleTiles {
     public static Item saw = new ItemLittleSaw().setUnlocalizedName("LTSaw").setCreativeTab(creativeTabLittleTiles);
     public static Item container = new ItemTileContainer().setUnlocalizedName("LTContainer")
             .setCreativeTab(creativeTabLittleTiles);
+    public static Item littleBag = new ItemLittleBag().setUnlocalizedName("LTLittleBag")
+            .setCreativeTab(creativeTabLittleTiles);
     public static Item wrench = new ItemLittleWrench().setUnlocalizedName("LTWrench")
             .setCreativeTab(creativeTabLittleTiles);
     public static Item chisel = new ItemLittleChisel().setUnlocalizedName("LTChisel")
@@ -97,8 +102,14 @@ public class LittleTiles {
             .setCreativeTab(creativeTabLittleTiles);
     public static Item rubberMallet = new ItemRubberMallet().setUnlocalizedName("LTRubberMallet")
             .setCreativeTab(creativeTabLittleTiles);
+    public static Item partialTiles = new ItemPartialTiles().setUnlocalizedName("LTPartialTiles");
 
     public static AngelicaCompat angelicaCompat;
+
+    @EventHandler
+    public void preInit(FMLPreInitializationEvent event) {
+        LittleTilesConfig.load(event);
+    }
 
     @EventHandler
     public void Init(FMLInitializationEvent event) {
@@ -108,10 +119,12 @@ public class LittleTiles {
         GameRegistry.registerItem(recipe, "recipe");
         GameRegistry.registerItem(saw, "saw");
         GameRegistry.registerItem(container, "container");
+        GameRegistry.registerItem(littleBag, "littleBag");
         GameRegistry.registerItem(wrench, "wrench");
         GameRegistry.registerItem(chisel, "chisel");
         GameRegistry.registerItem(colorTube, "colorTube");
         GameRegistry.registerItem(rubberMallet, "rubberMallet");
+        GameRegistry.registerItem(partialTiles, "partialTiles");
 
         // GameRegistry.registerBlock(coloredBlock, "LTColoredBlock");
         GameRegistry.registerBlock(coloredBlock, ItemBlockColored.class, "LTColoredBlock");

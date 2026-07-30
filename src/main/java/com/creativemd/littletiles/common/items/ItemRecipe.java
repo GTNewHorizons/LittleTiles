@@ -25,7 +25,9 @@ import com.creativemd.littletiles.common.gui.SubGuiStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
+import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 
 import cpw.mods.fml.relauncher.Side;
@@ -145,7 +147,20 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
         int tiles = stack.stackTagCompound.getInteger("tiles");
         for (int i = 0; i < tiles; i++) {
             NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);
+            LittleTileSize oldSize = null;
+            if (nbt.hasKey("bBoxminX")) {
+                oldSize = new LittleTileBox("bBox", nbt).getSize();
+            }
             LittleTilePreview.rotatePreview(nbt, direction);
+            if (oldSize != null && nbt.hasKey("cutoutOrientation")) {
+                NBTTagCompound old = new NBTTagCompound();
+                old.setInteger("sizex", oldSize.sizeX);
+                old.setInteger("sizey", oldSize.sizeY);
+                old.setInteger("sizez", oldSize.sizeZ);
+                ItemStack previewStack = new ItemStack(Item.getItemFromBlock(LittleTiles.blockTile));
+                previewStack.stackTagCompound = nbt;
+                new LittleToolHandler(previewStack).handleRotation(direction, old);
+            }
             stack.stackTagCompound.setTag("tile" + i, nbt);
         }
     }
@@ -212,6 +227,15 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
         ArrayList<CubeObject> cubes = new ArrayList<>();
         if (preview != null) {
             for (LittleTilePreview littleTilePreview : preview) {
+                try {
+                    LittleTile tile = LittleTile.CreateandLoadTile(null, null, littleTilePreview.nbt);
+                    if (tile != null) {
+                        cubes.addAll(tile.getRenderingCubes());
+                        continue;
+                    }
+                } catch (Exception ignored) {
+
+                }
                 cubes.add(littleTilePreview.getCubeBlock());
             }
         }

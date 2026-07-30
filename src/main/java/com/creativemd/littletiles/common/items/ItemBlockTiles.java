@@ -184,7 +184,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             return false;
         }
 
-        return plan.applyPlan(world, player, stack, structure, unplaceableTiles, cutoutInfo);
+        return plan.applyPlan(world, player, stack, structure, unplaceableTiles);
     }
 
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,

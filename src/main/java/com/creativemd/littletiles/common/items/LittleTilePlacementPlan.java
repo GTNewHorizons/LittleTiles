@@ -105,7 +105,7 @@ public class LittleTilePlacementPlan {
     }
 
     public boolean applyPlan(World world, EntityPlayer player, ItemStack stack, LittleStructure structure,
-            ArrayList<LittleTile> unplaceableTiles, LittleTileCutoutInfo cutoutInfo) {
+            ArrayList<LittleTile> unplaceableTiles) {
         structureMainPosition = null;
         soundsToBePlayed.clear();
         boolean didPlace = false;
@@ -115,7 +115,7 @@ public class LittleTilePlacementPlan {
                 continue;
             }
             for (PreviewTile placeTile : entry.placeTiles) {
-                didPlace |= applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles, cutoutInfo);
+                didPlace |= applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles);
             }
             if (structure != null) tile.combineTiles(structure);
         }
@@ -193,10 +193,9 @@ public class LittleTilePlacementPlan {
     }
 
     private boolean applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile,
-            EntityPlayer player, ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles,
-            LittleTileCutoutInfo cutoutInfo) {
-        LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile, cutoutInfo);
-        LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile, cutoutInfo);
+            EntityPlayer player, ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
+        LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile, this.cutoutInfo);
+        LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile, this.cutoutInfo);
         // Mesh-backed fragments can clip to empty space when split across blocks.
         // In that case we skip placement for this fragment instead of placing a full box tile.
         if (baseCutoutInfo != null && cutoutInfoCurrent == null) {

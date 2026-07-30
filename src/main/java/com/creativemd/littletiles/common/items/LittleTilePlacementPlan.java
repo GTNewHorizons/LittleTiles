@@ -15,6 +15,8 @@ import net.minecraft.world.World;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.TriangleBoundingBoxIntersect;
+import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -30,6 +32,19 @@ import com.creativemd.littletiles.utils.PreviewTile;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 
 public class LittleTilePlacementPlan {
+
+    private static class PlannedCollisionTile {
+
+        public final LittleTileBox box;
+        public final LittleTileCutoutInfo cutout;
+        public final Mesh3d mesh;
+
+        public PlannedCollisionTile(LittleTileBox box, LittleTileCutoutInfo cutout, Mesh3d mesh) {
+            this.box = box;
+            this.cutout = cutout;
+            this.mesh = mesh;
+        }
+    }
 
     public static final class SplitPreviewMap
             extends Object2ObjectLinkedOpenHashMap<ChunkCoordinates, ArrayList<PreviewTile>> {
@@ -143,7 +158,7 @@ public class LittleTilePlacementPlan {
 
             // Collision check against an existing LittleTiles TE. Special place mode bypasses this on
             // purpose — overriding collisions is its whole reason to exist.
-            if (!specialPlaceMode && tile != null && !isSpaceForTiles(tile, placeTiles, coord)) {
+            if (!specialPlaceMode && !isSpaceForTiles(tile, placeTiles, coord)) {
                 return false;
             }
 
@@ -281,10 +296,55 @@ public class LittleTilePlacementPlan {
         return previewTile.box;
     }
 
+    private static boolean collides(LittleTileBox boxA, Mesh3d meshA, LittleTileBox boxB, Mesh3d meshB) {
+        if (!boxA.getBox().intersectsWith(boxB.getBox())) {
+            return false;
+        }
+
+        if (meshA == null && meshB == null) {
+            return true;
+        }
+        if (meshA != null && meshB != null) {
+            return TriangleTriangleIntersect.meshIntersection(meshA, meshB);
+        }
+        if (meshA != null) {
+            return TriangleBoundingBoxIntersect.intersect(meshA, boxB);
+        }
+        return TriangleBoundingBoxIntersect.intersect(meshB, boxA);
+    }
+
+    private PlannedCollisionTile getPlannedCollisionTile(PreviewTile previewTile, LittleTileCutoutInfo cutoutInfoCurrent) {
+        LittleTileBox box = previewTile.box.copy();
+        LittleTileCutoutInfo effectiveCutout = cutoutInfoCurrent;
+        Mesh3d mesh = null;
+
+        if (previewTile.preview != null && previewTile.preview.nbt != null) {
+            LittleTile tile = LittleTile.CreateandLoadTile(null, null, previewTile.preview.nbt);
+            if (tile != null) {
+                tile.boundingBox = box.copy();
+                tile.updateCorner();
+                if (cutoutInfoCurrent != null) {
+                    tile.setCutoutInfo(cutoutInfoCurrent);
+                }
+                effectiveCutout = tile.getCutoutInfo();
+                mesh = tile.getSimpleMesh();
+            }
+        }
+
+        if (mesh == null && effectiveCutout != null) {
+            mesh = Mesh3dUtil.meshFromTile(box, effectiveCutout);
+        }
+
+        return new PlannedCollisionTile(box, effectiveCutout, mesh);
+    }
+
     private boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles,
             ChunkCoordinates coord) {
+        ArrayList<PlannedCollisionTile> plannedTiles = new ArrayList<>();
+
         for (PreviewTile tile : placeTiles) {
             if (!tile.needsCollisionTest()) continue;
+
             LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(tile, cutoutInfo);
             LittleTileCutoutInfo perTileCutout = null;
             if (baseCutoutInfo != null) {
@@ -293,7 +353,22 @@ public class LittleTilePlacementPlan {
                     continue;
                 }
             }
-            if (!mainTile.isSpaceForLittleTile(tile.box, perTileCutout)) return false;
+
+            PlannedCollisionTile collisionTile = getPlannedCollisionTile(tile, perTileCutout);
+
+            // Check against already existing tiles in target block.
+            if (mainTile != null && !mainTile.isSpaceForLittleTile(collisionTile.box, collisionTile.cutout)) {
+                return false;
+            }
+
+            // Also enforce collisions within this plan entry itself (tile-vs-tile in same batch).
+            for (PlannedCollisionTile planned : plannedTiles) {
+                if (collides(collisionTile.box, collisionTile.mesh, planned.box, planned.mesh)) {
+                    return false;
+                }
+            }
+
+            plannedTiles.add(collisionTile);
         }
         return true;
     }

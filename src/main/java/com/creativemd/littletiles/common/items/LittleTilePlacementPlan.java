@@ -312,7 +312,8 @@ public class LittleTilePlacementPlan {
         return TriangleBoundingBoxIntersect.intersect(meshB, boxA);
     }
 
-    private PlannedCollisionTile getPlannedCollisionTile(PreviewTile previewTile, LittleTileCutoutInfo cutoutInfoCurrent) {
+    private PlannedCollisionTile getPlannedCollisionTile(PreviewTile previewTile,
+            LittleTileCutoutInfo cutoutInfoCurrent) {
         LittleTileBox box = previewTile.box.copy();
         LittleTileCutoutInfo effectiveCutout = cutoutInfoCurrent;
         Mesh3d mesh = null;

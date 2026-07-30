@@ -502,10 +502,26 @@ public abstract class LittleTile {
     public List<LittleTile> splitByTile(LittleTile other) {
         List<LittleTileBox> newBoxes = this.boundingBox.splitByBox(other.boundingBox);
         List<LittleTile> ret = new ArrayList<>();
+        LittleTileBox originalBox = this.boundingBox;
 
         for (LittleTileBox box : newBoxes) {
             LittleTile tile = this.copy();
             tile.boundingBox = box;
+
+            if (this.cutoutInfo != null) {
+                LittleTileCutoutInfo remappedCutout = new LittleTileCutoutInfo(this.cutoutInfo);
+                remappedCutout.pos.x += originalBox.minX - box.minX;
+                remappedCutout.pos.y += originalBox.minY - box.minY;
+                remappedCutout.pos.z += originalBox.minZ - box.minZ;
+
+                Mesh3d clippedMesh = Mesh3dUtil.meshFromTile(box, remappedCutout);
+                if (clippedMesh.getTriangles().isEmpty()) {
+                    continue;
+                }
+                tile.setCutoutInfo(remappedCutout);
+            }
+
+            tile.updateCorner();
             ret.add(tile);
         }
         return ret;

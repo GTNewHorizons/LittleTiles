@@ -251,6 +251,8 @@ public class LittleTilesBlockRenderHelper {
                 if (mesh != null) {
                     mesh = mesh.copy();
                     mesh.setTextures(block, metadata);
+                    boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
+                    GL11.glDisable(GL11.GL_LIGHTING);
                     GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
                     for (Triangle3d triangle : mesh.getTriangles()) {
                         GL11.glBegin(GL11.GL_TRIANGLES);
@@ -263,6 +265,9 @@ public class LittleTilesBlockRenderHelper {
                         GL11.glEnd();
                     }
                     GL11.glTranslatef(0.5F, 0.5F, 0.5F);
+                    if (lightingWasEnabled) {
+                        GL11.glEnable(GL11.GL_LIGHTING);
+                    }
                     continue;
                 }
             }

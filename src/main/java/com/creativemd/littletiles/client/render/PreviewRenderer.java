@@ -28,6 +28,7 @@ import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
@@ -241,10 +242,23 @@ public class PreviewRenderer {
                         Vec3 color = previewTile.getPreviewColor();
 
                         LittleToolHandler toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
-                        LittleTileShapeMode shape = toolHandler.getShape();
+                        LittleTileCutoutInfo tileCutout = null;
+                        if (previewTile.preview != null) {
+                            tileCutout = LittleTileCutoutInfo.loadFromNBT(previewTile.preview.nbt);
+                        }
 
-                        // Needed for block picked cutouts
-                        Vector3d cutoutSize = toolHandler.getTileSize();
+                        // Prefer per-tile cutout data so multi-mesh items preview correctly.
+                        LittleTileShapeMode shape = tileCutout != null ? tileCutout.type : toolHandler.getShape();
+                        Vector3d cutoutSize = tileCutout != null
+                            ? new Vector3d(
+                                tileCutout.size.x / 16.0,
+                                tileCutout.size.y / 16.0,
+                                tileCutout.size.z / 16.0)
+                            : toolHandler.getTileSize();
+                        int cutoutOrientation = tileCutout != null ? tileCutout.orientation : toolHandler.getOrientation();
+                        Vector3i cutoutOrigin = tileCutout != null
+                            ? new Vector3i(tileCutout.pos)
+                            : toolHandler.getTileOriginal();
 
                         if (!(shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR)) {
                             cubeX -= size.xCoord / 2;
@@ -271,22 +285,33 @@ public class PreviewRenderer {
                                     color.zCoord,
                                     Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5);
                         } else {
+                            LittleTileBox originalPreviewBox = previewTile.preview != null && previewTile.preview.box != null
+                                ? previewTile.preview.box
+                                : previewBox;
+                            Vector3i subMin = new Vector3i(previewBox.minX, previewBox.minY, previewBox.minZ);
+                            Vector3i subMax = new Vector3i(previewBox.maxX, previewBox.maxY, previewBox.maxZ);
+                            Vector3i cutoutOriginCurrent = new Vector3i(
+                                cutoutOrigin.x + previewBox.minX - originalPreviewBox.minX,
+                                cutoutOrigin.y + previewBox.minY - originalPreviewBox.minY,
+                                cutoutOrigin.z + previewBox.minZ - originalPreviewBox.minZ);
+                            // Mesh vertices are shifted by subMin in renderMesh/createMesh.
+                            // Use block-space origin here so translation is applied exactly once.
+                            double meshX = cubeX - cube.minX;
+                            double meshY = cubeY - cube.minY;
+                            double meshZ = cubeZ - cube.minZ;
                             LittleTilesBlockRenderHelper.renderMesh(
-                                    cubeX,
-                                    cubeY,
-                                    cubeZ,
+                                    meshX,
+                                    meshY,
+                                    meshZ,
                                     cutoutSize,
-                                    toolHandler.getOrientation(),
+                                    cutoutOrientation,
                                     color.xCoord,
                                     color.yCoord,
                                     color.zCoord,
                                     Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5,
-                                    toolHandler.getTileOriginal(), // Needed for block picked cutouts
-                                    new Vector3i(),
-                                    new Vector3i(
-                                            (int) Math.round(size.xCoord * 16),
-                                            (int) Math.round(size.yCoord * 16),
-                                            (int) Math.round(size.zCoord * 16)),
+                                    cutoutOriginCurrent,
+                                        subMin,
+                                        subMax,
                                     shape);
                         }
 

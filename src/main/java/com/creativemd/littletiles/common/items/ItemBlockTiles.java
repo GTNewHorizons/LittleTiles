@@ -252,14 +252,10 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     public ArrayList<CubeObject> getRenderingCubes(ItemStack stack) {
         ArrayList<CubeObject> cubes = new ArrayList<>();
         if (!stack.hasTagCompound()) return cubes;
-        try {
-            LittleTile tile = LittleTile.CreateandLoadTile(null, null, stack.stackTagCompound);
-            if (tile != null) {
-                cubes.addAll(tile.getRenderingCubes());
-                return cubes;
-            }
-        } catch (Exception ignored) {
-
+        LittleTile tile = LittleTile.CreateandLoadTile(null, null, stack.stackTagCompound);
+        if (tile != null) {
+            cubes.addAll(tile.getRenderingCubes());
+            return cubes;
         }
         Block block = Block.getBlockFromName(stack.stackTagCompound.getString("block"));
         int meta = stack.stackTagCompound.getInteger("meta");

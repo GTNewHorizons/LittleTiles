@@ -240,22 +240,16 @@ public class PreviewRenderer {
                         }
                         Vec3 color = previewTile.getPreviewColor();
 
-                        LittleToolHandler itemToolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
-                        LittleToolHandler previewToolHandler = previewTile.preview != null
-                                ? new LittleToolHandler(previewTile.preview.nbt)
-                                : itemToolHandler;
-                        LittleTileBox originalPreviewBox = previewTile.preview != null
-                                && previewTile.preview.box != null ? previewTile.preview.box : previewBox;
-                        LittleToolHandler.CutoutRenderData cutoutData = previewToolHandler
-                                .getCutoutRenderDataForPreview(
-                                        originalPreviewBox,
-                                        previewBox,
-                                        itemToolHandler,
-                                        new Vector3d(size.xCoord, size.yCoord, size.zCoord));
-                        LittleTileShapeMode shape = cutoutData.shape;
-                        Vector3d cutoutSize = cutoutData.cutoutSize;
-                        int cutoutOrientation = cutoutData.orientation;
-                        Vector3i cutoutOriginCurrent = cutoutData.cutoutOrigin;
+                        LittleToolHandler toolHandler;
+                        if (previewTile.preview != null) {
+                            toolHandler = new LittleToolHandler(previewTile.preview.nbt);
+                        } else {
+                            toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
+                        }
+                        LittleTileShapeMode shape = toolHandler.getShape();
+
+                        // Needed for block picked cutouts
+                        Vector3d cutoutSize = toolHandler.getTileSize();
 
                         if (!(shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR)) {
                             cubeX -= size.xCoord / 2;
@@ -282,26 +276,22 @@ public class PreviewRenderer {
                                     color.zCoord,
                                     Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5);
                         } else {
-                            Vector3i subMin = new Vector3i(previewBox.minX, previewBox.minY, previewBox.minZ);
-                            Vector3i subMax = new Vector3i(previewBox.maxX, previewBox.maxY, previewBox.maxZ);
-                            // Mesh vertices are shifted by subMin in renderMesh/createMesh.
-                            // Use block-space origin here so translation is applied exactly once.
-                            double meshX = cubeX - cube.minX;
-                            double meshY = cubeY - cube.minY;
-                            double meshZ = cubeZ - cube.minZ;
                             LittleTilesBlockRenderHelper.renderMesh(
-                                    meshX,
-                                    meshY,
-                                    meshZ,
+                                    cubeX,
+                                    cubeY,
+                                    cubeZ,
                                     cutoutSize,
-                                    cutoutOrientation,
+                                    toolHandler.getOrientation(),
                                     color.xCoord,
                                     color.yCoord,
                                     color.zCoord,
                                     Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5,
-                                    cutoutOriginCurrent,
-                                    subMin,
-                                    subMax,
+                                    toolHandler.getTileOriginal(), // Needed for block picked cutouts
+                                    new Vector3i(),
+                                    new Vector3i(
+                                            (int) Math.round(size.xCoord * 16),
+                                            (int) Math.round(size.yCoord * 16),
+                                            (int) Math.round(size.zCoord * 16)),
                                     shape);
                         }
 

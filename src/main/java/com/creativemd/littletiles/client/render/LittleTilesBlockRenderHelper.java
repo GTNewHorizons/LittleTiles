@@ -228,6 +228,7 @@ public class LittleTilesBlockRenderHelper {
             int metadata = 0;
             if (cube.meta != -1) metadata = cube.meta;
             Block block = parBlock;
+            if (block == null) block = Blocks.stone;
             if (block instanceof BlockAir) block = Blocks.stone;
             renderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
             if (cube.block != null && !(cube.block instanceof BlockAir)) {
@@ -243,6 +244,33 @@ public class LittleTilesBlockRenderHelper {
             float f3 = (float) (j & 255) / 255.0F;
             float brightness = 1.0F;
             GL11.glColor4f(f1 * brightness, f2 * brightness, f3 * brightness, 1.0F);
+
+            if (cube instanceof LittleTilesCubeObject) {
+                LittleTilesCubeObject littleCube = (LittleTilesCubeObject) cube;
+                Mesh3d mesh = littleCube.renderCache == null ? null : littleCube.renderCache.getSimpleMesh();
+                if (mesh != null) {
+                    mesh = mesh.copy();
+                    mesh.setTextures(block, metadata);
+                    boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
+                    GL11.glDisable(GL11.GL_LIGHTING);
+                    GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
+                    for (Triangle3d triangle : mesh.getTriangles()) {
+                        GL11.glBegin(GL11.GL_TRIANGLES);
+                        GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);
+                        GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
+                        GL11.glTexCoord2d(triangle.getTex2().x, triangle.getTex2().y);
+                        GL11.glVertex3d(triangle.getP2().x, triangle.getP2().y, triangle.getP2().z);
+                        GL11.glTexCoord2d(triangle.getTex3().x, triangle.getTex3().y);
+                        GL11.glVertex3d(triangle.getP3().x, triangle.getP3().y, triangle.getP3().z);
+                        GL11.glEnd();
+                    }
+                    GL11.glTranslatef(0.5F, 0.5F, 0.5F);
+                    if (lightingWasEnabled) {
+                        GL11.glEnable(GL11.GL_LIGHTING);
+                    }
+                    continue;
+                }
+            }
 
             GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
             tesselator.startDrawingQuads();

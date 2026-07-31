@@ -29,6 +29,17 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 
 public class LittleTilePlacementPlan {
 
+    private static class PlannedCollisionTile {
+
+        public final LittleTileBox box;
+        public final LittleTileCutoutInfo cutout;
+
+        public PlannedCollisionTile(LittleTileBox box, LittleTileCutoutInfo cutout) {
+            this.box = box;
+            this.cutout = cutout;
+        }
+    }
+
     public static final class SplitPreviewMap
             extends Object2ObjectLinkedOpenHashMap<ChunkCoordinates, ArrayList<PreviewTile>> {
     }
@@ -52,7 +63,6 @@ public class LittleTilePlacementPlan {
     private int originX;
     private int originY;
     private int originZ;
-    private LittleTileBox originalBox;
     private LittleTileCutoutInfo cutoutInfo;
 
     public void fillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews, LittleStructure structure,
@@ -66,7 +76,6 @@ public class LittleTilePlacementPlan {
             canApplyPlan = false;
             return;
         }
-        this.originalBox = previews.get(0).box;
         boolean specialPlaceMode = placeMode != LittleTilePlaceMode.NORMAL && structure == null;
         canApplyPlan = tryFillPlan(world, x, y, z, previews, specialPlaceMode);
     }
@@ -76,7 +85,7 @@ public class LittleTilePlacementPlan {
     }
 
     public boolean applyPlan(World world, EntityPlayer player, ItemStack stack, LittleStructure structure,
-            ArrayList<LittleTile> unplaceableTiles, LittleTileCutoutInfo cutoutInfo) {
+            ArrayList<LittleTile> unplaceableTiles) {
         structureMainPosition = null;
         soundsToBePlayed.clear();
         boolean didPlace = false;
@@ -86,7 +95,7 @@ public class LittleTilePlacementPlan {
                 continue;
             }
             for (PreviewTile placeTile : entry.placeTiles) {
-                didPlace |= applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles, cutoutInfo);
+                didPlace |= applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles);
             }
             if (structure != null) tile.combineTiles(structure);
         }
@@ -129,7 +138,7 @@ public class LittleTilePlacementPlan {
 
             // Collision check against an existing LittleTiles TE. Special place mode bypasses this on
             // purpose — overriding collisions is its whole reason to exist.
-            if (!specialPlaceMode && tile != null && !isSpaceForTiles(tile, placeTiles, coord)) {
+            if (!specialPlaceMode && !isSpaceForTiles(tile, placeTiles, coord)) {
                 return false;
             }
 
@@ -164,10 +173,12 @@ public class LittleTilePlacementPlan {
     }
 
     private boolean applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile,
-            EntityPlayer player, ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles,
-            LittleTileCutoutInfo cutoutInfo) {
-        LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry, placeTile, cutoutInfo);
-        if (cutoutInfo != null && cutoutInfoCurrent == null) {
+            EntityPlayer player, ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
+        LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile, this.cutoutInfo);
+        LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile, this.cutoutInfo);
+        // Mesh-backed fragments can clip to empty space when split across blocks.
+        // In that case we skip placement for this fragment instead of placing a full box tile.
+        if (baseCutoutInfo != null && cutoutInfoCurrent == null) {
             return false;
         }
 
@@ -198,18 +209,29 @@ public class LittleTilePlacementPlan {
         return didPlace;
     }
 
-    private LittleTileCutoutInfo getCutoutInfoCurrent(PlacementEntry entry, PreviewTile placeTile,
+    private static LittleTileCutoutInfo getBaseCutoutInfo(PreviewTile placeTile, LittleTileCutoutInfo fallbackCutout) {
+        if (fallbackCutout != null) {
+            return new LittleTileCutoutInfo(fallbackCutout);
+        }
+        if (placeTile.preview != null && placeTile.preview.nbt != null) {
+            return LittleTileCutoutInfo.loadFromNBT(placeTile.preview.nbt);
+        }
+        return null;
+    }
+
+    private LittleTileCutoutInfo getCutoutInfoCurrent(ChunkCoordinates coord, PreviewTile placeTile,
             LittleTileCutoutInfo cutoutInfo) {
-        if (cutoutInfo == null) {
+        LittleTileCutoutInfo cutoutInfoCurrent = getBaseCutoutInfo(placeTile, cutoutInfo);
+        if (cutoutInfoCurrent == null) {
             return null;
         }
 
         LittleTileBox currentBox = placeTile.box;
+        LittleTileBox originalBox = placeTile.preview.box;
 
-        LittleTileCutoutInfo cutoutInfoCurrent = new LittleTileCutoutInfo(cutoutInfo);
-        cutoutInfoCurrent.pos.x += (originX - entry.coord.posX) * 16 + originalBox.minX - currentBox.minX;
-        cutoutInfoCurrent.pos.y += (originY - entry.coord.posY) * 16 + originalBox.minY - currentBox.minY;
-        cutoutInfoCurrent.pos.z += (originZ - entry.coord.posZ) * 16 + originalBox.minZ - currentBox.minZ;
+        cutoutInfoCurrent.pos.x += (originX - coord.posX) * 16 + originalBox.minX - currentBox.minX;
+        cutoutInfoCurrent.pos.y += (originY - coord.posY) * 16 + originalBox.minY - currentBox.minY;
+        cutoutInfoCurrent.pos.z += (originZ - coord.posZ) * 16 + originalBox.minZ - currentBox.minZ;
 
         Mesh3d mesh = Mesh3dUtil.meshFromTile(currentBox, cutoutInfoCurrent);
         if (mesh.getTriangles().isEmpty()) {
@@ -240,18 +262,46 @@ public class LittleTilePlacementPlan {
         return tile;
     }
 
+    private PlannedCollisionTile getPlannedCollisionTile(PreviewTile previewTile,
+            LittleTileCutoutInfo cutoutInfoCurrent) {
+        LittleTileBox box = previewTile.box.copy();
+        LittleTileCutoutInfo effectiveCutout = cutoutInfoCurrent;
+
+        if (previewTile.preview != null && previewTile.preview.nbt != null) {
+            LittleTile tile = LittleTile.CreateandLoadTile(null, null, previewTile.preview.nbt);
+            if (tile != null) {
+                tile.boundingBox = box.copy();
+                tile.updateCorner();
+                if (cutoutInfoCurrent != null) {
+                    tile.setCutoutInfo(cutoutInfoCurrent);
+                }
+                effectiveCutout = tile.getCutoutInfo();
+            }
+        }
+
+        return new PlannedCollisionTile(box, effectiveCutout);
+    }
+
     private boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles,
             ChunkCoordinates coord) {
         for (PreviewTile tile : placeTiles) {
             if (!tile.needsCollisionTest()) continue;
+
+            LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(tile, cutoutInfo);
             LittleTileCutoutInfo perTileCutout = null;
-            if (cutoutInfo != null) {
-                perTileCutout = new LittleTileCutoutInfo(cutoutInfo);
-                perTileCutout.pos.x += (originX - coord.posX) * 16 + originalBox.minX - tile.box.minX;
-                perTileCutout.pos.y += (originY - coord.posY) * 16 + originalBox.minY - tile.box.minY;
-                perTileCutout.pos.z += (originZ - coord.posZ) * 16 + originalBox.minZ - tile.box.minZ;
+            if (baseCutoutInfo != null) {
+                perTileCutout = getCutoutInfoCurrent(coord, tile, cutoutInfo);
+                if (perTileCutout == null) {
+                    continue;
+                }
             }
-            if (!mainTile.isSpaceForLittleTile(tile.box, perTileCutout)) return false;
+
+            PlannedCollisionTile collisionTile = getPlannedCollisionTile(tile, perTileCutout);
+
+            // Check against already existing tiles in target block.
+            if (mainTile != null && !mainTile.isSpaceForLittleTile(collisionTile.box, collisionTile.cutout)) {
+                return false;
+            }
         }
         return true;
     }

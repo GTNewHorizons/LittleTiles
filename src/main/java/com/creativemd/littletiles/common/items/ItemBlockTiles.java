@@ -184,7 +184,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             return false;
         }
 
-        return plan.applyPlan(world, player, stack, structure, unplaceableTiles, cutoutInfo);
+        return plan.applyPlan(world, player, stack, structure, unplaceableTiles);
     }
 
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
@@ -252,6 +252,11 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     public ArrayList<CubeObject> getRenderingCubes(ItemStack stack) {
         ArrayList<CubeObject> cubes = new ArrayList<>();
         if (!stack.hasTagCompound()) return cubes;
+        LittleTile tile = LittleTile.CreateandLoadTile(null, null, stack.stackTagCompound);
+        if (tile != null) {
+            cubes.addAll(tile.getRenderingCubes());
+            return cubes;
+        }
         Block block = Block.getBlockFromName(stack.stackTagCompound.getString("block"));
         int meta = stack.stackTagCompound.getInteger("meta");
         LittleTileSize size = new LittleTileSize("size", stack.stackTagCompound);

@@ -179,7 +179,8 @@ public final class PlacementHelper {
             for (LittleTilePreview tile : tiles) {
                 if (tile != null) {
                     if (tile.box == null) {
-                        preview.add(new PreviewTile(box.copy(), tile));
+                        tile.box = box.copy();
+                        preview.add(new PreviewTile(tile.box.copy(), tile));
                     } else {
                         if (!canPlaceNormal) tile.box.addOffset(offset);
                         preview.add(new PreviewTile(tile.box, tile));

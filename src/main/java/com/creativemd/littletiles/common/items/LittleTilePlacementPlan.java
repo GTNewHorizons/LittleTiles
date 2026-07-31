@@ -15,8 +15,6 @@ import net.minecraft.world.World;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
-import com.creativemd.littletiles.client.util3d.TriangleBoundingBoxIntersect;
-import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -37,12 +35,10 @@ public class LittleTilePlacementPlan {
 
         public final LittleTileBox box;
         public final LittleTileCutoutInfo cutout;
-        public final Mesh3d mesh;
 
-        public PlannedCollisionTile(LittleTileBox box, LittleTileCutoutInfo cutout, Mesh3d mesh) {
+        public PlannedCollisionTile(LittleTileBox box, LittleTileCutoutInfo cutout) {
             this.box = box;
             this.cutout = cutout;
-            this.mesh = mesh;
         }
     }
 
@@ -283,40 +279,20 @@ public class LittleTilePlacementPlan {
     }
 
     private LittleTileBox getOriginalPreviewBox(PreviewTile previewTile) {
-        if (previewTile.preview != null && previewTile.preview.box != null) {
-            return previewTile.preview.box;
-        }
         if (previewTile.preview != null) {
             LittleTileBox originalBox = originalBoxes.get(previewTile.preview);
             if (originalBox != null) {
                 return originalBox;
             }
+            return previewTile.preview.box;
         }
         return previewTile.box;
-    }
-
-    private static boolean collides(LittleTileBox boxA, Mesh3d meshA, LittleTileBox boxB, Mesh3d meshB) {
-        if (!boxA.getBox().intersectsWith(boxB.getBox())) {
-            return false;
-        }
-
-        if (meshA == null && meshB == null) {
-            return true;
-        }
-        if (meshA != null && meshB != null) {
-            return TriangleTriangleIntersect.meshIntersection(meshA, meshB);
-        }
-        if (meshA != null) {
-            return TriangleBoundingBoxIntersect.intersect(meshA, boxB);
-        }
-        return TriangleBoundingBoxIntersect.intersect(meshB, boxA);
     }
 
     private PlannedCollisionTile getPlannedCollisionTile(PreviewTile previewTile,
             LittleTileCutoutInfo cutoutInfoCurrent) {
         LittleTileBox box = previewTile.box.copy();
         LittleTileCutoutInfo effectiveCutout = cutoutInfoCurrent;
-        Mesh3d mesh = null;
 
         if (previewTile.preview != null && previewTile.preview.nbt != null) {
             LittleTile tile = LittleTile.CreateandLoadTile(null, null, previewTile.preview.nbt);
@@ -327,21 +303,14 @@ public class LittleTilePlacementPlan {
                     tile.setCutoutInfo(cutoutInfoCurrent);
                 }
                 effectiveCutout = tile.getCutoutInfo();
-                mesh = tile.getSimpleMesh();
             }
         }
 
-        if (mesh == null && effectiveCutout != null) {
-            mesh = Mesh3dUtil.meshFromTile(box, effectiveCutout);
-        }
-
-        return new PlannedCollisionTile(box, effectiveCutout, mesh);
+        return new PlannedCollisionTile(box, effectiveCutout);
     }
 
     private boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles,
             ChunkCoordinates coord) {
-        ArrayList<PlannedCollisionTile> plannedTiles = new ArrayList<>();
-
         for (PreviewTile tile : placeTiles) {
             if (!tile.needsCollisionTest()) continue;
 
@@ -360,15 +329,6 @@ public class LittleTilePlacementPlan {
             if (mainTile != null && !mainTile.isSpaceForLittleTile(collisionTile.box, collisionTile.cutout)) {
                 return false;
             }
-
-            // Also enforce collisions within this plan entry itself (tile-vs-tile in same batch).
-            for (PlannedCollisionTile planned : plannedTiles) {
-                if (collides(collisionTile.box, collisionTile.mesh, planned.box, planned.mesh)) {
-                    return false;
-                }
-            }
-
-            plannedTiles.add(collisionTile);
         }
         return true;
     }

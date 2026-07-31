@@ -115,7 +115,7 @@ public class PreviewTile {
             structure.getTiles().add(LT);
         }
 
-        if (teLT.isSpaceForLittleTile(box.copy(), LT.getCutoutInfo())) {
+        if (teLT.isSpaceForLittleTile(box.copy(), cutoutInfoCurrent)) {
             if (placeMode == LittleTilePlaceMode.STENCIL) {
                 return null;
             }

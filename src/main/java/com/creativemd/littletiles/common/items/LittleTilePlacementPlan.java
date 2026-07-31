@@ -1,7 +1,6 @@
 package com.creativemd.littletiles.common.items;
 
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -22,7 +21,6 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTile.LittleTilePosition;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
-import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileCoord;
 import com.creativemd.littletiles.utils.PreviewTile;
@@ -66,7 +64,6 @@ public class LittleTilePlacementPlan {
     private int originY;
     private int originZ;
     private LittleTileCutoutInfo cutoutInfo;
-    private final IdentityHashMap<LittleTilePreview, LittleTileBox> originalBoxes = new IdentityHashMap<>();
 
     public void fillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews, LittleStructure structure,
             LittleTilePlaceMode placeMode, LittleTileCutoutInfo cutoutInfo) {
@@ -75,25 +72,12 @@ public class LittleTilePlacementPlan {
         this.originY = y;
         this.originZ = z;
         this.cutoutInfo = cutoutInfo;
-        originalBoxes.clear();
-        cacheOriginalBoxes(previews);
         if (previews.isEmpty()) {
             canApplyPlan = false;
             return;
         }
         boolean specialPlaceMode = placeMode != LittleTilePlaceMode.NORMAL && structure == null;
         canApplyPlan = tryFillPlan(world, x, y, z, previews, specialPlaceMode);
-    }
-
-    private void cacheOriginalBoxes(ArrayList<PreviewTile> previews) {
-        for (PreviewTile previewTile : previews) {
-            if (previewTile.preview == null || previewTile.box == null) {
-                continue;
-            }
-            if (!originalBoxes.containsKey(previewTile.preview)) {
-                originalBoxes.put(previewTile.preview, previewTile.box.copy());
-            }
-        }
     }
 
     public boolean canApplyPlan() {
@@ -243,7 +227,7 @@ public class LittleTilePlacementPlan {
         }
 
         LittleTileBox currentBox = placeTile.box;
-        LittleTileBox originalBox = getOriginalPreviewBox(placeTile);
+        LittleTileBox originalBox = placeTile.preview.box;
 
         cutoutInfoCurrent.pos.x += (originX - coord.posX) * 16 + originalBox.minX - currentBox.minX;
         cutoutInfoCurrent.pos.y += (originY - coord.posY) * 16 + originalBox.minY - currentBox.minY;
@@ -276,17 +260,6 @@ public class LittleTilePlacementPlan {
         world.setBlock(coord.posX, coord.posY, coord.posZ, LittleTiles.blockTile, 0, 3);
         tile = getTileEntity(world, coord);
         return tile;
-    }
-
-    private LittleTileBox getOriginalPreviewBox(PreviewTile previewTile) {
-        if (previewTile.preview != null) {
-            LittleTileBox originalBox = originalBoxes.get(previewTile.preview);
-            if (originalBox != null) {
-                return originalBox;
-            }
-            return previewTile.preview.box;
-        }
-        return previewTile.box;
     }
 
     private PlannedCollisionTile getPlannedCollisionTile(PreviewTile previewTile,

@@ -4,12 +4,15 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Matrix3f;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 
+import com.creativemd.creativecore.common.utils.Rotation;
+import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.OrientationMapper;
 import com.creativemd.littletiles.client.util3d.Plane3d;
@@ -149,17 +152,28 @@ public class LittleToolHandler {
         return ret.getDirection();
     }
 
+    private static Vector3f toVector3f(Vec3 vec) {
+        return new Vector3f((float) vec.xCoord, (float) vec.yCoord, (float) vec.zCoord);
+    }
+
+    /**
+     * The tile boxes are rotated by CreativeCore ({@link RotationUtils#applyVectorRotation}). The cutout lives in the
+     * very same coordinate space, so its rotation has to use exactly that convention. Building the matrix from
+     * hand-written angles instead got the sign wrong for {@link ForgeDirection#UP}/{@link ForgeDirection#DOWN}, which
+     * rotated the cutout against its box. Deriving the matrix from the images of the unit axes cannot drift apart.
+     */
+    private static Matrix3f getRotationMatrix(ForgeDirection direction) {
+        Rotation rotation = Rotation.getRotationByDirection(direction);
+        return new Matrix3f(
+                toVector3f(RotationUtils.applyVectorRotation(Vec3.createVectorHelper(1, 0, 0), rotation)),
+                toVector3f(RotationUtils.applyVectorRotation(Vec3.createVectorHelper(0, 1, 0), rotation)),
+                toVector3f(RotationUtils.applyVectorRotation(Vec3.createVectorHelper(0, 0, 1), rotation)));
+    }
+
     // Handles rotation for a cutout. Only 90 degrees and only one axis.
     public void handleRotation(ForgeDirection direction, NBTTagCompound old) {
-        // Get rotation the user requested
-        // Intentionally swapped Y and Z!
-        float rotZ = (float) Math.PI / 2 * -direction.offsetY;
-        float rotY = (float) Math.PI / 2 * -direction.offsetZ;
-        Matrix3f positionRotation = new Matrix3f().rotateY(rotY).rotateZ(rotZ);
-        Matrix3f orientationRotation = new Matrix3f(positionRotation);
-        if (direction.offsetY != 0) {
-            orientationRotation = new Matrix3f().rotateY(rotY).rotateZ(-rotZ);
-        }
+        // Get rotation the user requested, in the same convention the tile boxes are rotated with
+        Matrix3f rotation = getRotationMatrix(direction);
 
         // Get saved rotation
         int orientation = getOrientation();
@@ -206,12 +220,12 @@ public class LittleToolHandler {
             nbt.setInteger("cutoutPosZ", cutoutPosZ);
 
             // Rotate size as well
-            if (rotY != 0) {
+            if (direction.offsetZ != 0) {
                 int temp = cutoutSizeX;
                 cutoutSizeX = cutoutSizeZ;
                 cutoutSizeZ = temp;
             }
-            if (rotZ != 0) {
+            if (direction.offsetY != 0) {
                 int temp = cutoutSizeX;
                 cutoutSizeX = cutoutSizeY;
                 cutoutSizeY = temp;

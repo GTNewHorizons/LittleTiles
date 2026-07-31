@@ -153,13 +153,12 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
             }
             LittleTilePreview.rotatePreview(nbt, direction);
             if (oldSize != null && nbt.hasKey("cutoutOrientation")) {
+                // Recipe tiles only carry a box, no size tag, so hand the box size over as the old size.
                 NBTTagCompound old = new NBTTagCompound();
                 old.setInteger("sizex", oldSize.sizeX);
                 old.setInteger("sizey", oldSize.sizeY);
                 old.setInteger("sizez", oldSize.sizeZ);
-                ItemStack previewStack = new ItemStack(Item.getItemFromBlock(LittleTiles.blockTile));
-                previewStack.stackTagCompound = nbt;
-                new LittleToolHandler(previewStack).handleRotation(direction, old);
+                new LittleToolHandler(nbt).handleRotation(direction, old);
             }
             stack.stackTagCompound.setTag("tile" + i, nbt);
         }

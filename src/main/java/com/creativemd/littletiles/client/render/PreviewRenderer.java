@@ -241,7 +241,7 @@ public class PreviewRenderer {
                         Vec3 color = previewTile.getPreviewColor();
 
                         LittleToolHandler toolHandler;
-                        if (previewTile.preview != null && mc.thePlayer.getHeldItem().getItem() != LittleTiles.chisel) {
+                        if (previewTile.preview != null) {
                             toolHandler = new LittleToolHandler(previewTile.preview.nbt);
                         } else {
                             toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());

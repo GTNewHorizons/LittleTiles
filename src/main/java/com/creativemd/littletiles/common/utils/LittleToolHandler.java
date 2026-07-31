@@ -186,7 +186,7 @@ public class LittleToolHandler {
         Matrix3f matrix = OrientationMapper.fromId(orientation);
 
         // Apply new rotation and save
-        matrix = new Matrix3f(orientationRotation).mul(matrix);
+        matrix = new Matrix3f(rotation).mul(matrix);
         orientation = OrientationMapper.toId(matrix);
         setOrientation(orientation);
 
@@ -211,8 +211,8 @@ public class LittleToolHandler {
             int maxZ = minZ + cutoutSizeZ - oldSize.sizeZ;
 
             // Rotate cuboid
-            Vector3f v1 = positionRotation.transform(new Vector3f(minX, minY, minZ));
-            Vector3f v2 = positionRotation.transform(new Vector3f(maxX, maxY, maxZ));
+            Vector3f v1 = rotation.transform(new Vector3f(minX, minY, minZ));
+            Vector3f v2 = rotation.transform(new Vector3f(maxX, maxY, maxZ));
 
             // Save new start pos
             cutoutPosX = Math.round(Math.min(v1.x, v2.x));
@@ -233,7 +233,7 @@ public class LittleToolHandler {
             boolean negZ = nbt.getBoolean("cutoutNegZ");
 
             Vector3f negVec = new Vector3f(negX ? -1 : 1, negY ? -1 : 1, negZ ? -1 : 1);
-            negVec = orientationRotation.transform(negVec);
+            negVec = rotation.transform(negVec);
             negX = negVec.x < 0;
             negY = negVec.y < 0;
             negZ = negVec.z < 0;
@@ -247,8 +247,8 @@ public class LittleToolHandler {
             Vector3d faceStart = Plane3d.planes[faceStartI].getNormal();
             Vector3d faceEnd = Plane3d.planes[faceEndI].getNormal();
 
-            faceStart = new Vector3d(orientationRotation.transform(faceStart.toVector3f()));
-            faceEnd = new Vector3d(orientationRotation.transform(faceEnd.toVector3f()));
+            faceStart = new Vector3d(rotation.transform(faceStart.toVector3f()));
+            faceEnd = new Vector3d(rotation.transform(faceEnd.toVector3f()));
 
             faceStartI = getDirectionForNormal(faceStart).ordinal();
             faceEndI = getDirectionForNormal(faceEnd).ordinal();

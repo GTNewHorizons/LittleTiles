@@ -16,6 +16,7 @@ import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.OrientationMapper;
 import com.creativemd.littletiles.client.util3d.Plane3d;
+import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
 public class LittleToolHandler {
 
@@ -170,8 +171,13 @@ public class LittleToolHandler {
                 toVector3f(RotationUtils.applyVectorRotation(Vec3.createVectorHelper(0, 0, 1), rotation)));
     }
 
-    // Handles rotation for a cutout. Only 90 degrees and only one axis.
-    public void handleRotation(ForgeDirection direction, NBTTagCompound old) {
+    /**
+     * Handles rotation for a cutout. Only 90 degrees and only one axis.
+     *
+     * @param oldSize size of the tile before it got rotated, null if unknown. Without it the cutout keeps its position
+     *                and only the orientation is updated, which is all a cutout that still covers its whole tile needs.
+     */
+    public void handleRotation(ForgeDirection direction, LittleTileSize oldSize) {
         // Get rotation the user requested, in the same convention the tile boxes are rotated with
         Matrix3f rotation = getRotationMatrix(direction);
 
@@ -187,7 +193,7 @@ public class LittleToolHandler {
         NBTTagCompound nbt = getTag(true);
 
         // Handle rotation for block-picked tiles. We need to rotate the cutout pos/size as well...
-        if (nbt.hasKey("cutoutPosX") && old != null) {
+        if (nbt.hasKey("cutoutPosX") && oldSize != null) {
             int cutoutSizeX = nbt.getInteger("cutoutSizeX");
             int cutoutSizeY = nbt.getInteger("cutoutSizeY");
             int cutoutSizeZ = nbt.getInteger("cutoutSizeZ");
@@ -195,17 +201,14 @@ public class LittleToolHandler {
             int cutoutPosX = nbt.getInteger("cutoutPosX");
             int cutoutPosY = nbt.getInteger("cutoutPosY");
             int cutoutPosZ = nbt.getInteger("cutoutPosZ");
-            int sizex = old.getInteger("sizex");
-            int sizey = old.getInteger("sizey");
-            int sizez = old.getInteger("sizez");
 
             // Treat cutout pos + size as cuboid to rotate it properly
             int minX = cutoutPosX;
             int minY = cutoutPosY;
             int minZ = cutoutPosZ;
-            int maxX = minX + cutoutSizeX - sizex;
-            int maxY = minY + cutoutSizeY - sizey;
-            int maxZ = minZ + cutoutSizeZ - sizez;
+            int maxX = minX + cutoutSizeX - oldSize.sizeX;
+            int maxY = minY + cutoutSizeY - oldSize.sizeY;
+            int maxZ = minZ + cutoutSizeZ - oldSize.sizeZ;
 
             // Rotate cuboid
             Vector3f v1 = positionRotation.transform(new Vector3f(minX, minY, minZ));

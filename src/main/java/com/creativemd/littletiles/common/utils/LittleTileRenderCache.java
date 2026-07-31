@@ -1,19 +1,22 @@
 package com.creativemd.littletiles.common.utils;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 /**
  * Client render geometry retained for a little tile.
  */
 public class LittleTileRenderCache {
 
-    private final LittleTile tile;
+    private final Supplier<LittleTileBox> boxGetter;
+    private final Supplier<LittleTileCutoutInfo> cutoutGetter;
     private volatile Mesh3d simpleMesh;
 
     private volatile List<Triangle3d> visibleCutoutTriangles;
@@ -22,16 +25,19 @@ public class LittleTileRenderCache {
     /** Bit set of {@link ForgeDirection#ordinal()}: the sides drawn as triangles instead of as rectangles. */
     private int replacedBoxSides;
 
-    public LittleTileRenderCache(LittleTile tile) {
-        this.tile = tile;
+    public LittleTileRenderCache(Supplier<LittleTileBox> boxGetter, Supplier<LittleTileCutoutInfo> cutoutGetter) {
+        this.boxGetter = boxGetter;
+        this.cutoutGetter = cutoutGetter;
     }
 
     public Mesh3d getSimpleMesh() {
-        if (tile.getCutoutInfo() == null || tile.boundingBox == null) {
+        LittleTileBox box = boxGetter.get();
+        LittleTileCutoutInfo cutoutInfo = cutoutGetter.get();
+        if (cutoutInfo == null || box == null) {
             return null;
         }
         if (simpleMesh == null) {
-            simpleMesh = Mesh3dUtil.meshFromTile(tile.boundingBox, tile.getCutoutInfo());
+            simpleMesh = Mesh3dUtil.meshFromTile(box, cutoutInfo);
         }
         return simpleMesh;
     }

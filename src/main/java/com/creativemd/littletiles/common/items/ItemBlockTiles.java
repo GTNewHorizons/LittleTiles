@@ -34,9 +34,6 @@ import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
-import com.creativemd.littletiles.common.utils.small.LittleTileBox;
-import com.creativemd.littletiles.common.utils.small.LittleTileSize;
-import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import com.creativemd.littletiles.utils.PreviewTile;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -252,21 +249,10 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     public ArrayList<CubeObject> getRenderingCubes(ItemStack stack) {
         ArrayList<CubeObject> cubes = new ArrayList<>();
         if (!stack.hasTagCompound()) return cubes;
-        LittleTile tile = LittleTile.CreateandLoadTile(null, null, stack.stackTagCompound);
-        if (tile != null) {
-            cubes.addAll(tile.getRenderingCubes());
-            return cubes;
-        }
-        Block block = Block.getBlockFromName(stack.stackTagCompound.getString("block"));
-        int meta = stack.stackTagCompound.getInteger("meta");
-        LittleTileSize size = new LittleTileSize("size", stack.stackTagCompound);
-        if (!(block instanceof BlockAir)) {
-            CubeObject cube = new LittleTileBox(new LittleTileVec(8, 8, 8), size, true).getCube();
-            cube.block = block;
-            cube.meta = meta;
-            if (stack.stackTagCompound.hasKey("color")) cube.color = stack.stackTagCompound.getInteger("color");
-            cubes.add(cube);
-        }
+        LittleTilePreview preview = LittleTilePreview.getPreviewFromNBT(stack.stackTagCompound);
+        if (preview == null) return cubes;
+        CubeObject cube = preview.getCubeBlock();
+        if (!(cube.block instanceof BlockAir)) cubes.add(cube);
         return cubes;
     }
 

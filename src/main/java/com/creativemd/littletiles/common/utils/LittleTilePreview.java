@@ -11,6 +11,7 @@ import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
+import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import com.creativemd.littletiles.utils.ShiftHandler;
 
 public final class LittleTilePreview {
@@ -43,13 +44,16 @@ public final class LittleTilePreview {
     }
 
     public CubeObject getCubeBlock() {
-        CubeObject cube = box.getCube();
+        LittleTileBox renderBox = box != null ? box : new LittleTileBox(new LittleTileVec(8, 8, 8), size, true);
+        LittleTilesCubeObject cube = renderBox.getCube();
         if (nbt.hasKey("block")) {
             cube.block = Block.getBlockFromName(nbt.getString("block"));
             cube.meta = nbt.getInteger("meta");
         } else {
             cube.block = Blocks.stone;
         }
+        cube.cutoutInfo = LittleTileCutoutInfo.loadFromNBT(nbt);
+        cube.renderCache = new LittleTileRenderCache(() -> renderBox, () -> cube.cutoutInfo);
         if (nbt.hasKey("color")) cube.color = nbt.getInteger("color");
         return cube;
     }

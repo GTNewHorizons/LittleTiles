@@ -222,21 +222,11 @@ public class LittleToolHandler {
             nbt.setInteger("cutoutPosY", cutoutPosY);
             nbt.setInteger("cutoutPosZ", cutoutPosZ);
 
-            // Rotate size as well
-            if (direction.offsetZ != 0) {
-                int temp = cutoutSizeX;
-                cutoutSizeX = cutoutSizeZ;
-                cutoutSizeZ = temp;
-            }
-            if (direction.offsetY != 0) {
-                int temp = cutoutSizeX;
-                cutoutSizeX = cutoutSizeY;
-                cutoutSizeY = temp;
-            }
-
-            nbt.setInteger("cutoutSizeX", cutoutSizeX);
-            nbt.setInteger("cutoutSizeY", cutoutSizeY);
-            nbt.setInteger("cutoutSizeZ", cutoutSizeZ);
+            // Rotate size as well. The rotation only permutes the axes, so the size just follows along.
+            Vector3f size = rotation.transform(new Vector3f(cutoutSizeX, cutoutSizeY, cutoutSizeZ));
+            nbt.setInteger("cutoutSizeX", Math.abs(Math.round(size.x)));
+            nbt.setInteger("cutoutSizeY", Math.abs(Math.round(size.y)));
+            nbt.setInteger("cutoutSizeZ", Math.abs(Math.round(size.z)));
 
             boolean negX = nbt.getBoolean("cutoutNegX");
             boolean negY = nbt.getBoolean("cutoutNegY");

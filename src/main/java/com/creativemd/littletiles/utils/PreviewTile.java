@@ -107,9 +107,7 @@ public class PreviewTile {
 
         LT.boundingBox = box.copy();
         LT.updateCorner();
-        if (cutoutInfoCurrent != null) {
-            LT.setCutoutInfo(cutoutInfoCurrent);
-        }
+        LT.setCutoutInfo(cutoutInfoCurrent);
 
         if (structure != null) {
             LT.isStructureBlock = true;

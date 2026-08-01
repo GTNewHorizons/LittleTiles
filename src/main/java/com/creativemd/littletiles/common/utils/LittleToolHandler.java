@@ -100,10 +100,7 @@ public class LittleToolHandler {
 
         if (cutoutInfo != null) {
             shape = cutoutInfo.type;
-            cutoutSize = new Vector3d(
-                    cutoutInfo.size.x / 16.0,
-                    cutoutInfo.size.y / 16.0,
-                    cutoutInfo.size.z / 16.0);
+            cutoutSize = new Vector3d(cutoutInfo.size.x / 16.0, cutoutInfo.size.y / 16.0, cutoutInfo.size.z / 16.0);
             orientation = cutoutInfo.orientation;
             cutoutOrigin = new Vector3i(cutoutInfo.pos);
         } else {

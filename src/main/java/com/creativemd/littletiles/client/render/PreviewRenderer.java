@@ -272,16 +272,16 @@ public class PreviewRenderer {
 =======
                         LittleToolHandler itemToolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
                         LittleToolHandler previewToolHandler = previewTile.preview != null
-                            ? new LittleToolHandler(previewTile.preview.nbt)
-                            : itemToolHandler;
-                        LittleTileBox originalPreviewBox = previewTile.preview != null && previewTile.preview.box != null
-                            ? previewTile.preview.box
-                            : previewBox;
-                        LittleToolHandler.CutoutRenderData cutoutData = previewToolHandler.getCutoutRenderDataForPreview(
-                            originalPreviewBox,
-                            previewBox,
-                            itemToolHandler,
-                            new Vector3d(size.xCoord, size.yCoord, size.zCoord));
+                                ? new LittleToolHandler(previewTile.preview.nbt)
+                                : itemToolHandler;
+                        LittleTileBox originalPreviewBox = previewTile.preview != null
+                                && previewTile.preview.box != null ? previewTile.preview.box : previewBox;
+                        LittleToolHandler.CutoutRenderData cutoutData = previewToolHandler
+                                .getCutoutRenderDataForPreview(
+                                        originalPreviewBox,
+                                        previewBox,
+                                        itemToolHandler,
+                                        new Vector3d(size.xCoord, size.yCoord, size.zCoord));
                         LittleTileShapeMode shape = cutoutData.shape;
                         Vector3d cutoutSize = cutoutData.cutoutSize;
                         int cutoutOrientation = cutoutData.orientation;

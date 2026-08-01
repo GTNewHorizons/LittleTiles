@@ -43,6 +43,8 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
     private final BlockStateSyncValue syncBlock;
     private final boolean isClient;
 
+    public static final int WIDGET_MARGIN = 5;
+
     public BlockDisplayWidget(PanelSyncManager syncManager, BlockStateSyncValue syncBlock) {
         menu.setEnabled(false);
         menu.background(GuiTextures.BUTTON_CLEAN);
@@ -125,9 +127,9 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
 
         int arrowSize = smallerSide / 2;
         if (menu.isOpen()) {
-            arrowOpened.draw(context, area.width - arrowSize, arrowSize / 2, arrowSize, arrowSize, theme);
+            arrowOpened.draw(context, area.width - arrowSize - 5, arrowSize / 2, arrowSize, arrowSize, theme);
         } else {
-            arrowClosed.draw(context, area.width - arrowSize, arrowSize / 2, arrowSize, arrowSize, theme);
+            arrowClosed.draw(context, area.width - arrowSize - 5, arrowSize / 2, arrowSize, arrowSize, theme);
         }
     }
 
@@ -175,32 +177,41 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
 
     private static class DropDownWrapper extends ScrollWidget<BlockDisplayWidget.DropDownWrapper> {
 
+        private static final int SEARCH_ROW_HEIGHT = 20;
+        private static final int SEARCH_LABEL_WIDTH = 52;
+        private static final int SCROLL_ROWS = 4;
+        private static final int DROPDOWN_HEIGHT = 145;
+
         private final List<ButtonWidget<?>> children = new ArrayList<>();
         private boolean open;
         private int count = 0;
         private int currentIndex = -1;
-        ScrollWidget<?> scroll = new ScrollWidget<>(new VerticalScrollData());
-        TextFieldWidget text_search = new TextFieldWidget();
-        TextWidget<?> label_search = IKey.lang("key.littletiles.search").asWidget();
-        ParentWidget<?> panel = new ParentWidget<>();
+
+        private final ScrollWidget<?> scroll = new ScrollWidget<>(new VerticalScrollData());
+        private final TextFieldWidget text_search = new TextFieldWidget();
+        private final TextWidget<?> label_search = IKey.lang("key.littletiles.search").asWidget();
+        private final ParentWidget<?> panel = new ParentWidget<>();
+        private final Flow flow = new Flow(GuiAxis.X);
         private final List<ItemStack> stacks;
-        int visibleSize = 0;
+        private int visibleSize = 0;
         private String lastFilter;
 
         public DropDownWrapper(List<ItemStack> stacks) {
             this.stacks = stacks;
 
-            Flow flow = new Flow(GuiAxis.X);
-            flow.pos(5, 5);
-            flow.size(100, 20);
-            panel.size(200, 150);
-            text_search.marginLeft(5).width(100);
+            flow.pos(WIDGET_MARGIN, WIDGET_MARGIN);
+            flow.size(1, SEARCH_ROW_HEIGHT);
+
+            label_search.width(SEARCH_LABEL_WIDTH);
+            text_search.marginLeft(WIDGET_MARGIN).marginRight(WIDGET_MARGIN);
+
             flow.addChild(label_search, 0);
             flow.addChild(text_search, 1);
             panel.addChild(flow, 0);
             panel.addChild(scroll, 1);
-            scroll.pos(5, 40);
-            scroll.size(scrollWidth * 18 + 5, 4 * 18);
+
+            scroll.pos(WIDGET_MARGIN, WIDGET_MARGIN * 2 + SEARCH_ROW_HEIGHT);
+            scroll.size(1, SCROLL_ROWS * 18);
 
             text_search.onUpdateListener(x -> updateFilter());
         }
@@ -281,9 +292,22 @@ public class BlockDisplayWidget extends SingleChildWidget<BlockDisplayWidget> im
         public void onResized() {
             super.onResized();
             if (!isValid()) return;
+
+            int width = Math.max(getParentArea().width, scrollWidth * 18 + 2 * WIDGET_MARGIN);
+            int minContentHeight = WIDGET_MARGIN * 3 + SEARCH_ROW_HEIGHT + SCROLL_ROWS * 18;
+            int dropdownHeight = Math.max(DROPDOWN_HEIGHT, minContentHeight);
+            int scrollHeight = dropdownHeight - (WIDGET_MARGIN * 3 + SEARCH_ROW_HEIGHT);
+
+            flow.pos(WIDGET_MARGIN, WIDGET_MARGIN);
+            flow.size(Math.max(1, width - 2 * WIDGET_MARGIN), SEARCH_ROW_HEIGHT);
+            text_search.width(Math.max(1, width - 2 * WIDGET_MARGIN - SEARCH_LABEL_WIDTH - WIDGET_MARGIN));
+
+            scroll.pos(WIDGET_MARGIN, WIDGET_MARGIN * 2 + SEARCH_ROW_HEIGHT);
+            scroll.size(Math.max(1, width - 2 * WIDGET_MARGIN), scrollHeight);
             scroll.getScrollArea().getScrollY().setScrollSize((visibleSize + scrollWidth - 1) / scrollWidth * 18);
 
-            size(scrollWidth * 18 + 18, 9 * 18);
+            panel.size(width, dropdownHeight);
+            size(width, dropdownHeight);
             pos(0, getParentArea().height);
 
             List<IWidget> children = getChildren();

@@ -107,7 +107,9 @@ public class PreviewTile {
 
         LT.boundingBox = box.copy();
         LT.updateCorner();
-        LT.setCutoutInfo(cutoutInfoCurrent);
+        if (cutoutInfoCurrent != null) {
+            LT.setCutoutInfo(cutoutInfoCurrent);
+        }
 
         if (structure != null) {
             LT.isStructureBlock = true;
@@ -115,7 +117,7 @@ public class PreviewTile {
             structure.getTiles().add(LT);
         }
 
-        if (teLT.isSpaceForLittleTile(box.copy(), cutoutInfoCurrent)) {
+        if (teLT.isSpaceForLittleTile(box.copy(), LT.getCutoutInfo())) {
             if (placeMode == LittleTilePlaceMode.STENCIL) {
                 return null;
             }

@@ -15,6 +15,8 @@ import net.minecraft.world.World;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.TriangleBoundingBoxIntersect;
+import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -261,6 +263,8 @@ public class LittleTilePlacementPlan {
 
     private boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles,
             ChunkCoordinates coord) {
+        ArrayList<PlannedCollisionTile> plannedTiles = new ArrayList<>();
+
         for (PreviewTile tile : placeTiles) {
             if (!tile.needsCollisionTest()) continue;
 

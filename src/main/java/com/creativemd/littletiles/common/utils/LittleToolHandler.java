@@ -16,6 +16,7 @@ import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.OrientationMapper;
 import com.creativemd.littletiles.client.util3d.Plane3d;
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
 public class LittleToolHandler {
@@ -59,8 +60,6 @@ public class LittleToolHandler {
             if (set) {
                 if (stack != null) {
                     stack.setTagCompound(tag);
-                } else {
-                    nbt = tag;
                 }
             }
         }

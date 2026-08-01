@@ -33,6 +33,7 @@ import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
+import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.sorting.LittleTileSortingList;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -133,6 +134,7 @@ public class LittleTiles {
         CreativeCorePacket.registerPacket(LittleRotatePacket.class, "LittleRotate");
         CreativeCorePacket.registerPacket(LittleFlipPacket.class, "LittleFlip");
         CreativeCorePacket.registerPacket(LittleItemUpdatePacket.class, "LittleItemUpdate");
+        CreativeCorePacket.registerPacket(LittleUndoRedoPacket.class, "LittleUndoRedo");
         FMLCommonHandler.instance().bus().register(new LittleEvent());
         MinecraftForge.EVENT_BUS.register(new LittleEvent());
 

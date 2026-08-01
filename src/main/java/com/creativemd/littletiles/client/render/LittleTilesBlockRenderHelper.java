@@ -259,10 +259,7 @@ public class LittleTilesBlockRenderHelper {
                             Math.floor(cube.minZ));
                     mesh.translate(new Vector3d(-textureOffset.x, -textureOffset.y, -textureOffset.z));
                     mesh.setTextures(block, metadata);
-<<<<<<< HEAD
                     mesh.translate(textureOffset);
-=======
->>>>>>> 5a118c5 (Submesh splitting, ghost preview fix & held item lighting fix)
                     boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
                     GL11.glDisable(GL11.GL_LIGHTING);
                     GL11.glTranslatef(-0.5F, -0.5F, -0.5F);

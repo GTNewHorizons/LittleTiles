@@ -27,9 +27,11 @@ import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
+import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
+import com.creativemd.littletiles.common.utils.LittleToolHandler.CutoutRenderData;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.utils.PreviewTile;
@@ -105,6 +107,21 @@ public class PreviewRenderer {
                     LittleTilesClient.pressedToolConfig = false;
                 }
             }
+
+            if (GameSettings.isKeyDown(LittleTilesClient.undoPlacement) && !LittleTilesClient.pressedUndoPlacement) {
+                LittleTilesClient.pressedUndoPlacement = true;
+                PacketHandler.sendPacketToServer(new LittleUndoRedoPacket(true));
+            } else if (!GameSettings.isKeyDown(LittleTilesClient.undoPlacement)) {
+                LittleTilesClient.pressedUndoPlacement = false;
+            }
+
+            if (GameSettings.isKeyDown(LittleTilesClient.redoPlacement) && !LittleTilesClient.pressedRedoPlacement) {
+                LittleTilesClient.pressedRedoPlacement = true;
+                PacketHandler.sendPacketToServer(new LittleUndoRedoPacket(false));
+            } else if (!GameSettings.isKeyDown(LittleTilesClient.redoPlacement)) {
+                LittleTilesClient.pressedRedoPlacement = false;
+            }
+
             if (PlacementHelper.isLittleBlock(mc.thePlayer.getHeldItem())) {
                 int i4 = MathHelper.floor_double((double) (mc.thePlayer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
                 ForgeDirection direction_look = null;
@@ -240,53 +257,24 @@ public class PreviewRenderer {
                         }
                         Vec3 color = previewTile.getPreviewColor();
 
-<<<<<<< HEAD
-<<<<<<< HEAD
                         LittleToolHandler toolHandler;
                         if (previewTile.preview != null) {
                             toolHandler = new LittleToolHandler(previewTile.preview.nbt);
                         } else {
                             toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
                         }
-                        LittleTileShapeMode shape = toolHandler.getShape();
-=======
-                        LittleToolHandler toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
-                        LittleTileCutoutInfo tileCutout = null;
-                        if (previewTile.preview != null) {
-                            tileCutout = LittleTileCutoutInfo.loadFromNBT(previewTile.preview.nbt);
-                        }
->>>>>>> 5a118c5 (Submesh splitting, ghost preview fix & held item lighting fix)
-
-                        // Prefer per-tile cutout data so multi-mesh items preview correctly.
-                        LittleTileShapeMode shape = tileCutout != null ? tileCutout.type : toolHandler.getShape();
-                        Vector3d cutoutSize = tileCutout != null
-                                ? new Vector3d(
-                                        tileCutout.size.x / 16.0,
-                                        tileCutout.size.y / 16.0,
-                                        tileCutout.size.z / 16.0)
-                                : toolHandler.getTileSize();
-                        int cutoutOrientation = tileCutout != null ? tileCutout.orientation
-                                : toolHandler.getOrientation();
-                        Vector3i cutoutOrigin = tileCutout != null ? new Vector3i(tileCutout.pos)
-                                : toolHandler.getTileOriginal();
-=======
-                        LittleToolHandler itemToolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
-                        LittleToolHandler previewToolHandler = previewTile.preview != null
-                                ? new LittleToolHandler(previewTile.preview.nbt)
-                                : itemToolHandler;
                         LittleTileBox originalPreviewBox = previewTile.preview != null
                                 && previewTile.preview.box != null ? previewTile.preview.box : previewBox;
-                        LittleToolHandler.CutoutRenderData cutoutData = previewToolHandler
-                                .getCutoutRenderDataForPreview(
-                                        originalPreviewBox,
-                                        previewBox,
-                                        itemToolHandler,
-                                        new Vector3d(size.xCoord, size.yCoord, size.zCoord));
-                        LittleTileShapeMode shape = cutoutData.shape;
-                        Vector3d cutoutSize = cutoutData.cutoutSize;
-                        int cutoutOrientation = cutoutData.orientation;
-                        Vector3i cutoutOriginCurrent = cutoutData.cutoutOrigin;
->>>>>>> 6a43e66 (More NBT handling to LittleToolHandler)
+                        CutoutRenderData cutoutRenderData = toolHandler.getCutoutRenderDataForPreview(
+                                originalPreviewBox,
+                                previewBox,
+                                previewTile.preview != null ? new LittleToolHandler(mc.thePlayer.getHeldItem()) : null,
+                                new Vector3d(size.xCoord, size.yCoord, size.zCoord));
+
+                        LittleTileShapeMode shape = cutoutRenderData.shape;
+                        Vector3d cutoutSize = cutoutRenderData.cutoutSize;
+                        int cutoutOrientation = cutoutRenderData.orientation;
+                        Vector3i cutoutOriginCurrent = cutoutRenderData.cutoutOrigin;
 
                         if (!(shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR)) {
                             cubeX -= size.xCoord / 2;
@@ -294,9 +282,6 @@ public class PreviewRenderer {
                             cubeZ -= size.zCoord / 2;
                         }
 
-                        if (cutoutSize == null) {
-                            cutoutSize = new Vector3d(size.xCoord, size.yCoord, size.zCoord);
-                        }
                         if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
                             RenderHelper3D.renderBlock(
                                     cubeX,

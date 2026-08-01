@@ -1,7 +1,6 @@
 package com.creativemd.littletiles.common.items;
 
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -15,8 +14,6 @@ import net.minecraft.world.World;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
-import com.creativemd.littletiles.client.util3d.TriangleBoundingBoxIntersect;
-import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -24,7 +21,6 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTile.LittleTilePosition;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
-import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileCoord;
 import com.creativemd.littletiles.utils.PreviewTile;
@@ -72,19 +68,16 @@ public class LittleTilePlacementPlan {
         canApplyPlan = tryFillPlan(world, x, y, z, previews, specialPlaceMode);
     }
 
-    private void cacheOriginalBoxes(ArrayList<PreviewTile> previews) {
-        for (PreviewTile previewTile : previews) {
-            if (previewTile.preview == null || previewTile.box == null) {
-                continue;
-            }
-            if (!originalBoxes.containsKey(previewTile.preview)) {
-                originalBoxes.put(previewTile.preview, previewTile.box.copy());
-            }
-        }
-    }
-
     public boolean canApplyPlan() {
         return canApplyPlan;
+    }
+
+    public ArrayList<ChunkCoordinates> getPlannedCoordinates() {
+        ArrayList<ChunkCoordinates> planned = new ArrayList<>(entries.size());
+        for (PlacementEntry entry : entries) {
+            planned.add(entry.coord);
+        }
+        return planned;
     }
 
     public boolean applyPlan(World world, EntityPlayer player, ItemStack stack, LittleStructure structure,

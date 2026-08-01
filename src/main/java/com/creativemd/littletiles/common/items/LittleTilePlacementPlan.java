@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.items;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -21,6 +22,7 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTile.LittleTilePosition;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
+import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileCoord;
 import com.creativemd.littletiles.utils.PreviewTile;
@@ -52,10 +54,7 @@ public class LittleTilePlacementPlan {
     private int originX;
     private int originY;
     private int originZ;
-<<<<<<< HEAD
-=======
     private LittleTileCutoutInfo cutoutInfo;
->>>>>>> 5a118c5 (Submesh splitting, ghost preview fix & held item lighting fix)
 
     public void fillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews, LittleStructure structure,
             LittleTilePlaceMode placeMode) {
@@ -63,13 +62,23 @@ public class LittleTilePlacementPlan {
         this.originX = x;
         this.originY = y;
         this.originZ = z;
-
         if (previews.isEmpty()) {
             canApplyPlan = false;
             return;
         }
         boolean specialPlaceMode = placeMode != LittleTilePlaceMode.NORMAL && structure == null;
         canApplyPlan = tryFillPlan(world, x, y, z, previews, specialPlaceMode);
+    }
+
+    private void cacheOriginalBoxes(ArrayList<PreviewTile> previews) {
+        for (PreviewTile previewTile : previews) {
+            if (previewTile.preview == null || previewTile.box == null) {
+                continue;
+            }
+            if (!originalBoxes.containsKey(previewTile.preview)) {
+                originalBoxes.put(previewTile.preview, previewTile.box.copy());
+            }
+        }
     }
 
     public boolean canApplyPlan() {
@@ -165,16 +174,9 @@ public class LittleTilePlacementPlan {
     }
 
     private boolean applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile,
-<<<<<<< HEAD
             EntityPlayer player, ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
         LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile);
         LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile);
-=======
-            EntityPlayer player, ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles,
-            LittleTileCutoutInfo cutoutInfo) {
-        LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile, cutoutInfo);
-        LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile, cutoutInfo);
->>>>>>> 5a118c5 (Submesh splitting, ghost preview fix & held item lighting fix)
         // Mesh-backed fragments can clip to empty space when split across blocks.
         // In that case we skip placement for this fragment instead of placing a full box tile.
         if (baseCutoutInfo != null && cutoutInfoCurrent == null) {
@@ -208,38 +210,21 @@ public class LittleTilePlacementPlan {
         return didPlace;
     }
 
-<<<<<<< HEAD
     private static LittleTileCutoutInfo getBaseCutoutInfo(PreviewTile placeTile) {
-=======
-    private static LittleTileCutoutInfo getBaseCutoutInfo(PreviewTile placeTile, LittleTileCutoutInfo fallbackCutout) {
-        if (fallbackCutout != null) {
-            return new LittleTileCutoutInfo(fallbackCutout);
-        }
->>>>>>> 5a118c5 (Submesh splitting, ghost preview fix & held item lighting fix)
         if (placeTile.preview != null && placeTile.preview.nbt != null) {
             return LittleTileCutoutInfo.loadFromNBT(placeTile.preview.nbt);
         }
         return null;
     }
 
-<<<<<<< HEAD
     private LittleTileCutoutInfo getCutoutInfoCurrent(ChunkCoordinates coord, PreviewTile placeTile) {
         LittleTileCutoutInfo cutoutInfoCurrent = getBaseCutoutInfo(placeTile);
-=======
-    private LittleTileCutoutInfo getCutoutInfoCurrent(ChunkCoordinates coord, PreviewTile placeTile,
-            LittleTileCutoutInfo cutoutInfo) {
-        LittleTileCutoutInfo cutoutInfoCurrent = getBaseCutoutInfo(placeTile, cutoutInfo);
->>>>>>> 5a118c5 (Submesh splitting, ghost preview fix & held item lighting fix)
         if (cutoutInfoCurrent == null) {
             return null;
         }
 
         LittleTileBox currentBox = placeTile.box;
-<<<<<<< HEAD
         LittleTileBox originalBox = placeTile.preview.box;
-=======
-        LittleTileBox originalBox = getOriginalPreviewBox(placeTile);
->>>>>>> 5a118c5 (Submesh splitting, ghost preview fix & held item lighting fix)
 
         cutoutInfoCurrent.pos.x += (originX - coord.posX) * 16 + originalBox.minX - currentBox.minX;
         cutoutInfoCurrent.pos.y += (originY - coord.posY) * 16 + originalBox.minY - currentBox.minY;
@@ -278,7 +263,6 @@ public class LittleTilePlacementPlan {
             ChunkCoordinates coord) {
         for (PreviewTile tile : placeTiles) {
             if (!tile.needsCollisionTest()) continue;
-<<<<<<< HEAD
 
             LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(tile);
             LittleTileCutoutInfo perTileCutout = null;
@@ -293,15 +277,6 @@ public class LittleTilePlacementPlan {
             // Check against already existing tiles in target block.
             if (mainTile != null && !mainTile.isSpaceForLittleTile(tile.box.copy(), perTileCutout)) {
                 return false;
-=======
-            LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(tile, cutoutInfo);
-            LittleTileCutoutInfo perTileCutout = null;
-            if (baseCutoutInfo != null) {
-                perTileCutout = getCutoutInfoCurrent(coord, tile, cutoutInfo);
-                if (perTileCutout == null) {
-                    continue;
-                }
->>>>>>> 5a118c5 (Submesh splitting, ghost preview fix & held item lighting fix)
             }
         }
         return true;

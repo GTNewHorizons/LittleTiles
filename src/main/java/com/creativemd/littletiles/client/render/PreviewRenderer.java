@@ -28,7 +28,6 @@ import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
-import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
@@ -242,6 +241,7 @@ public class PreviewRenderer {
                         Vec3 color = previewTile.getPreviewColor();
 
 <<<<<<< HEAD
+<<<<<<< HEAD
                         LittleToolHandler toolHandler;
                         if (previewTile.preview != null) {
                             toolHandler = new LittleToolHandler(previewTile.preview.nbt);
@@ -269,6 +269,24 @@ public class PreviewRenderer {
                                 : toolHandler.getOrientation();
                         Vector3i cutoutOrigin = tileCutout != null ? new Vector3i(tileCutout.pos)
                                 : toolHandler.getTileOriginal();
+=======
+                        LittleToolHandler itemToolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
+                        LittleToolHandler previewToolHandler = previewTile.preview != null
+                            ? new LittleToolHandler(previewTile.preview.nbt)
+                            : itemToolHandler;
+                        LittleTileBox originalPreviewBox = previewTile.preview != null && previewTile.preview.box != null
+                            ? previewTile.preview.box
+                            : previewBox;
+                        LittleToolHandler.CutoutRenderData cutoutData = previewToolHandler.getCutoutRenderDataForPreview(
+                            originalPreviewBox,
+                            previewBox,
+                            itemToolHandler,
+                            new Vector3d(size.xCoord, size.yCoord, size.zCoord));
+                        LittleTileShapeMode shape = cutoutData.shape;
+                        Vector3d cutoutSize = cutoutData.cutoutSize;
+                        int cutoutOrientation = cutoutData.orientation;
+                        Vector3i cutoutOriginCurrent = cutoutData.cutoutOrigin;
+>>>>>>> 6a43e66 (More NBT handling to LittleToolHandler)
 
                         if (!(shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR)) {
                             cubeX -= size.xCoord / 2;
@@ -295,14 +313,8 @@ public class PreviewRenderer {
                                     color.zCoord,
                                     Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5);
                         } else {
-                            LittleTileBox originalPreviewBox = previewTile.preview != null
-                                    && previewTile.preview.box != null ? previewTile.preview.box : previewBox;
                             Vector3i subMin = new Vector3i(previewBox.minX, previewBox.minY, previewBox.minZ);
                             Vector3i subMax = new Vector3i(previewBox.maxX, previewBox.maxY, previewBox.maxZ);
-                            Vector3i cutoutOriginCurrent = new Vector3i(
-                                    cutoutOrigin.x + previewBox.minX - originalPreviewBox.minX,
-                                    cutoutOrigin.y + previewBox.minY - originalPreviewBox.minY,
-                                    cutoutOrigin.z + previewBox.minZ - originalPreviewBox.minZ);
                             // Mesh vertices are shifted by subMin in renderMesh/createMesh.
                             // Use block-space origin here so translation is applied exactly once.
                             double meshX = cubeX - cube.minX;

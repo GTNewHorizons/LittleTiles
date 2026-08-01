@@ -7,8 +7,8 @@ import java.util.Map;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.init.Blocks;
 import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.init.Blocks;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3i;
@@ -125,10 +125,20 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
 
         int arrowSize = smallerSide / 2;
         if (menu.isOpen()) {
-            arrowOpened.draw(context, area.width - arrowSize, arrowSize / 2, arrowSize, arrowSize,
+            arrowOpened.draw(
+                    context,
+                    area.width - arrowSize,
+                    arrowSize / 2,
+                    arrowSize,
+                    arrowSize,
                     getWidgetTheme(context.getTheme()).getTheme());
         } else {
-            arrowClosed.draw(context, area.width - arrowSize, arrowSize / 2, arrowSize, arrowSize,
+            arrowClosed.draw(
+                    context,
+                    area.width - arrowSize,
+                    arrowSize / 2,
+                    arrowSize,
+                    arrowSize,
                     getWidgetTheme(context.getTheme()).getTheme());
         }
     }
@@ -163,14 +173,14 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
             cutoutInfo.thickness = 5;
             cutoutInfo.faceStart = ForgeDirection.SOUTH;
             cutoutInfo.faceEnd = ForgeDirection.UP;
-            Mesh3d mesh = Mesh3dUtil.createMesh(cutoutInfo, new Vector3d(1, 1, 1), new Vector3d(), ZERO, ZERO, FULL_TILE,
-                    null, 0, 0);
+            Mesh3d mesh = Mesh3dUtil
+                    .createMesh(cutoutInfo, new Vector3d(1, 1, 1), new Vector3d(), ZERO, ZERO, FULL_TILE, null, 0, 0);
             mesh.setTextures(Blocks.quartz_block, 0);
             return mesh;
         }
 
-        Mesh3d mesh = Mesh3dUtil.createMesh(cutoutInfo, new Vector3d(1, 1, 1), new Vector3d(), ZERO, ZERO, FULL_TILE,
-            null, 0, 0);
+        Mesh3d mesh = Mesh3dUtil
+                .createMesh(cutoutInfo, new Vector3d(1, 1, 1), new Vector3d(), ZERO, ZERO, FULL_TILE, null, 0, 0);
         mesh.setTextures(Blocks.quartz_block, 0);
         return mesh;
     }

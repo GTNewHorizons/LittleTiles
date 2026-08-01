@@ -76,9 +76,23 @@ public class LittlePlacePacket extends CreativeCorePacket {
 
     @Override
     public void executeServer(EntityPlayer player) {
-        if (PlacementHelper.isLittleBlock(stack)) {
+        ItemStack placementStack = stack;
+        ItemStack serverHeldStack = player.getCurrentEquippedItem();
+        // Prefer server-authoritative held item for regular placement to avoid stale packet NBT.
+        // Keep packet-provided synthetic stack when the held item is the chisel workflow.
+        if (serverHeldStack != null
+                && serverHeldStack.getItem() != LittleTiles.chisel
+                && PlacementHelper.isLittleBlock(serverHeldStack)) {
+            placementStack = serverHeldStack;
+        }
+
+        if (PlacementHelper.isLittleBlock(placementStack)) {
             ((ItemBlockTiles) Item.getItemFromBlock(LittleTiles.blockTile))
+<<<<<<< HEAD
                     .placeBlockAt(player, stack, player.worldObj, pos, customPlacement, placeMode);
+=======
+                    .placeBlockAt(player, placementStack, player.worldObj, pos, customPlacement, cutoutInfo, placeMode);
+>>>>>>> 5a118c5 (Submesh splitting, ghost preview fix & held item lighting fix)
 
             EntityPlayerMP playerMP = (EntityPlayerMP) player;
             Slot slot = playerMP.openContainer.getSlotFromInventory(playerMP.inventory, playerMP.inventory.currentItem);

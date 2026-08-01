@@ -144,6 +144,75 @@ public class PreviewRenderer {
         else if (!isEditingDeformedBox()) processKey(rotate);
     }
 
+    private static double previewAlpha() {
+        return Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5;
+    }
+
+    /** Center of the preview tile, relative to the camera. Spans from the first hit while one is set. */
+    private static Vec3 getPreviewCenter(PreviewTile previewTile, LittleTileBlockPos pos, double x, double y, double z,
+            int align) {
+        LittleTileBox previewBox = previewTile.getPreviewBox();
+        CubeObject cube = previewBox.getCube();
+        Vec3 size = previewBox.getSizeD();
+        double cubeX = x + cube.minX + size.xCoord / 2D;
+        double cubeY = y + cube.minY + size.yCoord / 2D;
+        double cubeZ = z + cube.minZ + size.zCoord / 2D;
+        if (firstHit != null) {
+            LittleTileBlockPos.Comparison comparison = pos.compareTo(firstHit);
+            Vec3 hitVec = firstHit.toHitVec();
+            if (comparison.biggerOrEqualX) {
+                cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord + size.xCoord / 2D;
+            } else {
+                cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord - size.xCoord / 2D + align / 16f;
+            }
+            if (comparison.biggerOrEqualY) {
+                cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord + size.yCoord / 2D;
+            } else {
+                cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord - size.yCoord / 2D + align / 16f;
+            }
+
+            if (comparison.biggerOrEqualZ) {
+                cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord + size.zCoord / 2D;
+            } else {
+                cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord - size.zCoord / 2D + align / 16f;
+            }
+        }
+        return Vec3.createVectorHelper(cubeX, cubeY, cubeZ);
+    }
+
+    /** The untextured shape of the preview tile, in its preview color. */
+    private static void renderPreviewShape(PreviewTile previewTile, LittleTileBlockPos pos, double x, double y,
+            double z, int align, double alpha) {
+        GL11.glPushMatrix();
+        Vec3 center = getPreviewCenter(previewTile, pos, x, y, z, align);
+        Vec3 size = previewTile.getPreviewBox().getSizeD();
+        Vec3 color = previewTile.getPreviewColor();
+
+        LittleToolHandler toolHandler;
+
+        LittleTileCutoutInfo cutoutInfo = null;
+        if (previewTile.preview != null) {
+            toolHandler = new LittleToolHandler(previewTile.preview.nbt);
+            cutoutInfo = LittleTileCutoutInfo.loadFromNBT(previewTile.preview.nbt);
+        } else {
+            toolHandler = new LittleToolHandler(Minecraft.getMinecraft().thePlayer.getHeldItem());
+        }
+        LittleTilesBlockRenderHelper.renderShape(
+                toolHandler.getShape(),
+                center.xCoord,
+                center.yCoord,
+                center.zCoord,
+                size,
+                toolHandler.getTileSize(), // Needed for block picked cutouts
+                toolHandler.getOrientation(),
+                toolHandler.getTileOriginal(), // Needed for block picked cutouts
+                color,
+                alpha,
+                cutoutInfo);
+
+        GL11.glPopMatrix();
+    }
+
     @SubscribeEvent
     public void tick(RenderHandEvent event) {
         final Minecraft mc = Minecraft.getMinecraft();
@@ -300,64 +369,7 @@ public class PreviewRenderer {
                         // filling its faces here would hide whatever the player is trying to line the box up against.
                         if (editingDeformedBox) break;
 
-                        GL11.glPushMatrix();
-                        LittleTileBox previewBox = previewTile.getPreviewBox();
-                        CubeObject cube = previewBox.getCube();
-                        Vec3 size = previewBox.getSizeD();
-                        double cubeX = x + cube.minX + size.xCoord / 2D;
-                        double cubeY = y + cube.minY + size.yCoord / 2D;
-                        double cubeZ = z + cube.minZ + size.zCoord / 2D;
-                        if (firstHit != null) {
-                            LittleTileBlockPos.Comparison comparison = pos.compareTo(firstHit);
-                            Vec3 hitVec = firstHit.toHitVec();
-                            if (comparison.biggerOrEqualX) {
-                                cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord + size.xCoord / 2D;
-                            } else {
-                                cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord
-                                        - size.xCoord / 2D
-                                        + align / 16f;
-                            }
-                            if (comparison.biggerOrEqualY) {
-                                cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord + size.yCoord / 2D;
-                            } else {
-                                cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord
-                                        - size.yCoord / 2D
-                                        + align / 16f;
-                            }
-
-                            if (comparison.biggerOrEqualZ) {
-                                cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord + size.zCoord / 2D;
-                            } else {
-                                cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord
-                                        - size.zCoord / 2D
-                                        + align / 16f;
-                            }
-                        }
-                        Vec3 color = previewTile.getPreviewColor();
-
-                        LittleToolHandler toolHandler;
-
-                        LittleTileCutoutInfo cutoutInfo = null;
-                        if (previewTile.preview != null) {
-                            toolHandler = new LittleToolHandler(previewTile.preview.nbt);
-                            cutoutInfo = LittleTileCutoutInfo.loadFromNBT(previewTile.preview.nbt);
-                        } else {
-                            toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
-                        }
-                        LittleTilesBlockRenderHelper.renderShape(
-                                toolHandler.getShape(),
-                                cubeX,
-                                cubeY,
-                                cubeZ,
-                                size,
-                                toolHandler.getTileSize(), // Needed for block picked cutouts
-                                toolHandler.getOrientation(),
-                                toolHandler.getTileOriginal(), // Needed for block picked cutouts
-                                color,
-                                Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5,
-                                cutoutInfo);
-
-                        GL11.glPopMatrix();
+                        renderPreviewShape(previewTile, pos, x, y, z, align, previewAlpha());
                     }
 
                     // Drawn after the filled preview so the markers remain visible where their cubes overlap it.

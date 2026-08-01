@@ -127,7 +127,7 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
         IDrawable currentArrow = menu.isOpen() ? arrowOpened : arrowClosed;
         currentArrow.draw(
                 context,
-                area.width - arrowSize,
+                area.width - arrowSize - 5,
                 arrowSize / 2,
                 arrowSize,
                 arrowSize,

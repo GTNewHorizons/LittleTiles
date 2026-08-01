@@ -57,6 +57,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<PlayerInventoryGuiData> {
 
+    private static final int WIDGET_WIDTH = 180;
+    private static final int WIDGET_MARGIN = 5;
+
     public ItemLittleChisel() {
         setCreativeTab(CreativeTabs.tabTools);
         hasSubtypes = true;
@@ -189,7 +192,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
     private BlockDisplayWidget addBlockDisplay(PanelSyncManager syncManager, BlockStateSyncValue syncBlock,
             LittleToolHandler handler, int y) {
         BlockDisplayWidget blockDisplay = new BlockDisplayWidget(syncManager, syncBlock);
-        blockDisplay.size(150, 20).pos(5, y).marginLeft(5);
+        blockDisplay.size(WIDGET_WIDTH, 20).pos(WIDGET_MARGIN, y).marginLeft(WIDGET_MARGIN);
 
         blockDisplay.addAllBlocks(BlockValidator::isBlockValid);
 
@@ -200,10 +203,10 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
 
     private Flow addGridSelector(IntSyncValue syncGrid, LittleToolHandler handler, int y) {
         Flow flow = new Flow(GuiAxis.X);
-        flow.pos(5, y).size(100, 20);
-        TextWidget<?> labelGrid = IKey.str("Grid:").asWidget().marginLeft(5).width(40);
+        flow.pos(WIDGET_MARGIN, y).size(WIDGET_WIDTH, 20);
+        TextWidget<?> labelGrid = IKey.str("Grid:").asWidget().marginLeft(WIDGET_MARGIN).width(40);
         DropDownMenu gridPicker = new DropDownMenu();
-        gridPicker.marginLeft(5).marginRight(5).size(40, 20);
+        gridPicker.marginLeft(WIDGET_MARGIN).marginRight(WIDGET_MARGIN).size(40, 20);
         gridPicker.background(GuiTextures.BUTTON_CLEAN);
         TextButtonWidget buttonLeft = new TextButtonWidget();
         TextButtonWidget buttonRight = new TextButtonWidget();
@@ -250,7 +253,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
 
     private ShapeSelectorWidget addShapeSelector(IntSyncValue sync, LittleToolHandler handler, int y) {
         ShapeSelectorWidget shapePicker = new ShapeSelectorWidget();
-        shapePicker.pos(5, y).size(180, 20).marginLeft(10);
+        shapePicker.pos(WIDGET_MARGIN, y).size(WIDGET_WIDTH, 20).marginLeft(WIDGET_MARGIN);
         shapePicker.background(GuiTextures.BUTTON_CLEAN);
 
         for (LittleTileShapeMode mode : LittleTileShapeMode.values()) {
@@ -266,10 +269,10 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
 
     private Flow addPlaceModeSelector(IntSyncValue sync, LittleToolHandler handler, int y) {
         Flow flow = new Flow(GuiAxis.X);
-        flow.pos(5, y).size(120, 40);
+        flow.pos(WIDGET_MARGIN, y).size(120, 40);
 
         DropDownMenu placeModePicker = new DropDownMenu();
-        placeModePicker.size(90, 30).marginLeft(10);
+        placeModePicker.size(120, 20);
         placeModePicker.background(GuiTextures.BUTTON_CLEAN);
 
         IKey placeModeInfoKey = new DynamicKey(() -> IKey.str(handler.getPlaceMode().getInfo()));
@@ -283,7 +286,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         placeModePicker.setSelectedIndex(placeMode);
 
         flow.child(placeModePicker);
-        flow.child(placeModeInfoKey.asWidget().marginLeft(10));
+        flow.child(placeModeInfoKey.asWidget().marginLeft(WIDGET_MARGIN));
 
         return flow;
     }

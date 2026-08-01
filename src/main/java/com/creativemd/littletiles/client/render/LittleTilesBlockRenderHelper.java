@@ -250,7 +250,16 @@ public class LittleTilesBlockRenderHelper {
                 Mesh3d mesh = littleCube.renderCache == null ? null : littleCube.renderCache.getSimpleMesh();
                 if (mesh != null) {
                     mesh = mesh.copy();
+                    // Recipe meshes retain their multi-block position (for example, x = 1..2 for a tile in the
+                    // second block). Texture projection expects block-local coordinates; feeding those recipe-space
+                    // values to IIcon interpolation samples beyond the icon and into unrelated atlas sprites.
+                    Vector3d textureOffset = new Vector3d(
+                            Math.floor(cube.minX),
+                            Math.floor(cube.minY),
+                            Math.floor(cube.minZ));
+                    mesh.translate(new Vector3d(-textureOffset.x, -textureOffset.y, -textureOffset.z));
                     mesh.setTextures(block, metadata);
+                    mesh.translate(textureOffset);
                     boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
                     GL11.glDisable(GL11.GL_LIGHTING);
                     GL11.glTranslatef(-0.5F, -0.5F, -0.5F);

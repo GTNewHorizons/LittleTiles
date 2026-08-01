@@ -229,7 +229,7 @@ public class TriangleTriangleIntersect {
         sort(isect2);
 
         // Treat endpoint contact as non-overlap. This allows complementary slopes to touch without blocking placement.
-        if (isect1[1] <= isect2[0] + EPSILON || isect2[1] <= isect1[0] + EPSILON) {
+        if (isect1[1] <= isect2[0] || isect2[1] <= isect1[0]) {
             return false;
         }
 

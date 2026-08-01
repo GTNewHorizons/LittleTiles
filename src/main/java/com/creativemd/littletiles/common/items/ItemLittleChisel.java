@@ -43,6 +43,7 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
@@ -115,28 +116,32 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
 
         if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) {
             size = new LittleTileSize(sizeX, sizeY, sizeZ);
-        } else if (PreviewRenderer.firstHit == null) {
-            size = new LittleTileSize(sizeX, sizeY, sizeZ);
         } else {
-            MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
-            LittleTileBlockPos pos = null;
             int align = handler.getGrid();
-            if (moving != null) {
-                pos = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
+            LittleTileBlockPos end = PreviewRenderer.markedHit;
+            if (end == null) {
+                MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
+                if (moving == null) {
+                    return null;
+                }
+                end = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
             }
-            if (PreviewRenderer.markedHit != null) {
-                pos = PreviewRenderer.markedHit;
-            }
-            if (pos == null) {
-                return null;
-            }
-            LittleTileBlockPos.Subtraction subtraction = pos.subtract(stack, PreviewRenderer.firstHit);
-            LittleTileBlockPos.Comparison comparison = PreviewRenderer.firstHit.compareTo(pos);
+            LittleTileBlockPos start = PreviewRenderer.firstHit != null ? PreviewRenderer.firstHit : end;
+
+            LittleTileBlockPos.Subtraction subtraction = end.subtract(stack, start);
+            LittleTileBlockPos.Comparison comparison = start.compareTo(end);
             size = new LittleTileSize(subtraction.x, subtraction.y, subtraction.z);
             nbt.setBoolean("fromChiselPosX", !comparison.biggerOrEqualX);
             nbt.setBoolean("fromChiselPosY", !comparison.biggerOrEqualY);
             nbt.setBoolean("fromChiselPosZ", !comparison.biggerOrEqualZ);
             nbt.setInteger("fromChiselAlign", align);
+
+            // The shape selected in the gui only becomes a concrete cutout once both hits are known,
+            // so it is written here, where the preview (and everything derived from it) picks it up.
+            LittleTileCutoutInfo cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, start, end);
+            if (cutoutInfo != null) {
+                cutoutInfo.writeToNBT(nbt);
+            }
         }
 
         LittleTile tile;

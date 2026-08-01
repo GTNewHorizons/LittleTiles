@@ -284,18 +284,8 @@ public class LittleDoor extends LittleStructure {
          * structure.normalAxis = Axis.AxisY; break; default: break; }
          */
 
-        if (ItemBlockTiles.placeTiles(
-                world,
-                player,
-                previews,
-                structure,
-                x,
-                y,
-                z,
-                null,
-                null,
-                null,
-                LittleTilePlaceMode.NORMAL)) {
+        if (ItemBlockTiles
+                .placeTiles(world, player, previews, structure, x, y, z, null, null, LittleTilePlaceMode.NORMAL)) {
             ArrayList<LittleTile> tiles = getTiles();
             for (LittleTile littleTile : tiles) {
                 littleTile.te.update();

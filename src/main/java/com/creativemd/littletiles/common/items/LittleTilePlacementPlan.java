@@ -29,17 +29,6 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 
 public class LittleTilePlacementPlan {
 
-    private static class PlannedCollisionTile {
-
-        public final LittleTileBox box;
-        public final LittleTileCutoutInfo cutout;
-
-        public PlannedCollisionTile(LittleTileBox box, LittleTileCutoutInfo cutout) {
-            this.box = box;
-            this.cutout = cutout;
-        }
-    }
-
     public static final class SplitPreviewMap
             extends Object2ObjectLinkedOpenHashMap<ChunkCoordinates, ArrayList<PreviewTile>> {
     }
@@ -257,26 +246,6 @@ public class LittleTilePlacementPlan {
         return tile;
     }
 
-    private PlannedCollisionTile getPlannedCollisionTile(PreviewTile previewTile,
-            LittleTileCutoutInfo cutoutInfoCurrent) {
-        LittleTileBox box = previewTile.box.copy();
-        LittleTileCutoutInfo effectiveCutout = cutoutInfoCurrent;
-
-        if (previewTile.preview != null && previewTile.preview.nbt != null) {
-            LittleTile tile = LittleTile.CreateandLoadTile(null, null, previewTile.preview.nbt);
-            if (tile != null) {
-                tile.boundingBox = box.copy();
-                tile.updateCorner();
-                if (cutoutInfoCurrent != null) {
-                    tile.setCutoutInfo(cutoutInfoCurrent);
-                }
-                effectiveCutout = tile.getCutoutInfo();
-            }
-        }
-
-        return new PlannedCollisionTile(box, effectiveCutout);
-    }
-
     private boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles,
             ChunkCoordinates coord) {
         for (PreviewTile tile : placeTiles) {
@@ -286,15 +255,14 @@ public class LittleTilePlacementPlan {
             LittleTileCutoutInfo perTileCutout = null;
             if (baseCutoutInfo != null) {
                 perTileCutout = getCutoutInfoCurrent(coord, tile);
+                // Mesh-backed fragments can clip to empty space when split across blocks.
                 if (perTileCutout == null) {
                     continue;
                 }
             }
 
-            PlannedCollisionTile collisionTile = getPlannedCollisionTile(tile, perTileCutout);
-
             // Check against already existing tiles in target block.
-            if (mainTile != null && !mainTile.isSpaceForLittleTile(collisionTile.box, collisionTile.cutout)) {
+            if (mainTile != null && !mainTile.isSpaceForLittleTile(tile.box.copy(), perTileCutout)) {
                 return false;
             }
         }

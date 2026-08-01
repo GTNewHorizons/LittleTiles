@@ -254,7 +254,7 @@ public class LittleTilePlacementPlan {
             LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(tile);
             LittleTileCutoutInfo perTileCutout = null;
             if (baseCutoutInfo != null) {
-                perTileCutout = getCutoutInfoCurrent(coord, tile, cutoutInfo);
+                perTileCutout = getCutoutInfoCurrent(coord, tile);
                 // Mesh-backed fragments can clip to empty space when split across blocks.
                 if (perTileCutout == null) {
                     continue;

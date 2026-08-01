@@ -23,6 +23,7 @@ import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.drawable.text.DynamicKey;
 import com.cleanroommc.modularui.factory.PlayerInventoryGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
@@ -153,6 +154,12 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         LittleTilePreview preview = new LittleTilePreview(size, nbt);
         ret.add(preview);
         return ret;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public ModularScreen createScreen(PlayerInventoryGuiData data, ModularPanel mainPanel) {
+        return new ModularScreen(LittleTiles.modid, mainPanel);
     }
 
     private void selectBlock(PlayerInventoryGuiData data, Block block, int meta) {

@@ -36,6 +36,7 @@ import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.gui.BlockDisplayWidget;
+import com.creativemd.littletiles.common.gui.ShapeSelectorWidget;
 import com.creativemd.littletiles.common.gui.TextButtonWidget;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.BlockStateSyncValue;
@@ -242,14 +243,14 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         return flow;
     }
 
-    private DropDownMenu addShapeSelector(IntSyncValue sync, LittleToolHandler handler, int y) {
-        DropDownMenu shapePicker = new DropDownMenu();
-        shapePicker.pos(5, y).size(150, 25).marginLeft(10);
+    private ShapeSelectorWidget addShapeSelector(IntSyncValue sync, LittleToolHandler handler, int y) {
+        ShapeSelectorWidget shapePicker = new ShapeSelectorWidget();
+        shapePicker.pos(5, y).size(180, 20).marginLeft(10);
         shapePicker.background(GuiTextures.BUTTON_CLEAN);
 
         for (LittleTileShapeMode mode : LittleTileShapeMode.values()) {
             int id = mode.ordinal();
-            shapePicker.addChoice(x -> sync.setIntValue(id), mode.getName());
+            shapePicker.addChoice(x -> sync.setIntValue(id), mode);
         }
 
         int shape = handler.getShape().ordinal();

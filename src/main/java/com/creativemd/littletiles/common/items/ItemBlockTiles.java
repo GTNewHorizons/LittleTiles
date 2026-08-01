@@ -33,6 +33,7 @@ import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
+import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import com.creativemd.littletiles.utils.PreviewTile;
 
 import cpw.mods.fml.common.FMLCommonHandler;

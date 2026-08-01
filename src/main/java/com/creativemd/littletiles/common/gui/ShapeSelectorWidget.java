@@ -145,13 +145,14 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
         if (mesh == null) {
             mesh = createPreviewMesh(shape);
             PREVIEW_MESHES.put(shape, mesh);
+            mesh.setTextures(Blocks.quartz_block, 0);
         }
         return mesh;
     }
 
     private static Mesh3d createPreviewMesh(LittleTileShapeMode shape) {
         if (shape == LittleTileShapeMode.BOX) {
-            return createBoxMesh();
+            return Mesh3dUtil.createBoxMesh();
         }
 
         LittleTileCutoutInfo cutoutInfo = new LittleTileCutoutInfo();
@@ -166,34 +167,11 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
             cutoutInfo.faceEnd = ForgeDirection.UP;
             Mesh3d mesh = Mesh3dUtil
                     .createMesh(cutoutInfo, new Vector3d(1, 1, 1), new Vector3d(), ZERO, ZERO, FULL_TILE, null, 0, 0);
-            mesh.setTextures(Blocks.quartz_block, 0);
             return mesh;
         }
 
         Mesh3d mesh = Mesh3dUtil
                 .createMesh(cutoutInfo, new Vector3d(1, 1, 1), new Vector3d(), ZERO, ZERO, FULL_TILE, null, 0, 0);
-        mesh.setTextures(Blocks.quartz_block, 0);
-        return mesh;
-    }
-
-    private static Mesh3d createBoxMesh() {
-        List<Triangle3d> triangles = new ArrayList<>();
-
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 0, 1), new Vector3d(1, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 1, 1), new Vector3d(0, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 1, 0), new Vector3d(1, 0, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(0, 1, 0), new Vector3d(1, 1, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(0, 0, 1), new Vector3d(0, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(0, 1, 1), new Vector3d(0, 1, 0)));
-        triangles.add(new Triangle3d(new Vector3d(1, 0, 0), new Vector3d(1, 1, 1), new Vector3d(1, 0, 1)));
-        triangles.add(new Triangle3d(new Vector3d(1, 0, 0), new Vector3d(1, 1, 0), new Vector3d(1, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(0, 1, 1), new Vector3d(1, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(1, 1, 1), new Vector3d(1, 1, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 1), new Vector3d(0, 0, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(1, 0, 1)));
-
-        Mesh3d mesh = new Mesh3d(triangles);
-        mesh.setTextures(Blocks.quartz_block, 0);
         return mesh;
     }
 

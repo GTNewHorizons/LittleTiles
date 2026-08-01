@@ -8,11 +8,7 @@ import java.util.UUID;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.inventory.Slot;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.play.server.S2FPacketSetSlot;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
@@ -32,8 +28,14 @@ public final class LittleTilesPlacementHistory {
 
         UUID id = player.getUniqueID();
         Deque<PlacementAction> undoStack = getStack(undoHistory, id);
-        undoStack.push(action);
-        trimStack(undoStack);
+        if (player.capabilities.isCreativeMode) {
+            undoStack.push(action);
+            trimStack(undoStack);
+        } else {
+            // Non-creative players only keep their latest place action.
+            undoStack.clear();
+            undoStack.push(action);
+        }
         getStack(redoHistory, id).clear();
     }
 
@@ -53,13 +55,17 @@ public final class LittleTilesPlacementHistory {
             return;
         }
 
-        Deque<PlacementAction> redoStack = getStack(redoHistory, id);
-        redoStack.push(action);
-        trimStack(redoStack);
+        if (player.capabilities.isCreativeMode) {
+            Deque<PlacementAction> redoStack = getStack(redoHistory, id);
+            redoStack.push(action);
+            trimStack(redoStack);
+        } else {
+            getStack(redoHistory, id).clear();
+        }
     }
 
     public static void redo(EntityPlayer player) {
-        if (player == null) {
+        if (player == null || !player.capabilities.isCreativeMode) {
             return;
         }
 
@@ -82,18 +88,12 @@ public final class LittleTilesPlacementHistory {
     public static final class PlacementAction {
 
         public final int dimensionId;
-        public final int hotbarSlot;
-        public final ItemStack stackBefore;
-        public final ItemStack stackAfter;
         public final ArrayList<BlockSnapshot> beforeStates;
         public final ArrayList<BlockSnapshot> afterStates;
 
-        public PlacementAction(int dimensionId, int hotbarSlot, ItemStack stackBefore, ItemStack stackAfter,
-                ArrayList<BlockSnapshot> beforeStates, ArrayList<BlockSnapshot> afterStates) {
+        public PlacementAction(int dimensionId, ArrayList<BlockSnapshot> beforeStates,
+                ArrayList<BlockSnapshot> afterStates) {
             this.dimensionId = dimensionId;
-            this.hotbarSlot = hotbarSlot;
-            this.stackBefore = copy(stackBefore);
-            this.stackAfter = copy(stackAfter);
             this.beforeStates = beforeStates;
             this.afterStates = afterStates;
         }
@@ -105,7 +105,6 @@ public final class LittleTilesPlacementHistory {
             }
 
             applySnapshots(world, beforeStates);
-            setCurrentSlotStack(player, hotbarSlot, stackBefore);
             return true;
         }
 
@@ -116,7 +115,6 @@ public final class LittleTilesPlacementHistory {
             }
 
             applySnapshots(world, afterStates);
-            setCurrentSlotStack(player, hotbarSlot, stackAfter);
             return true;
         }
     }
@@ -206,30 +204,7 @@ public final class LittleTilesPlacementHistory {
         }
     }
 
-    private static void setCurrentSlotStack(EntityPlayer player, int hotbarSlot, ItemStack stack) {
-        if (hotbarSlot < 0 || hotbarSlot >= player.inventory.mainInventory.length) {
-            return;
-        }
-
-        player.inventory.mainInventory[hotbarSlot] = copy(stack);
-        player.inventory.currentItem = hotbarSlot;
-        player.inventory.markDirty();
-
-        if (player instanceof EntityPlayerMP) {
-            EntityPlayerMP playerMP = (EntityPlayerMP) player;
-            Slot slot = playerMP.openContainer.getSlotFromInventory(playerMP.inventory, hotbarSlot);
-            if (slot != null) {
-                playerMP.playerNetServerHandler.sendPacket(
-                        new S2FPacketSetSlot(playerMP.openContainer.windowId, slot.slotNumber, copy(stack)));
-            }
-        }
-    }
-
     private static NBTTagCompound copy(NBTTagCompound tag) {
         return tag == null ? null : (NBTTagCompound) tag.copy();
-    }
-
-    private static ItemStack copy(ItemStack stack) {
-        return stack == null ? null : stack.copy();
     }
 }

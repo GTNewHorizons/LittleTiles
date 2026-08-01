@@ -30,12 +30,15 @@ import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
+import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import com.creativemd.littletiles.utils.PreviewTile;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -100,18 +103,27 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
 
-        if (needsTwoHits(stack)) {
-            if (PreviewRenderer.firstHit == null && PreviewRenderer.markedHit == null) {
-                PreviewRenderer.firstHit = pos;
-                return true;
-            }
+        LittleTileCutoutInfo cutoutInfo = null;
 
-            // The preview carries the cutout in its nbt, so the placed stack keeps it as well.
-            ILittleTile littleTile = (ILittleTile) stack.getItem();
-            NBTTagCompound tag = (NBTTagCompound) littleTile.getLittlePreview(stack).get(0).nbt.copy();
-            stack = new ItemStack(Item.getItemFromBlock(LittleTiles.blockTile));
-            stack.stackTagCompound = tag;
-            PreviewRenderer.firstHit = null;
+        if (needsTwoHits(stack)) {
+            if (PreviewRenderer.firstHit == null) {
+                if (PreviewRenderer.markedHit == null) {
+                    PreviewRenderer.firstHit = pos;
+                    return true;
+                }
+                cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, pos, pos);
+            } else {
+                cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, PreviewRenderer.firstHit, pos);
+
+                ILittleTile littleTile = (ILittleTile) stack.getItem();
+
+                NBTTagCompound tag = (NBTTagCompound) littleTile.getLittlePreview(stack).get(0).nbt.copy();
+                stack = new ItemStack(Item.getItemFromBlock(LittleTiles.blockTile));
+                stack.stackTagCompound = tag;
+                PreviewRenderer.firstHit = null;
+            }
+        } else {
+            cutoutInfo = LittleTileCutoutInfo.loadFromNBT(stack.stackTagCompound);
         }
 
         x = pos.getPosX();
@@ -128,7 +140,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) PacketHandler.sendPacketToServer(
                     new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null, placeMode));
 
-            placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, placeMode);
+            placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, cutoutInfo, placeMode);
 
             PreviewRenderer.markedHit = null;
 
@@ -167,18 +179,47 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
     public static boolean placeTiles(World world, EntityPlayer player, ArrayList<PreviewTile> previews,
             LittleStructure structure, int x, int y, int z, ItemStack stack, ArrayList<LittleTile> unplaceableTiles,
-            LittleTilePlaceMode placeMode) {
+            LittleTileCutoutInfo cutoutInfo, LittleTilePlaceMode placeMode, ArrayList<ChunkCoordinates> plannedCoords) {
         LittleTilePlacementPlan plan = new LittleTilePlacementPlan();
         plan.fillPlan(world, x, y, z, previews, structure, placeMode);
         if (!plan.canApplyPlan()) {
             return false;
         }
 
+        if (plannedCoords != null) {
+            plannedCoords.clear();
+            plannedCoords.addAll(collectPlannedCoords(previews, x, y, z));
+        }
+
         return plan.applyPlan(world, player, stack, structure, unplaceableTiles);
     }
 
+    public static boolean placeTiles(World world, EntityPlayer player, ArrayList<PreviewTile> previews,
+            LittleStructure structure, int x, int y, int z, ItemStack stack, ArrayList<LittleTile> unplaceableTiles,
+            LittleTilePlaceMode placeMode) {
+        return placeTiles(world, player, previews, structure, x, y, z, stack, unplaceableTiles, null, placeMode, null);
+    }
+
+    public static boolean placeTiles(World world, EntityPlayer player, ArrayList<PreviewTile> previews,
+            LittleStructure structure, int x, int y, int z, ItemStack stack, ArrayList<LittleTile> unplaceableTiles,
+            LittleTileCutoutInfo cutoutInfo, LittleTilePlaceMode placeMode) {
+        return placeTiles(
+                world,
+                player,
+                previews,
+                structure,
+                x,
+                y,
+                z,
+                stack,
+                unplaceableTiles,
+                cutoutInfo,
+                placeMode,
+                null);
+    }
+
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
-            boolean customPlacement, LittleTilePlaceMode placeMode) {
+            boolean customPlacement, LittleTileCutoutInfo cutoutInfo, LittleTilePlaceMode placeMode) {
         ArrayList<PreviewTile> previews = PlacementHelper.getPreviewTiles(player, stack, pos, customPlacement);
 
         LittleStructure structure = null;
@@ -203,16 +244,18 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             return false;
         }
 
-        int slot = player.inventory.currentItem;
-        ItemStack stackBefore = player.inventory.mainInventory[slot] == null ? null
-                : player.inventory.mainInventory[slot].copy();
-        ArrayList<ChunkCoordinates> plannedCoords = plan.getPlannedCoordinates();
+        ArrayList<LittleTile> unplaceableTiles = new ArrayList<>();
+        ArrayList<ChunkCoordinates> plannedCoords = collectPlannedCoords(previews, x, y, z);
+        ItemStack heldBeforePlace = player.inventory.mainInventory[player.inventory.currentItem];
+        boolean isStencilChiselNonCreative = !player.capabilities.isCreativeMode && heldBeforePlace != null
+                && heldBeforePlace.getItem() == LittleTiles.chisel
+                && placeMode == LittleTilePlaceMode.STENCIL;
+        boolean shouldRecordHistory = !world.isRemote && !isStencilChiselNonCreative;
         ArrayList<LittleTilesPlacementHistory.BlockSnapshot> beforeStates = null;
-        if (!world.isRemote) {
+        if (shouldRecordHistory) {
             beforeStates = LittleTilesPlacementHistory.captureSnapshots(world, plannedCoords);
         }
 
-        ArrayList<LittleTile> unplaceableTiles = new ArrayList<>();
         if (plan.applyPlan(world, player, stack, structure, unplaceableTiles)) {
             ItemStack currentStack = player.inventory.mainInventory[player.inventory.currentItem];
             boolean isChisel = currentStack != null && currentStack.getItem() == LittleTiles.chisel;
@@ -221,21 +264,18 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
                 if (currentStack.stackSize == 0) player.inventory.mainInventory[player.inventory.currentItem] = null;
             }
 
-            if (!world.isRemote) {
+            if (shouldRecordHistory) {
                 ArrayList<LittleTilesPlacementHistory.BlockSnapshot> afterStates = LittleTilesPlacementHistory
                         .captureSnapshots(world, plannedCoords);
-                ItemStack stackAfter = player.inventory.mainInventory[player.inventory.currentItem] == null ? null
-                        : player.inventory.mainInventory[player.inventory.currentItem].copy();
                 LittleTilesPlacementHistory.recordPlacement(
                         player,
                         new LittleTilesPlacementHistory.PlacementAction(
                                 world.provider.dimensionId,
-                                slot,
-                                stackBefore,
-                                stackAfter,
                                 beforeStates,
                                 afterStates));
+            }
 
+            if (!world.isRemote) {
                 for (LittleTile unplaceableTile : unplaceableTiles) {
                     if (!(unplaceableTile instanceof LittleTileBlock) && !ItemTileContainer.addBlock(
                             player,
@@ -248,6 +288,26 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             return true;
         }
         return false;
+    }
+
+    public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
+            boolean customPlacement, LittleTilePlaceMode placeMode) {
+        return placeBlockAt(player, stack, world, pos, customPlacement, null, placeMode);
+    }
+
+    private static ArrayList<ChunkCoordinates> collectPlannedCoords(ArrayList<PreviewTile> previews, int x, int y,
+            int z) {
+        ArrayList<ChunkCoordinates> coords = new ArrayList<>();
+        LittleTilePlacementPlan.SplitPreviewMap splitMap = new LittleTilePlacementPlan.SplitPreviewMap();
+        for (PreviewTile preview : previews) {
+            if (!preview.split(splitMap, x, y, z)) {
+                return coords;
+            }
+        }
+        for (ChunkCoordinates coord : splitMap.keySet()) {
+            coords.add(new ChunkCoordinates(coord.posX, coord.posY, coord.posZ));
+        }
+        return coords;
     }
 
     @Override
@@ -271,10 +331,21 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     public ArrayList<CubeObject> getRenderingCubes(ItemStack stack) {
         ArrayList<CubeObject> cubes = new ArrayList<>();
         if (!stack.hasTagCompound()) return cubes;
-        LittleTilePreview preview = LittleTilePreview.getPreviewFromNBT(stack.stackTagCompound);
-        if (preview == null) return cubes;
-        CubeObject cube = preview.getCubeBlock();
-        if (!(cube.block instanceof BlockAir)) cubes.add(cube);
+        LittleTile tile = LittleTile.CreateandLoadTile(null, null, stack.stackTagCompound);
+        if (tile != null) {
+            cubes.addAll(tile.getRenderingCubes());
+            return cubes;
+        }
+        Block block = Block.getBlockFromName(stack.stackTagCompound.getString("block"));
+        int meta = stack.stackTagCompound.getInteger("meta");
+        LittleTileSize size = new LittleTileSize("size", stack.stackTagCompound);
+        if (!(block instanceof BlockAir)) {
+            CubeObject cube = new LittleTileBox(new LittleTileVec(8, 8, 8), size, true).getCube();
+            cube.block = block;
+            cube.meta = meta;
+            if (stack.stackTagCompound.hasKey("color")) cube.color = stack.stackTagCompound.getInteger("color");
+            cubes.add(cube);
+        }
         return cubes;
     }
 

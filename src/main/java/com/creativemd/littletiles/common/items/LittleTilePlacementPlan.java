@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.items;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -14,6 +15,8 @@ import net.minecraft.world.World;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.TriangleBoundingBoxIntersect;
+import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -21,6 +24,7 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTile.LittleTilePosition;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
+import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileCoord;
 import com.creativemd.littletiles.utils.PreviewTile;
@@ -53,13 +57,17 @@ public class LittleTilePlacementPlan {
     private int originY;
     private int originZ;
     private LittleTileCutoutInfo cutoutInfo;
+    private final IdentityHashMap<LittleTilePreview, LittleTileBox> originalBoxes = new IdentityHashMap<>();
 
     public void fillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews, LittleStructure structure,
-            LittleTilePlaceMode placeMode) {
+            LittleTilePlaceMode placeMode, LittleTileCutoutInfo cutoutInfo) {
         this.placeMode = placeMode;
         this.originX = x;
         this.originY = y;
         this.originZ = z;
+        this.cutoutInfo = cutoutInfo;
+        originalBoxes.clear();
+        cacheOriginalBoxes(previews);
         if (previews.isEmpty()) {
             canApplyPlan = false;
             return;
@@ -68,16 +76,32 @@ public class LittleTilePlacementPlan {
         canApplyPlan = tryFillPlan(world, x, y, z, previews, specialPlaceMode);
     }
 
+    public void fillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews, LittleStructure structure,
+            LittleTilePlaceMode placeMode) {
+        fillPlan(world, x, y, z, previews, structure, placeMode, null);
+    }
+
+    private void cacheOriginalBoxes(ArrayList<PreviewTile> previews) {
+        for (PreviewTile previewTile : previews) {
+            if (previewTile.preview == null || previewTile.box == null) {
+                continue;
+            }
+            if (!originalBoxes.containsKey(previewTile.preview)) {
+                originalBoxes.put(previewTile.preview, previewTile.box.copy());
+            }
+        }
+    }
+
     public boolean canApplyPlan() {
         return canApplyPlan;
     }
 
-    public ArrayList<ChunkCoordinates> getPlannedCoordinates() {
-        ArrayList<ChunkCoordinates> planned = new ArrayList<>(entries.size());
+    public ArrayList<ChunkCoordinates> getPlannedCoords() {
+        ArrayList<ChunkCoordinates> coords = new ArrayList<>();
         for (PlacementEntry entry : entries) {
-            planned.add(entry.coord);
+            coords.add(new ChunkCoordinates(entry.coord.posX, entry.coord.posY, entry.coord.posZ));
         }
-        return planned;
+        return coords;
     }
 
     public boolean applyPlan(World world, EntityPlayer player, ItemStack stack, LittleStructure structure,
@@ -170,8 +194,8 @@ public class LittleTilePlacementPlan {
 
     private boolean applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile,
             EntityPlayer player, ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
-        LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile);
-        LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile);
+        LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile, this.cutoutInfo);
+        LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile, this.cutoutInfo);
         // Mesh-backed fragments can clip to empty space when split across blocks.
         // In that case we skip placement for this fragment instead of placing a full box tile.
         if (baseCutoutInfo != null && cutoutInfoCurrent == null) {
@@ -205,21 +229,25 @@ public class LittleTilePlacementPlan {
         return didPlace;
     }
 
-    private static LittleTileCutoutInfo getBaseCutoutInfo(PreviewTile placeTile) {
+    private static LittleTileCutoutInfo getBaseCutoutInfo(PreviewTile placeTile, LittleTileCutoutInfo fallbackCutout) {
+        if (fallbackCutout != null) {
+            return new LittleTileCutoutInfo(fallbackCutout);
+        }
         if (placeTile.preview != null && placeTile.preview.nbt != null) {
             return LittleTileCutoutInfo.loadFromNBT(placeTile.preview.nbt);
         }
         return null;
     }
 
-    private LittleTileCutoutInfo getCutoutInfoCurrent(ChunkCoordinates coord, PreviewTile placeTile) {
-        LittleTileCutoutInfo cutoutInfoCurrent = getBaseCutoutInfo(placeTile);
+    private LittleTileCutoutInfo getCutoutInfoCurrent(ChunkCoordinates coord, PreviewTile placeTile,
+            LittleTileCutoutInfo cutoutInfo) {
+        LittleTileCutoutInfo cutoutInfoCurrent = getBaseCutoutInfo(placeTile, cutoutInfo);
         if (cutoutInfoCurrent == null) {
             return null;
         }
 
         LittleTileBox currentBox = placeTile.box;
-        LittleTileBox originalBox = placeTile.preview.box;
+        LittleTileBox originalBox = getOriginalPreviewBox(placeTile);
 
         cutoutInfoCurrent.pos.x += (originX - coord.posX) * 16 + originalBox.minX - currentBox.minX;
         cutoutInfoCurrent.pos.y += (originY - coord.posY) * 16 + originalBox.minY - currentBox.minY;
@@ -261,7 +289,7 @@ public class LittleTilePlacementPlan {
         for (PreviewTile tile : placeTiles) {
             if (!tile.needsCollisionTest()) continue;
 
-            LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(tile);
+            LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(tile, cutoutInfo);
             LittleTileCutoutInfo perTileCutout = null;
             if (baseCutoutInfo != null) {
                 perTileCutout = getCutoutInfoCurrent(coord, tile);
@@ -275,6 +303,15 @@ public class LittleTilePlacementPlan {
             if (mainTile != null && !mainTile.isSpaceForLittleTile(tile.box.copy(), perTileCutout)) {
                 return false;
             }
+
+            // Also enforce collisions within this plan entry itself (tile-vs-tile in same batch).
+            for (PlannedCollisionTile planned : plannedTiles) {
+                if (collides(collisionTile.box, collisionTile.mesh, planned.box, planned.mesh)) {
+                    return false;
+                }
+            }
+
+            plannedTiles.add(collisionTile);
         }
         return true;
     }

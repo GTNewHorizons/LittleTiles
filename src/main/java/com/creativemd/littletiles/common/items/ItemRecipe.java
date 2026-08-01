@@ -217,15 +217,6 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
         ArrayList<CubeObject> cubes = new ArrayList<>();
         if (preview != null) {
             for (LittleTilePreview littleTilePreview : preview) {
-                try {
-                    LittleTile tile = LittleTile.CreateandLoadTile(null, null, littleTilePreview.nbt);
-                    if (tile != null) {
-                        cubes.addAll(tile.getRenderingCubes());
-                        continue;
-                    }
-                } catch (Exception ignored) {
-
-                }
                 cubes.add(littleTilePreview.getCubeBlock());
             }
         }

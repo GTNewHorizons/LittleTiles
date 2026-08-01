@@ -124,23 +124,14 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
         }
 
         int arrowSize = smallerSide / 2;
-        if (menu.isOpen()) {
-            arrowOpened.draw(
-                    context,
-                    area.width - arrowSize,
-                    arrowSize / 2,
-                    arrowSize,
-                    arrowSize,
-                    getWidgetTheme(context.getTheme()).getTheme());
-        } else {
-            arrowClosed.draw(
-                    context,
-                    area.width - arrowSize,
-                    arrowSize / 2,
-                    arrowSize,
-                    arrowSize,
-                    getWidgetTheme(context.getTheme()).getTheme());
-        }
+        IDrawable currentArrow = menu.isOpen() ? arrowOpened : arrowClosed;
+        currentArrow.draw(
+                context,
+                area.width - arrowSize,
+                arrowSize / 2,
+                arrowSize,
+                arrowSize,
+                getWidgetTheme(context.getTheme()).getTheme());
     }
 
     @Override
@@ -166,7 +157,7 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
         LittleTileCutoutInfo cutoutInfo = new LittleTileCutoutInfo();
         cutoutInfo.type = shape;
         cutoutInfo.size = new Vector3i(FULL_TILE);
-        cutoutInfo.pos = new Vector3i();
+        cutoutInfo.pos = ZERO;
         cutoutInfo.orientation = 0;
 
         if (shape == LittleTileShapeMode.PILLAR) {
@@ -256,15 +247,13 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
         GL11.glVertex3d(point.x, point.y, point.z);
     }
 
-    private static class ShapePreviewWidget extends TextWidget {
+    private static class ShapePreviewWidget extends TextWidget<ShapePreviewWidget> {
 
         private final LittleTileShapeMode shape;
-        private final IKey label;
 
         public ShapePreviewWidget(LittleTileShapeMode shape) {
             super(IKey.str(shape.getName()));
             this.shape = shape;
-            this.label = IKey.str(shape.getName());
         }
 
         @Override
@@ -274,7 +263,7 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
             int previewX = 3;
             int previewY = Math.max(0, (area.height - PREVIEW_SIZE) / 2);
             drawTexturedPreview(getPreviewMesh(shape), previewX, previewY, PREVIEW_SIZE);
-            label.draw(context, PREVIEW_SIZE + 8, 0, 0, area.height, theme);
+            getKey().draw(context, PREVIEW_SIZE + 8, 0, 0, area.height, theme);
         }
     }
 

@@ -8,15 +8,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.server.S2FPacketSetSlot;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import org.joml.Vector3i;
-
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.items.ItemBlockTiles;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
-import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
-import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
@@ -31,18 +27,16 @@ public class LittlePlacePacket extends CreativeCorePacket {
     }
 
     public LittlePlacePacket(ItemStack stack, LittleTileBlockPos pos, boolean customPlacement,
-            LittleTileCutoutInfo cutoutInfo, LittleTilePlaceMode placeMode) {
+            LittleTilePlaceMode placeMode) {
         this.stack = stack;
         this.pos = pos;
         this.customPlacement = customPlacement;
-        this.cutoutInfo = cutoutInfo;
         this.placeMode = placeMode;
     }
 
     public ItemStack stack;
     public LittleTileBlockPos pos;
     public boolean customPlacement;
-    public LittleTileCutoutInfo cutoutInfo;
     public LittleTilePlaceMode placeMode;
 
     @Override
@@ -57,25 +51,6 @@ public class LittlePlacePacket extends CreativeCorePacket {
         buf.writeInt(pos.getSide().ordinal());
         buf.writeBoolean(customPlacement);
         buf.writeByte(placeMode.ordinal());
-        if (cutoutInfo == null) {
-            buf.writeBoolean(false);
-        } else {
-            buf.writeBoolean(true);
-            buf.writeInt(cutoutInfo.type.ordinal());
-            buf.writeInt(cutoutInfo.size.x);
-            buf.writeInt(cutoutInfo.size.y);
-            buf.writeInt(cutoutInfo.size.z);
-            buf.writeInt(cutoutInfo.pos.x);
-            buf.writeInt(cutoutInfo.pos.y);
-            buf.writeInt(cutoutInfo.pos.z);
-            buf.writeByte(cutoutInfo.orientation);
-            buf.writeByte(cutoutInfo.thickness);
-            buf.writeByte(cutoutInfo.faceStart.ordinal());
-            buf.writeByte(cutoutInfo.faceEnd.ordinal());
-            buf.writeBoolean(cutoutInfo.negX);
-            buf.writeBoolean(cutoutInfo.negY);
-            buf.writeBoolean(cutoutInfo.negZ);
-        }
     }
 
     @Override
@@ -91,25 +66,6 @@ public class LittlePlacePacket extends CreativeCorePacket {
         this.pos = new LittleTileBlockPos(posX, posY, posZ, subX, subY, subZ, ForgeDirection.getOrientation(side));
         this.customPlacement = buf.readBoolean();
         this.placeMode = LittleTilePlaceMode.fromOrdinal(buf.readByte());
-        if (buf.readBoolean()) {
-            this.cutoutInfo = new LittleTileCutoutInfo();
-            int cutoutInfo = buf.readInt();
-            this.cutoutInfo.type = LittleTileShapeMode.values()[cutoutInfo];
-            this.cutoutInfo.size.x = buf.readInt();
-            this.cutoutInfo.size.y = buf.readInt();
-            this.cutoutInfo.size.z = buf.readInt();
-            int cutoutPosX = buf.readInt();
-            int cutoutPosY = buf.readInt();
-            int cutoutPosZ = buf.readInt();
-            this.cutoutInfo.pos = new Vector3i(cutoutPosX, cutoutPosY, cutoutPosZ);
-            this.cutoutInfo.orientation = buf.readByte();
-            this.cutoutInfo.thickness = buf.readByte();
-            this.cutoutInfo.faceStart = ForgeDirection.values()[buf.readByte()];
-            this.cutoutInfo.faceEnd = ForgeDirection.values()[buf.readByte()];
-            this.cutoutInfo.negX = buf.readBoolean();
-            this.cutoutInfo.negY = buf.readBoolean();
-            this.cutoutInfo.negZ = buf.readBoolean();
-        }
     }
 
     @Override
@@ -122,7 +78,7 @@ public class LittlePlacePacket extends CreativeCorePacket {
     public void executeServer(EntityPlayer player) {
         if (PlacementHelper.isLittleBlock(stack)) {
             ((ItemBlockTiles) Item.getItemFromBlock(LittleTiles.blockTile))
-                    .placeBlockAt(player, stack, player.worldObj, pos, customPlacement, cutoutInfo, placeMode);
+                    .placeBlockAt(player, stack, player.worldObj, pos, customPlacement, placeMode);
 
             EntityPlayerMP playerMP = (EntityPlayerMP) player;
             Slot slot = playerMP.openContainer.getSlotFromInventory(playerMP.inventory, playerMP.inventory.currentItem);

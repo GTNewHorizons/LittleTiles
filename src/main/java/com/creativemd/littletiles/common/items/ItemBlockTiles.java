@@ -29,7 +29,6 @@ import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
-import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
@@ -101,27 +100,18 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
 
-        LittleTileCutoutInfo cutoutInfo = null;
-
         if (needsTwoHits(stack)) {
-            if (PreviewRenderer.firstHit == null) {
-                if (PreviewRenderer.markedHit == null) {
-                    PreviewRenderer.firstHit = pos;
-                    return true;
-                }
-                cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, pos, pos);
-            } else {
-                cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, PreviewRenderer.firstHit, pos);
-
-                ILittleTile littleTile = (ILittleTile) stack.getItem();
-
-                NBTTagCompound tag = (NBTTagCompound) littleTile.getLittlePreview(stack).get(0).nbt.copy();
-                stack = new ItemStack(Item.getItemFromBlock(LittleTiles.blockTile));
-                stack.stackTagCompound = tag;
-                PreviewRenderer.firstHit = null;
+            if (PreviewRenderer.firstHit == null && PreviewRenderer.markedHit == null) {
+                PreviewRenderer.firstHit = pos;
+                return true;
             }
-        } else {
-            cutoutInfo = LittleTileCutoutInfo.loadFromNBT(stack.stackTagCompound);
+
+            // The preview carries the cutout in its nbt, so the placed stack keeps it as well.
+            ILittleTile littleTile = (ILittleTile) stack.getItem();
+            NBTTagCompound tag = (NBTTagCompound) littleTile.getLittlePreview(stack).get(0).nbt.copy();
+            stack = new ItemStack(Item.getItemFromBlock(LittleTiles.blockTile));
+            stack.stackTagCompound = tag;
+            PreviewRenderer.firstHit = null;
         }
 
         x = pos.getPosX();
@@ -136,9 +126,9 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             return false;
         } else {
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) PacketHandler.sendPacketToServer(
-                    new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null, cutoutInfo, placeMode));
+                    new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null, placeMode));
 
-            placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, cutoutInfo, placeMode);
+            placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, placeMode);
 
             PreviewRenderer.markedHit = null;
 
@@ -177,9 +167,9 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
     public static boolean placeTiles(World world, EntityPlayer player, ArrayList<PreviewTile> previews,
             LittleStructure structure, int x, int y, int z, ItemStack stack, ArrayList<LittleTile> unplaceableTiles,
-            LittleTileCutoutInfo cutoutInfo, LittleTilePlaceMode placeMode) {
+            LittleTilePlaceMode placeMode) {
         LittleTilePlacementPlan plan = new LittleTilePlacementPlan();
-        plan.fillPlan(world, x, y, z, previews, structure, placeMode, cutoutInfo);
+        plan.fillPlan(world, x, y, z, previews, structure, placeMode);
         if (!plan.canApplyPlan()) {
             return false;
         }
@@ -188,7 +178,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     }
 
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
-            boolean customPlacement, LittleTileCutoutInfo cutoutInfo, LittleTilePlaceMode placeMode) {
+            boolean customPlacement, LittleTilePlaceMode placeMode) {
         ArrayList<PreviewTile> previews = PlacementHelper.getPreviewTiles(player, stack, pos, customPlacement);
 
         LittleStructure structure = null;
@@ -208,7 +198,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         int z = pos.getPosZ();
 
         ArrayList<LittleTile> unplaceableTiles = new ArrayList<>();
-        if (placeTiles(world, player, previews, structure, x, y, z, stack, unplaceableTiles, cutoutInfo, placeMode)) {
+        if (placeTiles(world, player, previews, structure, x, y, z, stack, unplaceableTiles, placeMode)) {
             ItemStack currentStack = player.inventory.mainInventory[player.inventory.currentItem];
             boolean isChisel = currentStack != null && currentStack.getItem() == LittleTiles.chisel;
             if (!player.capabilities.isCreativeMode && !isChisel) {

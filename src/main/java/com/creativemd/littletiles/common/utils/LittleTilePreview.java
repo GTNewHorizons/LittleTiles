@@ -80,6 +80,20 @@ public final class LittleTilePreview {
         }
     }
 
+    /**
+     * Size of the tile the preview describes, or null if the nbt carries neither a box nor a size. The bounding box
+     * wins, since it is the actual extent of the tile. Multiblock previews (recipes) only ever carry boxes.
+     */
+    public static LittleTileSize getSizeFromNBT(NBTTagCompound nbt) {
+        if (nbt.hasKey("bBoxminX")) {
+            return new LittleTileBox("bBox", nbt).getSize();
+        }
+        if (nbt.hasKey("sizex")) {
+            return new LittleTileSize("size", nbt);
+        }
+        return null;
+    }
+
     public static void rotatePreview(NBTTagCompound nbt, ForgeDirection direction) {
         if (nbt.hasKey("sizex")) {
             LittleTileSize size = new LittleTileSize("size", nbt);

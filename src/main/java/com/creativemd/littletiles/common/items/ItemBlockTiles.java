@@ -243,9 +243,9 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     @Override
     public void rotateLittlePreview(ItemStack stack, ForgeDirection direction) {
         if (!stack.hasTagCompound()) return;
-        NBTTagCompound old = (NBTTagCompound) stack.stackTagCompound.copy();
+        LittleTileSize oldSize = LittleTilePreview.getSizeFromNBT(stack.stackTagCompound);
         LittleTilePreview.rotatePreview(stack.stackTagCompound, direction);
-        new LittleToolHandler(stack).handleRotation(direction, old);
+        new LittleToolHandler(stack).handleRotation(direction, oldSize);
     }
 
     @Override

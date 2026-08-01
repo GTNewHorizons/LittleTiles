@@ -218,7 +218,7 @@ public class LittleBlockPacket extends CreativeCorePacket {
                             }
 
                             if (LittleTiles.maxNewTiles >= newTiles.size() - 1) {
-                                te.removeTile(oldTile);
+                                te.removeTile(oldTile, false);
                                 te.addTiles(newTiles);
                                 te.update();
                             } else {

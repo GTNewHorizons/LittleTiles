@@ -122,7 +122,9 @@ public abstract class LittleTile {
 
     private LittleTileCutoutInfo cutoutInfo = null;
 
-    private final LittleTileGeometryCache geometryCache = new LittleTileGeometryCache(() -> boundingBox, () -> cutoutInfo);
+    private final LittleTileGeometryCache geometryCache = new LittleTileGeometryCache(
+            () -> boundingBox,
+            () -> cutoutInfo);
 
     public AxisAlignedBB getSelectedBox() {
         if (boundingBox != null) {

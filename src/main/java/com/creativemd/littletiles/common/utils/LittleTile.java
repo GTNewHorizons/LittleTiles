@@ -122,7 +122,9 @@ public abstract class LittleTile {
 
     private LittleTileCutoutInfo cutoutInfo = null;
 
-    private final LittleTileRenderCache renderCache = new LittleTileRenderCache(() -> boundingBox, () -> cutoutInfo);
+    private final LittleTileGeometryCache geometryCache = new LittleTileGeometryCache(
+            () -> boundingBox,
+            () -> cutoutInfo);
 
     public AxisAlignedBB getSelectedBox() {
         if (boundingBox != null) {
@@ -473,23 +475,23 @@ public abstract class LittleTile {
             return null;
         }
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
-            return renderCache.getSimpleMesh();
+            return geometryCache.getSimpleMesh();
         }
         return Mesh3dUtil.meshFromTile(boundingBox, cutoutInfo);
     }
 
     private void invalidateClientMeshCache() {
-        renderCache.invalidateMesh();
+        geometryCache.invalidateMesh();
     }
 
     /** Drops what culling produced for this tile, without dropping the mesh it was cut from. */
     public void invalidateClientCutCache() {
-        renderCache.invalidateCuts();
+        geometryCache.invalidateCuts();
     }
 
     @SideOnly(Side.CLIENT)
-    public LittleTileRenderCache getRenderCache() {
-        return renderCache;
+    public LittleTileGeometryCache getGeometryCache() {
+        return geometryCache;
     }
 
     public boolean overlapsTile(LittleTile other) {

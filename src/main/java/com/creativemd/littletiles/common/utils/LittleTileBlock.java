@@ -16,6 +16,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 public class LittleTileBlock extends LittleTile {
 
@@ -74,8 +75,10 @@ public class LittleTileBlock extends LittleTile {
     @Override
     public ArrayList<LittleTilesCubeObject> getRenderingCubes() {
         ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
-        if (boundingBox != null) {
-            LittleTilesCubeObject cube = boundingBox.getCube();
+        // read once: chunk builds run this off-thread while the main thread can reassign the box
+        LittleTileBox box = boundingBox;
+        if (box != null) {
+            LittleTilesCubeObject cube = box.getCube();
             cube.block = block;
             cube.meta = meta;
             cube.cutoutInfo = this.getCutoutInfo();

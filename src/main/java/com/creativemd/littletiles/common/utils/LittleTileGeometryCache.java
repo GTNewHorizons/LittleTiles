@@ -13,7 +13,7 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 /**
  * Client render geometry retained for a little tile.
  */
-public class LittleTileRenderCache {
+public class LittleTileGeometryCache {
 
     private final Supplier<LittleTileBox> boxGetter;
     private final Supplier<LittleTileCutoutInfo> cutoutGetter;
@@ -25,7 +25,7 @@ public class LittleTileRenderCache {
     /** Bit set of {@link ForgeDirection#ordinal()}: the sides drawn as triangles instead of as rectangles. */
     private int replacedBoxSides;
 
-    public LittleTileRenderCache(Supplier<LittleTileBox> boxGetter, Supplier<LittleTileCutoutInfo> cutoutGetter) {
+    public LittleTileGeometryCache(Supplier<LittleTileBox> boxGetter, Supplier<LittleTileCutoutInfo> cutoutGetter) {
         this.boxGetter = boxGetter;
         this.cutoutGetter = cutoutGetter;
     }

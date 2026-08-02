@@ -9,7 +9,7 @@ import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
 public class LittleTilesCubeObject extends CubeObject {
 
     public LittleTileCutoutInfo cutoutInfo;
-    public LittleTileRenderCache renderCache;
+    public LittleTileGeometryCache geometryCache;
 
     /**
      * Bounds on the 1/16 grid. Kept alongside the double bounds so face occlusion can be computed with exact integer

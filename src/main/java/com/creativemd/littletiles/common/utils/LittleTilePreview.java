@@ -53,7 +53,7 @@ public final class LittleTilePreview {
             cube.block = Blocks.stone;
         }
         cube.cutoutInfo = LittleTileCutoutInfo.loadFromNBT(nbt);
-        cube.renderCache = new LittleTileRenderCache(() -> renderBox, () -> cube.cutoutInfo);
+        cube.geometryCache = new LittleTileGeometryCache(() -> renderBox, () -> cube.cutoutInfo);
         if (nbt.hasKey("color")) cube.color = nbt.getInteger("color");
         return cube;
     }

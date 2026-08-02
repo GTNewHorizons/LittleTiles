@@ -88,7 +88,7 @@ public class LittleTilesBlockRenderHelper {
 
     private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
             IBlockAccess world) {
-        if (!cube.renderCache.hasValidMesh()) {
+        if (!cube.geometryCache.hasValidMesh()) {
             return CutoutResult.FAILED;
         }
 
@@ -137,10 +137,10 @@ public class LittleTilesBlockRenderHelper {
                 continue;
             }
             if (cube.cutoutInfo != null) {
-                if (cube.renderCache.hasValidMesh() && cube.renderCache.getVisibleCutoutTriangles() == null) {
+                if (cube.geometryCache.hasValidMesh() && cube.geometryCache.getVisibleCutoutTriangles() == null) {
                     return true;
                 }
-            } else if (coverage[i] instanceof FaceClipper && cube.renderCache.getVisibleBoxTriangles() == null) {
+            } else if (coverage[i] instanceof FaceClipper && cube.geometryCache.getVisibleBoxTriangles() == null) {
                 return true;
             }
         }
@@ -247,7 +247,7 @@ public class LittleTilesBlockRenderHelper {
 
             if (cube instanceof LittleTilesCubeObject) {
                 LittleTilesCubeObject littleCube = (LittleTilesCubeObject) cube;
-                Mesh3d mesh = littleCube.renderCache == null ? null : littleCube.renderCache.getSimpleMesh();
+                Mesh3d mesh = littleCube.geometryCache == null ? null : littleCube.geometryCache.getSimpleMesh();
                 if (mesh != null) {
                     mesh = mesh.copy();
                     // Recipe meshes retain their multi-block position (for example, x = 1..2 for a tile in the

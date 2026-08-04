@@ -46,7 +46,8 @@ public class ItemLittleSaw extends Item {
             if (world.isRemote) {
                 NBTTagCompound nbt = new NBTTagCompound();
                 nbt.setInteger("side", side);
-                PacketHandler.sendPacketToServer(new LittleBlockPacket(x, y, z, player, 2, nbt));
+                PacketHandler
+                        .sendPacketToServer(new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.SAW, nbt));
             }
             return true;
         }

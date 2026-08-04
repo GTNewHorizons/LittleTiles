@@ -85,7 +85,8 @@ public class ItemRubberMallet extends Item {
                     }
                 }
             } else {
-                PacketHandler.sendPacketToServer(new LittleBlockPacket(x, y, z, player, 4, new NBTTagCompound()));
+                PacketHandler.sendPacketToServer(
+                        new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.SPLIT, new NBTTagCompound()));
             }
             return true;
         } else {

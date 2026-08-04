@@ -92,7 +92,8 @@ public class ItemColorTube extends Item implements IGuiCreator {
             if (world.isRemote) {
                 NBTTagCompound nbt = new NBTTagCompound();
                 nbt.setInteger("color", getColor(stack));
-                PacketHandler.sendPacketToServer(new LittleBlockPacket(x, y, z, player, 3, nbt));
+                PacketHandler.sendPacketToServer(
+                        new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.COLOR, nbt));
             }
             return true;
         }

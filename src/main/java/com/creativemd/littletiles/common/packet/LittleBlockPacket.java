@@ -34,18 +34,32 @@ public class LittleBlockPacket extends CreativeCorePacket {
     public int z;
     public Vec3 pos;
     public Vec3 look;
-    public int action;
+    public Action action;
     public NBTTagCompound nbt;
+
+    public enum Action {
+
+        ACTIVATE,
+        DESTROY,
+        SAW,
+        COLOR,
+        SPLIT;
+
+        public static Action get(int ordinal) {
+            if (ordinal >= 0 && ordinal < values().length) return values()[ordinal];
+            return ACTIVATE;
+        }
+    }
 
     public LittleBlockPacket() {
 
     }
 
-    public LittleBlockPacket(int x, int y, int z, EntityPlayer player, int action) {
+    public LittleBlockPacket(int x, int y, int z, EntityPlayer player, Action action) {
         this(x, y, z, player, action, new NBTTagCompound());
     }
 
-    public LittleBlockPacket(int x, int y, int z, EntityPlayer player, int action, NBTTagCompound nbt) {
+    public LittleBlockPacket(int x, int y, int z, EntityPlayer player, Action action, NBTTagCompound nbt) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -64,7 +78,7 @@ public class LittleBlockPacket extends CreativeCorePacket {
         buf.writeInt(z);
         writeVec3(pos, buf);
         writeVec3(look, buf);
-        buf.writeInt(action);
+        buf.writeInt(action.ordinal());
         writeNBT(buf, nbt);
     }
 
@@ -75,7 +89,7 @@ public class LittleBlockPacket extends CreativeCorePacket {
         z = buf.readInt();
         pos = readVec3(buf);
         look = readVec3(buf);
-        action = buf.readInt();
+        action = Action.get(buf.readInt());
         nbt = readNBT(buf);
     }
 
@@ -94,7 +108,7 @@ public class LittleBlockPacket extends CreativeCorePacket {
             LittleTile tile = littleEntity.loadedTile;
             if (tile != null) {
                 switch (action) {
-                    case 0: // Activated
+                    case ACTIVATE:
                         if (tile.onBlockActivated(
                                 player.worldObj,
                                 x,
@@ -107,14 +121,14 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                 (float) moving.hitVec.zCoord))
                             BlockTile.cancelNext = true;
                         break;
-                    case 1: // Destory tile
+                    case DESTROY:
                         tile.destroy();
                         // littleEntity.removeTile(tile);
                         if (!player.capabilities.isCreativeMode)
                             WorldUtils.dropItem(player.worldObj, tile.getDrops(), x, y, z);
                         littleEntity.update();
                         break;
-                    case 2:
+                    case SAW:
                         try {
                             int side = nbt.getInteger("side");
                             ForgeDirection direction = ForgeDirection.getOrientation(side);
@@ -159,7 +173,7 @@ public class LittleBlockPacket extends CreativeCorePacket {
                             e.printStackTrace();
                         }
                         break;
-                    case 3:
+                    case COLOR:
                         try {
                             TileEntityLittleTiles te = (TileEntityLittleTiles) tileEntity;
                             if (te.updateLoadedTileServer(pos, look)
@@ -188,7 +202,7 @@ public class LittleBlockPacket extends CreativeCorePacket {
                             e.printStackTrace();
                         }
                         break;
-                    case 4:
+                    case SPLIT:
                         TileEntityLittleTiles te = (TileEntityLittleTiles) tileEntity;
                         ArrayList<LittleTile> newTiles = new ArrayList<>();
                         if (te.updateLoadedTileServer(pos, look)

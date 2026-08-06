@@ -4,6 +4,6 @@ dependencies {
     devOnlyNonPublishable('com.github.GTNewHorizons:NotEnoughItems:2.8.102-GTNH:dev')
     compileOnly('com.github.GTNewHorizons:Angelica:2.1.36:dev')
     compileOnly("com.github.GTNewHorizons:waila:1.19.30:dev") { transitive = false }
-    api("com.github.GTNewHorizons:ModularUI2:2.3.74-1.7.10:dev")
+    api("com.github.GTNewHorizons:ModularUI2:2.3.84-1.7.10:dev")
     shadowImplementation("io.github.earcut4j:earcut4j:2.2.2")
 }

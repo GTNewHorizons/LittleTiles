@@ -171,6 +171,23 @@ public class LittleToolHandler {
                 toVector3f(RotationUtils.applyVectorRotation(Vec3.createVectorHelper(0, 0, 1), rotation)));
     }
 
+    /** Mirror matrix for flipping a cutout on the axis of the given direction, in the same space tile boxes use. */
+    private static Matrix3f getFlipMatrix(ForgeDirection direction) {
+        switch (direction) {
+            case EAST:
+            case WEST:
+                return new Matrix3f(-1, 0, 0, 0, 1, 0, 0, 0, 1);
+            case UP:
+            case DOWN:
+                return new Matrix3f(1, 0, 0, 0, -1, 0, 0, 0, 1);
+            case SOUTH:
+            case NORTH:
+                return new Matrix3f(1, 0, 0, 0, 1, 0, 0, 0, -1);
+            default:
+                return new Matrix3f();
+        }
+    }
+
     /**
      * Handles rotation for a cutout. Only 90 degrees and only one axis.
      *
@@ -179,20 +196,33 @@ public class LittleToolHandler {
      */
     public void handleRotation(ForgeDirection direction, LittleTileSize oldSize) {
         // Get rotation the user requested, in the same convention the tile boxes are rotated with
-        Matrix3f rotation = getRotationMatrix(direction);
+        applyCutoutTransform(getRotationMatrix(direction), oldSize);
+    }
 
-        // Get saved rotation
+    /**
+     * Handles flipping (mirroring) a cutout. Shares the exact same cutout pos/size/face bookkeeping rotation uses,
+     * since a mirror is just another linear transform of the same cutout space; only the matrix differs.
+     *
+     * @param oldSize size of the tile before it got flipped, null if unknown. Flipping never changes a tile's size, so
+     *                callers may always pass the tile's current size.
+     */
+    public void handleFlip(ForgeDirection direction, LittleTileSize oldSize) {
+        applyCutoutTransform(getFlipMatrix(direction), oldSize);
+    }
+
+    private void applyCutoutTransform(Matrix3f transform, LittleTileSize oldSize) {
+        // Get saved orientation
         int orientation = getOrientation();
         Matrix3f matrix = OrientationMapper.fromId(orientation);
 
-        // Apply new rotation and save
-        matrix = new Matrix3f(rotation).mul(matrix);
+        // Apply new transform and save
+        matrix = new Matrix3f(transform).mul(matrix);
         orientation = OrientationMapper.toId(matrix);
         setOrientation(orientation);
 
         NBTTagCompound nbt = getTag(true);
 
-        // Handle rotation for block-picked tiles. We need to rotate the cutout pos/size as well...
+        // Handle transform for block-picked tiles. We need to transform the cutout pos/size as well...
         if (nbt.hasKey("cutoutPosX") && oldSize != null) {
             int cutoutSizeX = nbt.getInteger("cutoutSizeX");
             int cutoutSizeY = nbt.getInteger("cutoutSizeY");
@@ -202,7 +232,7 @@ public class LittleToolHandler {
             int cutoutPosY = nbt.getInteger("cutoutPosY");
             int cutoutPosZ = nbt.getInteger("cutoutPosZ");
 
-            // Treat cutout pos + size as cuboid to rotate it properly
+            // Treat cutout pos + size as cuboid to transform it properly
             int minX = cutoutPosX;
             int minY = cutoutPosY;
             int minZ = cutoutPosZ;
@@ -210,9 +240,9 @@ public class LittleToolHandler {
             int maxY = minY + cutoutSizeY - oldSize.sizeY;
             int maxZ = minZ + cutoutSizeZ - oldSize.sizeZ;
 
-            // Rotate cuboid
-            Vector3f v1 = rotation.transform(new Vector3f(minX, minY, minZ));
-            Vector3f v2 = rotation.transform(new Vector3f(maxX, maxY, maxZ));
+            // Transform cuboid
+            Vector3f v1 = transform.transform(new Vector3f(minX, minY, minZ));
+            Vector3f v2 = transform.transform(new Vector3f(maxX, maxY, maxZ));
 
             // Save new start pos
             cutoutPosX = Math.round(Math.min(v1.x, v2.x));
@@ -222,8 +252,8 @@ public class LittleToolHandler {
             nbt.setInteger("cutoutPosY", cutoutPosY);
             nbt.setInteger("cutoutPosZ", cutoutPosZ);
 
-            // Rotate size as well. The rotation only permutes the axes, so the size just follows along.
-            Vector3f size = rotation.transform(new Vector3f(cutoutSizeX, cutoutSizeY, cutoutSizeZ));
+            // Transform size as well. Rotation/flip only permutes or mirrors the axes, so the size just follows along.
+            Vector3f size = transform.transform(new Vector3f(cutoutSizeX, cutoutSizeY, cutoutSizeZ));
             nbt.setInteger("cutoutSizeX", Math.abs(Math.round(size.x)));
             nbt.setInteger("cutoutSizeY", Math.abs(Math.round(size.y)));
             nbt.setInteger("cutoutSizeZ", Math.abs(Math.round(size.z)));
@@ -233,7 +263,7 @@ public class LittleToolHandler {
             boolean negZ = nbt.getBoolean("cutoutNegZ");
 
             Vector3f negVec = new Vector3f(negX ? -1 : 1, negY ? -1 : 1, negZ ? -1 : 1);
-            negVec = rotation.transform(negVec);
+            negVec = transform.transform(negVec);
             negX = negVec.x < 0;
             negY = negVec.y < 0;
             negZ = negVec.z < 0;
@@ -247,8 +277,8 @@ public class LittleToolHandler {
             Vector3d faceStart = Plane3d.planes[faceStartI].getNormal();
             Vector3d faceEnd = Plane3d.planes[faceEndI].getNormal();
 
-            faceStart = new Vector3d(rotation.transform(faceStart.toVector3f()));
-            faceEnd = new Vector3d(rotation.transform(faceEnd.toVector3f()));
+            faceStart = new Vector3d(transform.transform(faceStart.toVector3f()));
+            faceEnd = new Vector3d(transform.transform(faceEnd.toVector3f()));
 
             faceStartI = getDirectionForNormal(faceStart).ordinal();
             faceEndI = getDirectionForNormal(faceEnd).ordinal();

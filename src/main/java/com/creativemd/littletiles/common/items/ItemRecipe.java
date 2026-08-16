@@ -136,7 +136,11 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
         int tiles = stack.stackTagCompound.getInteger("tiles");
         for (int i = 0; i < tiles; i++) {
             NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);
+            LittleTileSize oldSize = LittleTilePreview.getSizeFromNBT(nbt);
             LittleTilePreview.flipPreview(nbt, direction);
+            if (nbt.hasKey("cutoutOrientation")) {
+                new LittleToolHandler(nbt).handleFlip(direction, oldSize);
+            }
             stack.stackTagCompound.setTag("tile" + i, nbt);
         }
     }

@@ -95,7 +95,8 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
 
     @Override
     public void flipLittlePreview(ItemStack stack, ForgeDirection direction) {
-
+        LittleToolHandler handler = new LittleToolHandler(stack);
+        handler.handleFlip(direction, null);
     }
 
     @Override

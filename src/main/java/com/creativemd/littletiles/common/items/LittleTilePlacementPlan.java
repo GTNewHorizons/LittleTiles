@@ -15,8 +15,6 @@ import net.minecraft.world.World;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
-import com.creativemd.littletiles.client.util3d.TriangleBoundingBoxIntersect;
-import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -90,6 +88,16 @@ public class LittleTilePlacementPlan {
                 originalBoxes.put(previewTile.preview, previewTile.box.copy());
             }
         }
+    }
+
+    private LittleTileBox getOriginalPreviewBox(PreviewTile placeTile) {
+        if (placeTile.preview != null) {
+            LittleTileBox originalBox = originalBoxes.get(placeTile.preview);
+            if (originalBox != null) {
+                return originalBox;
+            }
+        }
+        return placeTile.box;
     }
 
     public boolean canApplyPlan() {
@@ -284,15 +292,13 @@ public class LittleTilePlacementPlan {
 
     private boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles,
             ChunkCoordinates coord) {
-        ArrayList<PlannedCollisionTile> plannedTiles = new ArrayList<>();
-
         for (PreviewTile tile : placeTiles) {
             if (!tile.needsCollisionTest()) continue;
 
             LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(tile, cutoutInfo);
             LittleTileCutoutInfo perTileCutout = null;
             if (baseCutoutInfo != null) {
-                perTileCutout = getCutoutInfoCurrent(coord, tile);
+                perTileCutout = getCutoutInfoCurrent(coord, tile, cutoutInfo);
                 // Mesh-backed fragments can clip to empty space when split across blocks.
                 if (perTileCutout == null) {
                     continue;
@@ -304,14 +310,6 @@ public class LittleTilePlacementPlan {
                 return false;
             }
 
-            // Also enforce collisions within this plan entry itself (tile-vs-tile in same batch).
-            for (PlannedCollisionTile planned : plannedTiles) {
-                if (collides(collisionTile.box, collisionTile.mesh, planned.box, planned.mesh)) {
-                    return false;
-                }
-            }
-
-            plannedTiles.add(collisionTile);
         }
         return true;
     }

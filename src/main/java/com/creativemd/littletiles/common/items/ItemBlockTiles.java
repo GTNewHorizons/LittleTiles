@@ -33,6 +33,7 @@ import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
+import com.creativemd.littletiles.common.utils.TriangleClickHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import com.creativemd.littletiles.utils.PreviewTile;
 
@@ -79,6 +80,10 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         return stack.getItem() == LittleTiles.chisel;
     }
 
+    private boolean isTriangleShape(ItemStack stack) {
+        return stack.getItem() == LittleTiles.chisel && new LittleToolHandler(stack).isTriangleShape();
+    }
+
     @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
             float offsetX, float offsetY, float offsetZ) {
@@ -98,7 +103,24 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
 
-        if (needsTwoHits(stack)) {
+        if (isTriangleShape(stack)) {
+            if (PreviewRenderer.triangleHits.size() < 3) {
+                PreviewRenderer.triangleHits.add(pos);
+                return true;
+            }
+
+            // The tile's bounding box can start before the first vertex (e.g. a later vertex further west/down/north
+            // of it), so it must be rooted at that box's own min corner, not at the first vertex itself.
+            LittleTileBlockPos placementAnchor = TriangleClickHelper.placementAnchor(pos);
+
+            // The preview carries the cutout in its nbt, so the placed stack keeps it as well.
+            ILittleTile littleTile = (ILittleTile) stack.getItem();
+            NBTTagCompound tag = (NBTTagCompound) littleTile.getLittlePreview(stack).get(0).nbt.copy();
+            stack = new ItemStack(Item.getItemFromBlock(LittleTiles.blockTile));
+            stack.stackTagCompound = tag;
+            pos = placementAnchor;
+            PreviewRenderer.triangleHits.clear();
+        } else if (needsTwoHits(stack)) {
             if (PreviewRenderer.firstHit == null && PreviewRenderer.markedHit == null) {
                 PreviewRenderer.firstHit = pos;
                 return true;

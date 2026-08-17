@@ -17,6 +17,7 @@ import com.creativemd.creativecore.lib.Vector3d;
 public class Triangle3d {
 
     private static final double SPLIT_EPSILON = 1.0E-5;
+    private static final double UV_WRAP_EPSILON = 1.0E-6;
 
     private Vector3d p1, p2, p3;
     private Vector2d tex1, tex2, tex3;
@@ -129,6 +130,10 @@ public class Triangle3d {
 
     private static Vector2d mapTexture(Plane3d plane, Vector3d point, IIcon icon) {
         Vector2d ret = plane.mapTo2D(point);
+        // A slanted face (unlike the other, axis-aligned meshes) can project outside [0,1] - wrap it back onto the
+        // same grid cell instead of sampling whatever sprite happens to sit next to it in the texture atlas.
+        ret.x = wrapUnit(ret.x);
+        ret.y = wrapUnit(ret.y);
         if (plane.isFlipU()) {
             ret.x = 1 - ret.x;
         }
@@ -138,6 +143,18 @@ public class Triangle3d {
         ret.x = icon.getInterpolatedU(ret.x * 16);
         ret.y = icon.getInterpolatedV(ret.y * 16);
         return ret;
+    }
+
+    private static double wrapUnit(double value) {
+        // getInterpolatedU/V is a linear map where 0 and 1 are the icon's two distinct edges, not a periodic space -
+        // 1.0 must stay 1.0, not fold onto 0.0 like plain modulo would. Every axis-aligned mesh has vertices sitting
+        // exactly on these bounds, so only truly out-of-range values (only possible for TRIANGLE's slanted faces)
+        // get wrapped; anything already in range passes through unchanged.
+        if (value >= -UV_WRAP_EPSILON && value <= 1.0 + UV_WRAP_EPSILON) {
+            return Math.max(0, Math.min(1, value));
+        }
+        double wrapped = value % 1.0;
+        return wrapped < 0 ? wrapped + 1.0 : wrapped;
     }
 
     public void setTexture(Block block, int meta) {

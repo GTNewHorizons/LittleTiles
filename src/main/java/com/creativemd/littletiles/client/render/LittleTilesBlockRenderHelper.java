@@ -43,8 +43,10 @@ public class LittleTilesBlockRenderHelper {
 
     public static void renderMesh(double x, double y, double z, Vector3d cutoutScale, int orientation, double red,
             double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax,
-            LittleTileShapeMode shapeMode) {
-        LittleTileCutoutInfo cutoutInfo = new LittleTileCutoutInfo();
+            LittleTileShapeMode shapeMode, LittleTileCutoutInfo baseCutoutInfo) {
+        // baseCutoutInfo carries shape-specific data the other parameters don't (e.g. TRIANGLE's raw vertices).
+        LittleTileCutoutInfo cutoutInfo = baseCutoutInfo != null ? new LittleTileCutoutInfo(baseCutoutInfo)
+                : new LittleTileCutoutInfo();
         cutoutInfo.type = shapeMode;
         cutoutInfo.size = new Vector3i(
                 (int) Math.round(cutoutScale.x * 16),

@@ -39,6 +39,7 @@ key.littletiles.slope_triangle_corner=Slope Triangle Corner
 key.littletiles.slope_triangle_alt=Slope Triangle (Alt)
 key.littletiles.slope_outer_corner=Slope Outer Corner
 key.littletiles.slope_inner_corner=Slope Inner Corner
+key.littletiles.triangle=Triangle
 key.littletiles.wall=Wall
 key.littletiles.pillar=Pillar
 key.littletiles.mode_normal=Normal Mode

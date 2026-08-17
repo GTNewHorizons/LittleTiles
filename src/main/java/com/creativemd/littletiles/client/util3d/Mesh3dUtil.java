@@ -159,6 +159,49 @@ public class Mesh3dUtil {
         return mesh;
     }
 
+    /**
+     * Builds a tetrahedron connecting the 4 raw vertices of a TRIANGLE cutout - no vertices are derived. Vertices are
+     * normalized into the cutout's own [0,1] bounding cube here, so the generic scale/translate/clip pipeline in
+     * {@link #createMesh(LittleTileCutoutInfo, Vector3d, Vector3d, Vector3i, Vector3i, Vector3i, Block, int, int)}
+     * works unchanged, exactly like the pre-built unit-cube meshes of the other shapes.
+     */
+    private static Mesh3d createTriangleMesh(LittleTileCutoutInfo cutoutInfo) {
+        Vector3d v1 = toLocal(cutoutInfo.triV1, cutoutInfo.size);
+        Vector3d v2 = toLocal(cutoutInfo.triV2, cutoutInfo.size);
+        Vector3d v3 = toLocal(cutoutInfo.triV3, cutoutInfo.size);
+        Vector3d v4 = toLocal(cutoutInfo.triV4, cutoutInfo.size);
+
+        Vector3d center = new Vector3d(
+                (v1.x + v2.x + v3.x + v4.x) / 4,
+                (v1.y + v2.y + v3.y + v4.y) / 4,
+                (v1.z + v2.z + v3.z + v4.z) / 4);
+
+        ArrayList<Triangle3d> triangles = new ArrayList<>();
+        addTetrahedronFace(triangles, v2, v3, v4, center);
+        addTetrahedronFace(triangles, v1, v3, v4, center);
+        addTetrahedronFace(triangles, v1, v2, v4, center);
+        addTetrahedronFace(triangles, v1, v2, v3, center);
+
+        return new Mesh3d(triangles);
+    }
+
+    private static void addTetrahedronFace(List<Triangle3d> triangles, Vector3d a, Vector3d b, Vector3d c,
+            Vector3d center) {
+        Triangle3d triangle = new Triangle3d(new Vector3d(a), new Vector3d(b), new Vector3d(c));
+        Vector3d faceCenter = new Vector3d((a.x + b.x + c.x) / 3, (a.y + b.y + c.y) / 3, (a.z + b.z + c.z) / 3);
+        Vector3d outward = new Vector3d(faceCenter.x - center.x, faceCenter.y - center.y, faceCenter.z - center.z);
+        triangle.ensureWindingOrder(outward);
+        triangles.add(triangle);
+    }
+
+    /** Converts a raw sub-tile vertex offset (relative to the box min corner) into the box's own [0,1] local space. */
+    private static Vector3d toLocal(Vector3i vertex, Vector3i size) {
+        double x = size.x != 0 ? vertex.x / (double) size.x : 0;
+        double y = size.y != 0 ? vertex.y / (double) size.y : 0;
+        double z = size.z != 0 ? vertex.z / (double) size.z : 0;
+        return new Vector3d(x, y, z);
+    }
+
     public static Mesh3d createBoxMesh() {
         List<Triangle3d> triangles = new ArrayList<>();
 
@@ -194,6 +237,7 @@ public class Mesh3dUtil {
             case SLOPE_TRIANGLE_ALT -> MESH_SLOPE_TRIANGLE_ALT.copy();
             case SLOPE_OUTER_CORNER -> MESH_SLOPE_OUTER_CORNER.copy();
             case SLOPE_INNER_CORNER -> MESH_SLOPE_INNER_CORNER.copy();
+            case TRIANGLE -> createTriangleMesh(cutoutInfo);
             case BOX -> throw new RuntimeException("Invalid cutout BOX");
             default -> throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
         };

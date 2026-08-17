@@ -50,6 +50,7 @@ import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
+import com.creativemd.littletiles.common.utils.TriangleClickHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -132,21 +133,26 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
                 }
                 end = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
             }
-            LittleTileBlockPos start = PreviewRenderer.firstHit != null ? PreviewRenderer.firstHit : end;
 
-            LittleTileBlockPos.Subtraction subtraction = end.subtract(stack, start);
-            LittleTileBlockPos.Comparison comparison = start.compareTo(end);
-            size = new LittleTileSize(subtraction.x, subtraction.y, subtraction.z);
-            nbt.setBoolean("fromChiselPosX", !comparison.biggerOrEqualX);
-            nbt.setBoolean("fromChiselPosY", !comparison.biggerOrEqualY);
-            nbt.setBoolean("fromChiselPosZ", !comparison.biggerOrEqualZ);
-            nbt.setInteger("fromChiselAlign", align);
+            if (handler.isTriangleShape()) {
+                size = buildTrianglePreview(end, nbt);
+            } else {
+                LittleTileBlockPos start = PreviewRenderer.firstHit != null ? PreviewRenderer.firstHit : end;
 
-            // The shape selected in the gui only becomes a concrete cutout once both hits are known,
-            // so it is written here, where the preview (and everything derived from it) picks it up.
-            LittleTileCutoutInfo cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, start, end);
-            if (cutoutInfo != null) {
-                cutoutInfo.writeToNBT(nbt);
+                LittleTileBlockPos.Subtraction subtraction = end.subtract(stack, start);
+                LittleTileBlockPos.Comparison comparison = start.compareTo(end);
+                size = new LittleTileSize(subtraction.x, subtraction.y, subtraction.z);
+                nbt.setBoolean("fromChiselPosX", !comparison.biggerOrEqualX);
+                nbt.setBoolean("fromChiselPosY", !comparison.biggerOrEqualY);
+                nbt.setBoolean("fromChiselPosZ", !comparison.biggerOrEqualZ);
+                nbt.setInteger("fromChiselAlign", align);
+
+                // The shape selected in the gui only becomes a concrete cutout once both hits are known,
+                // so it is written here, where the preview (and everything derived from it) picks it up.
+                LittleTileCutoutInfo cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, start, end);
+                if (cutoutInfo != null) {
+                    cutoutInfo.writeToNBT(nbt);
+                }
             }
         }
 
@@ -159,6 +165,28 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         LittleTilePreview preview = new LittleTilePreview(size, nbt);
         ret.add(preview);
         return ret;
+    }
+
+    /**
+     * Builds the progressive TRIANGLE preview from the vertices clicked so far ({@link PreviewRenderer#triangleHits})
+     * plus the current (not yet clicked) hit - see {@link TriangleClickHelper#computeVertices} for how this plays out
+     * live as a right triangle, then a flat-bottomed shape, then the full tetrahedron.
+     */
+    @SideOnly(Side.CLIENT)
+    private LittleTileSize buildTrianglePreview(LittleTileBlockPos current, NBTTagCompound nbt) {
+        TriangleClickHelper.Vertices vertices = TriangleClickHelper.computeVertices(current);
+        LittleTileCutoutInfo cutoutInfo = LittleTileCutoutInfo
+                .fromTriangleVertices(vertices.box, vertices.v1, vertices.v2, vertices.v3, vertices.v4);
+        cutoutInfo.writeToNBT(nbt);
+
+        // The tile is placed at TriangleClickHelper.placementAnchor(), which already accounts for the box's own
+        // min corner, so no further backward shift is needed here.
+        nbt.setBoolean("fromChiselPosX", false);
+        nbt.setBoolean("fromChiselPosY", false);
+        nbt.setBoolean("fromChiselPosZ", false);
+        nbt.setInteger("fromChiselAlign", 1);
+
+        return vertices.box.getSize();
     }
 
     @Override

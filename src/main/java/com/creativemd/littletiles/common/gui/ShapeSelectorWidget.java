@@ -170,6 +170,16 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
             return mesh;
         }
 
+        if (shape == LittleTileShapeMode.TRIANGLE) {
+            cutoutInfo.triV1 = new Vector3i(0, 0, 0);
+            cutoutInfo.triV2 = new Vector3i(16, 0, 0);
+            cutoutInfo.triV3 = new Vector3i(0, 0, 16);
+            cutoutInfo.triV4 = new Vector3i(0, 16, 0);
+            Mesh3d mesh = Mesh3dUtil
+                    .createMesh(cutoutInfo, new Vector3d(1, 1, 1), new Vector3d(), ZERO, ZERO, FULL_TILE, null, 0, 0);
+            return mesh;
+        }
+
         Mesh3d mesh = Mesh3dUtil
                 .createMesh(cutoutInfo, new Vector3d(1, 1, 1), new Vector3d(), ZERO, ZERO, FULL_TILE, null, 0, 0);
         return mesh;

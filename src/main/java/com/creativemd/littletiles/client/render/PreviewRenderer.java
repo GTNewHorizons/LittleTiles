@@ -28,9 +28,11 @@ import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
+import com.creativemd.littletiles.common.utils.TriangleClickHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.utils.PreviewTile;
 import com.creativemd.littletiles.utils.ShiftHandler;
@@ -50,6 +52,8 @@ public class PreviewRenderer {
 
     public static LittleTileBlockPos markedHit = null;
     public static LittleTileBlockPos firstHit = null;
+    /** Vertices collected so far for a TRIANGLE cutout (0-3; the 4th vertex is always the live/current hit). */
+    public static final ArrayList<LittleTileBlockPos> triangleHits = new ArrayList<>();
     private static ItemStack lastItem = null;
 
     private static ForgeDirection rotateDirection(ForgeDirection direction) {
@@ -94,6 +98,7 @@ public class PreviewRenderer {
             if (!ItemStack.areItemStackTagsEqual(lastItem, mc.thePlayer.getHeldItem())) {
                 markedHit = null;
                 firstHit = null;
+                triangleHits.clear();
             }
             lastItem = mc.thePlayer.getHeldItem();
 
@@ -196,6 +201,13 @@ public class PreviewRenderer {
                     GL11.glDisable(GL11.GL_TEXTURE_2D);
                     GL11.glDepthMask(false);
 
+                    // A TRIANGLE cutout is rooted at its vertex bounding box's own min corner, which can sit before
+                    // the first clicked vertex - not wherever the cursor currently is.
+                    if (mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel && !triangleHits.isEmpty()
+                            && new LittleToolHandler(mc.thePlayer.getHeldItem()).isTriangleShape()) {
+                        pos = TriangleClickHelper.placementAnchor(pos);
+                    }
+
                     ArrayList<PreviewTile> previews;
 
                     previews = PlacementHelper
@@ -247,6 +259,9 @@ public class PreviewRenderer {
                             toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
                         }
                         LittleTileShapeMode shape = toolHandler.getShape();
+                        LittleTileCutoutInfo baseCutoutInfo = previewTile.preview != null
+                                ? LittleTileCutoutInfo.loadFromNBT(previewTile.preview.nbt)
+                                : null;
 
                         // Needed for block picked cutouts
                         Vector3d cutoutSize = toolHandler.getTileSize();
@@ -292,7 +307,8 @@ public class PreviewRenderer {
                                             (int) Math.round(size.xCoord * 16),
                                             (int) Math.round(size.yCoord * 16),
                                             (int) Math.round(size.zCoord * 16)),
-                                    shape);
+                                    shape,
+                                    baseCutoutInfo);
                         }
 
                         GL11.glPopMatrix();

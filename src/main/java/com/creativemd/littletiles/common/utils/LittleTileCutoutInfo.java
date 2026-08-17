@@ -6,6 +6,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3i;
 
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
+
 public class LittleTileCutoutInfo {
 
     public LittleTileShapeMode type;
@@ -16,6 +18,12 @@ public class LittleTileCutoutInfo {
     public ForgeDirection faceEnd = ForgeDirection.UNKNOWN;
     public int thickness;
     public boolean negX, negY, negZ;
+
+    // Only meaningful for TRIANGLE: the 4 raw vertices, relative to the tile box's own min corner.
+    public Vector3i triV1 = new Vector3i();
+    public Vector3i triV2 = new Vector3i();
+    public Vector3i triV3 = new Vector3i();
+    public Vector3i triV4 = new Vector3i();
 
     public LittleTileCutoutInfo() {
         size = new Vector3i();
@@ -32,6 +40,10 @@ public class LittleTileCutoutInfo {
         negX = other.negX;
         negY = other.negY;
         negZ = other.negZ;
+        triV1 = new Vector3i(other.triV1);
+        triV2 = new Vector3i(other.triV2);
+        triV3 = new Vector3i(other.triV3);
+        triV4 = new Vector3i(other.triV4);
     }
 
     public static LittleTileCutoutInfo fromItemStack(ItemStack stack, LittleTileBlockPos start,
@@ -39,7 +51,7 @@ public class LittleTileCutoutInfo {
         LittleToolHandler handler = new LittleToolHandler(stack);
         LittleTileShapeMode shape = handler.getShape();
 
-        if (shape == LittleTileShapeMode.BOX) {
+        if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.TRIANGLE) {
             return null;
         }
 
@@ -93,7 +105,49 @@ public class LittleTileCutoutInfo {
         cutoutInfo.negX = nbt.getBoolean("cutoutNegX");
         cutoutInfo.negY = nbt.getBoolean("cutoutNegY");
         cutoutInfo.negZ = nbt.getBoolean("cutoutNegZ");
+        if (cutoutInfo.type == LittleTileShapeMode.TRIANGLE) {
+            cutoutInfo.triV1 = readVec(nbt, "cutoutTriV1");
+            cutoutInfo.triV2 = readVec(nbt, "cutoutTriV2");
+            cutoutInfo.triV3 = readVec(nbt, "cutoutTriV3");
+            cutoutInfo.triV4 = readVec(nbt, "cutoutTriV4");
+        }
         return cutoutInfo;
+    }
+
+    private static Vector3i readVec(NBTTagCompound nbt, String key) {
+        return new Vector3i(nbt.getInteger(key + "X"), nbt.getInteger(key + "Y"), nbt.getInteger(key + "Z"));
+    }
+
+    private static void writeVec(NBTTagCompound nbt, String key, Vector3i vec) {
+        nbt.setInteger(key + "X", vec.x);
+        nbt.setInteger(key + "Y", vec.y);
+        nbt.setInteger(key + "Z", vec.z);
+    }
+
+    /** Builds the tile box that exactly bounds 4 raw vertex offsets (relative to some common anchor). */
+    public static LittleTileBox boxFromTriangleVertices(Vector3i v1, Vector3i v2, Vector3i v3, Vector3i v4) {
+        int minX = Math.min(Math.min(v1.x, v2.x), Math.min(v3.x, v4.x));
+        int minY = Math.min(Math.min(v1.y, v2.y), Math.min(v3.y, v4.y));
+        int minZ = Math.min(Math.min(v1.z, v2.z), Math.min(v3.z, v4.z));
+        int maxX = Math.max(Math.max(v1.x, v2.x), Math.max(v3.x, v4.x));
+        int maxY = Math.max(Math.max(v1.y, v2.y), Math.max(v3.y, v4.y));
+        int maxZ = Math.max(Math.max(v1.z, v2.z), Math.max(v3.z, v4.z));
+        return new LittleTileBox(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    /** Builds a TRIANGLE cutout from 4 raw vertex offsets and the box (from {@link #boxFromTriangleVertices}) they fit. */
+    public static LittleTileCutoutInfo fromTriangleVertices(LittleTileBox box, Vector3i v1, Vector3i v2, Vector3i v3,
+            Vector3i v4) {
+        LittleTileCutoutInfo info = new LittleTileCutoutInfo();
+        info.type = LittleTileShapeMode.TRIANGLE;
+        info.size = new Vector3i(box.maxX - box.minX, box.maxY - box.minY, box.maxZ - box.minZ);
+        info.pos = new Vector3i();
+        info.orientation = 0;
+        info.triV1 = new Vector3i(v1.x - box.minX, v1.y - box.minY, v1.z - box.minZ);
+        info.triV2 = new Vector3i(v2.x - box.minX, v2.y - box.minY, v2.z - box.minZ);
+        info.triV3 = new Vector3i(v3.x - box.minX, v3.y - box.minY, v3.z - box.minZ);
+        info.triV4 = new Vector3i(v4.x - box.minX, v4.y - box.minY, v4.z - box.minZ);
+        return info;
     }
 
     public void writeToNBT(NBTTagCompound nbt) {
@@ -112,6 +166,12 @@ public class LittleTileCutoutInfo {
             nbt.setBoolean("cutoutNegX", negX);
             nbt.setBoolean("cutoutNegY", negY);
             nbt.setBoolean("cutoutNegZ", negZ);
+        }
+        if (type == LittleTileShapeMode.TRIANGLE) {
+            writeVec(nbt, "cutoutTriV1", triV1);
+            writeVec(nbt, "cutoutTriV2", triV2);
+            writeVec(nbt, "cutoutTriV3", triV3);
+            writeVec(nbt, "cutoutTriV4", triV4);
         }
     }
 }

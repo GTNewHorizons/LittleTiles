@@ -107,6 +107,10 @@ public class LittleToolHandler {
         tag.setByte("shape", (byte) shape);
     }
 
+    public boolean isTriangleShape() {
+        return getShape() == LittleTileShapeMode.TRIANGLE;
+    }
+
     public int getOrientation() {
         NBTTagCompound tag = getTag(false);
         if (tag.hasKey("cutoutOrientation")) {

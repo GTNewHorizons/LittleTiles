@@ -135,7 +135,9 @@ public class LittleTileCutoutInfo {
         return new LittleTileBox(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
-    /** Builds a TRIANGLE cutout from 4 raw vertex offsets and the box (from {@link #boxFromTriangleVertices}) they fit. */
+    /**
+     * Builds a TRIANGLE cutout from 4 raw vertex offsets and the box (from {@link #boxFromTriangleVertices}) they fit.
+     */
     public static LittleTileCutoutInfo fromTriangleVertices(LittleTileBox box, Vector3i v1, Vector3i v2, Vector3i v3,
             Vector3i v4) {
         LittleTileCutoutInfo info = new LittleTileCutoutInfo();

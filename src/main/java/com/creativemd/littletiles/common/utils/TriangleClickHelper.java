@@ -8,8 +8,8 @@ import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 /**
- * Shared math for the TRIANGLE shape's 4-click flow, used by both the item placement code and the live preview so
- * they always agree on where the tile actually needs to be rooted.
+ * Shared math for the TRIANGLE shape's 4-click flow, used by both the item placement code and the live preview so they
+ * always agree on where the tile actually needs to be rooted.
  */
 public final class TriangleClickHelper {
 
@@ -40,8 +40,8 @@ public final class TriangleClickHelper {
      * v4 is always the live/tentative point (the next click) - while placing vertex 2 that also makes v2 live, and
      * since v3 then synthesizes off v2, all of v2/v3/v4 track the cursor together as a flat right triangle. Once v2 is
      * real (placing vertex 3), v3 still synthesizes but is now fixed, so only the live v4 adds height, showing a
-     * flat-bottomed shape. Once v3 is real too (placing vertex 4), all but the live v4 are fixed, completing the
-     * shape as it is finalized.
+     * flat-bottomed shape. Once v3 is real too (placing vertex 4), all but the live v4 are fixed, completing the shape
+     * as it is finalized.
      */
     public static Vertices computeVertices(LittleTileBlockPos current) {
         List<LittleTileBlockPos> hits = PreviewRenderer.triangleHits;
@@ -55,9 +55,9 @@ public final class TriangleClickHelper {
 
     /**
      * The tile's own bounding box (and the cutout's local frame) starts at the MINIMUM of the 4 vertex offsets, not
-     * necessarily at the anchor vertex itself (e.g. a 2nd vertex west of the anchor pulls the box's min corner west
-     * of it too). Placing the tile at the raw anchor position instead of this shifted one mirrors anything on the
-     * negative side of the anchor onto the positive side.
+     * necessarily at the anchor vertex itself (e.g. a 2nd vertex west of the anchor pulls the box's min corner west of
+     * it too). Placing the tile at the raw anchor position instead of this shifted one mirrors anything on the negative
+     * side of the anchor onto the positive side.
      */
     public static LittleTileBlockPos placementAnchor(LittleTileBlockPos current) {
         LittleTileBlockPos anchor = anchor(current);

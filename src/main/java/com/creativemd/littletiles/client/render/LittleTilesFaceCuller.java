@@ -20,7 +20,7 @@ import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileGeometryCache;
-import com.creativemd.littletiles.common.utils.LittleTileGeometryCache.BoxCullingResult;
+import com.creativemd.littletiles.common.utils.LittleTileGeometryCache.CullingResult;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 
 import cpw.mods.fml.relauncher.Side;
@@ -275,17 +275,18 @@ public final class LittleTilesFaceCuller {
      */
     public static List<Triangle3d> visibleCutoutTriangles(CullingContext culling, LittleTilesCubeObject cube) {
         LittleTileGeometryCache cache = cube.geometryCache;
-        List<Triangle3d> cached = cache.getVisibleCutoutTriangles();
-        if (cached != null) {
-            return cached;
-        }
+        return cache.getOrCreateCullingResult(() -> calculateVisibleCutoutTriangles(culling, cube)).getTriangles();
+    }
+
+    /** Calculates cutout culling without modifying the retained cache. */
+    private static CullingResult calculateVisibleCutoutTriangles(CullingContext culling,
+            LittleTilesCubeObject cube) {
         List<Triangle3d> occludingTriangles = getOccludingTriangles(culling, cube, false);
         List<Triangle3d> visible = new ArrayList<>();
         for (Triangle3d triangle : cube.geometryCache.getOrCreateSimpleMesh().getTriangles()) {
             visible.addAll(cutTriangle(triangle, occludingTriangles));
         }
-        cache.setVisibleCutoutTriangles(visible);
-        return visible;
+        return new CullingResult(visible, 0);
     }
 
     /**
@@ -295,17 +296,17 @@ public final class LittleTilesFaceCuller {
     public static List<Triangle3d> visibleBoxTriangles(CullingContext culling, LittleTilesCubeObject cube,
             FaceClipper clipper) {
         LittleTileGeometryCache cache = cube.geometryCache;
-        BoxCullingResult result = cache.getOrCreateBoxCullingResult(() -> calculateBoxCulling(culling, cube));
+        CullingResult result = cache.getOrCreateCullingResult(() -> calculateBoxCulling(culling, cube));
         // the clipper is new for every render, so cached replaced sides have to be hidden again
         coverReplacedBoxSides(clipper, cube, result.getReplacedSides());
         return result.getTriangles();
     }
 
     /** Calculates box culling without modifying either the retained cache or the renderer's face clipper. */
-    private static BoxCullingResult calculateBoxCulling(CullingContext culling, LittleTilesCubeObject cube) {
+    private static CullingResult calculateBoxCulling(CullingContext culling, LittleTilesCubeObject cube) {
         List<Triangle3d> meshOccludingTriangles = getOccludingTriangles(culling, cube, true);
         if (meshOccludingTriangles.isEmpty()) {
-            return new BoxCullingResult(Collections.emptyList(), 0);
+            return new CullingResult(Collections.emptyList(), 0);
         }
         List<Triangle3d> allOccludingTriangles = getOccludingTriangles(culling, cube, false);
         List<Triangle3d> visible = new ArrayList<>();
@@ -320,7 +321,7 @@ public final class LittleTilesFaceCuller {
                 visible.addAll(cutTriangle(triangle, allOccludingTriangles));
             }
         }
-        return new BoxCullingResult(visible, replacedSides);
+        return new CullingResult(visible, replacedSides);
     }
 
     /** Replays onto a fresh clipper which sides were replaced by triangles when the cut result was computed. */

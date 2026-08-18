@@ -195,10 +195,10 @@ public class LittleTilesBlockRenderHelper {
                 continue;
             }
             if (cube.cutoutInfo != null) {
-                if (cube.geometryCache.hasValidMesh() && cube.geometryCache.getVisibleCutoutTriangles() == null) {
+                if (cube.geometryCache.hasValidMesh() && cube.geometryCache.getCullingResult() == null) {
                     return true;
                 }
-            } else if (coverage[i] instanceof FaceClipper && cube.geometryCache.getBoxCullingResult() == null) {
+            } else if (coverage[i] instanceof FaceClipper && cube.geometryCache.getCullingResult() == null) {
                 return true;
             }
         }

@@ -53,6 +53,6 @@ public class ItemCollisionTool extends Item {
     @Override
     @SideOnly(Side.CLIENT)
     protected String getIconString() {
-        return LittleTiles.modid + ":LTCollisionTool";
+        return LittleTiles.modid + ":staff_of_intangibility";
     }
 }

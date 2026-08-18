@@ -301,10 +301,18 @@ public final class LittleTilesFaceCuller {
             coverReplacedBoxSides(clipper, cube, cached.getReplacedSides());
             return cached.getTriangles();
         }
+
+        BoxCullingResult result = calculateBoxCulling(culling, cube);
+        cache.setBoxCullingResult(result);
+        coverReplacedBoxSides(clipper, cube, result.getReplacedSides());
+        return result.getTriangles();
+    }
+
+    /** Calculates box culling without modifying either the retained cache or the renderer's face clipper. */
+    private static BoxCullingResult calculateBoxCulling(CullingContext culling, LittleTilesCubeObject cube) {
         List<Triangle3d> meshOccludingTriangles = getOccludingTriangles(culling, cube, true);
         if (meshOccludingTriangles.isEmpty()) {
-            cache.setBoxCullingResult(new BoxCullingResult(Collections.emptyList(), 0));
-            return Collections.emptyList();
+            return new BoxCullingResult(Collections.emptyList(), 0);
         }
         List<Triangle3d> allOccludingTriangles = getOccludingTriangles(culling, cube, false);
         List<Triangle3d> visible = new ArrayList<>();
@@ -314,14 +322,12 @@ public final class LittleTilesFaceCuller {
             if (!overlapsAny(face, meshOccludingTriangles)) {
                 continue; // no mesh in this plane, the rectangle clipping of the box renderer covers this side
             }
-            coverSide(clipper, cube, cube, side);
             replacedSides |= 1 << side.ordinal();
             for (Triangle3d triangle : face) {
                 visible.addAll(cutTriangle(triangle, allOccludingTriangles));
             }
         }
-        cache.setBoxCullingResult(new BoxCullingResult(visible, replacedSides));
-        return visible;
+        return new BoxCullingResult(visible, replacedSides);
     }
 
     /** Replays onto a fresh clipper which sides were replaced by triangles when the cut result was computed. */

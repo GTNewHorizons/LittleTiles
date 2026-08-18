@@ -194,8 +194,8 @@ public class LittleTilesBlockRenderHelper {
      * <p>
      * Preparing it reaches into the six neighbouring tile entities, which is not worth doing when every cube of this
      * one is already served from its cached cut result. Deciding that up front is not safe though: a cache can be
-     * invalidated between the decision and the calculation, and the calculation would then run without the geometry
-     * it needs. Leaving it to the culler means the context is prepared exactly when something is really recomputed.
+     * invalidated between the decision and the calculation, and the calculation would then run without the geometry it
+     * needs. Leaving it to the culler means the context is prepared exactly when something is really recomputed.
      * <p>
      * Confined to a single {@link #renderCubes} call on one thread, so it needs no synchronization of its own.
      */
@@ -227,9 +227,9 @@ public class LittleTilesBlockRenderHelper {
 
     /**
      * Whether no two cubes share a geometry cache. A cache holds a single culling result, so two cubes sharing one
-     * would overwrite each other's - and a cutout cube overwriting a box cube's result would also swap which of the
-     * two culling paths the cached value came from. Every tile currently renders as exactly one cube, which is what
-     * keeps this true.
+     * would overwrite each other's - and a cutout cube overwriting a box cube's result would also swap which of the two
+     * culling paths the cached value came from. Every tile currently renders as exactly one cube, which is what keeps
+     * this true.
      */
     private static boolean haveDistinctGeometryCaches(List<LittleTilesCubeObject> cubes) {
         for (int i = 0; i < cubes.size(); i++) {

@@ -139,11 +139,15 @@ public class LittleTilesBlockRenderHelper {
 
     private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
             Supplier<CullingContext> culling, IBlockAccess world) {
-        if (!cube.geometryCache.hasValidMesh()) {
+        // Resolved once and handed to the culler. Asking again inside would be a different question: the tile can
+        // drop its mesh in between, and an empty cut result reads as HIDDEN, which would skip the cube entirely
+        // instead of falling back to drawing it as a plain box.
+        Mesh3d mesh = cube.geometryCache.getOrCreateSimpleMesh();
+        if (mesh == null || mesh.getTriangles().isEmpty()) {
             return CutoutResult.FAILED;
         }
 
-        List<Triangle3d> visible = LittleTilesFaceCuller.visibleCutoutTriangles(culling, cube);
+        List<Triangle3d> visible = LittleTilesFaceCuller.visibleCutoutTriangles(culling, cube, mesh);
         if (visible.isEmpty()) {
             return CutoutResult.HIDDEN;
         }

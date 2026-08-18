@@ -33,6 +33,7 @@ import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.client.render.LittleDeformedBoxHelper;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
@@ -124,29 +125,35 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
             size = new LittleTileSize(sizeX, sizeY, sizeZ);
         } else {
             int align = handler.getGrid();
-            LittleTileBlockPos end = PreviewRenderer.markedHit;
-            if (end == null) {
-                MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
-                if (moving == null) {
-                    return null;
+            if (handler.isDeformedBoxShape() && LittleDeformedBoxHelper.isEditing()) {
+                // The box is fully described by its corners at this point, so unlike every other shape it needs no
+                // hit to preview - it stays on screen even while the player looks at nothing.
+                size = buildDeformedBoxPreview(nbt);
+            } else {
+                LittleTileBlockPos end = PreviewRenderer.markedHit;
+                if (end == null) {
+                    MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
+                    if (moving == null) {
+                        return null;
+                    }
+                    end = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
                 }
-                end = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
-            }
-            LittleTileBlockPos start = PreviewRenderer.firstHit != null ? PreviewRenderer.firstHit : end;
+                LittleTileBlockPos start = PreviewRenderer.firstHit != null ? PreviewRenderer.firstHit : end;
 
-            LittleTileBlockPos.Subtraction subtraction = end.subtract(stack, start);
-            LittleTileBlockPos.Comparison comparison = start.compareTo(end);
-            size = new LittleTileSize(subtraction.x, subtraction.y, subtraction.z);
-            nbt.setBoolean("fromChiselPosX", !comparison.biggerOrEqualX);
-            nbt.setBoolean("fromChiselPosY", !comparison.biggerOrEqualY);
-            nbt.setBoolean("fromChiselPosZ", !comparison.biggerOrEqualZ);
-            nbt.setInteger("fromChiselAlign", align);
+                LittleTileBlockPos.Subtraction subtraction = end.subtract(stack, start);
+                LittleTileBlockPos.Comparison comparison = start.compareTo(end);
+                size = new LittleTileSize(subtraction.x, subtraction.y, subtraction.z);
+                nbt.setBoolean("fromChiselPosX", !comparison.biggerOrEqualX);
+                nbt.setBoolean("fromChiselPosY", !comparison.biggerOrEqualY);
+                nbt.setBoolean("fromChiselPosZ", !comparison.biggerOrEqualZ);
+                nbt.setInteger("fromChiselAlign", align);
 
-            // The shape selected in the gui only becomes a concrete cutout once both hits are known,
-            // so it is written here, where the preview (and everything derived from it) picks it up.
-            LittleTileCutoutInfo cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, start, end);
-            if (cutoutInfo != null) {
-                cutoutInfo.writeToNBT(nbt);
+                // The shape selected in the gui only becomes a concrete cutout once both hits are known,
+                // so it is written here, where the preview (and everything derived from it) picks it up.
+                LittleTileCutoutInfo cutoutInfo = LittleTileCutoutInfo.fromItemStack(stack, start, end);
+                if (cutoutInfo != null) {
+                    cutoutInfo.writeToNBT(nbt);
+                }
             }
         }
 
@@ -159,6 +166,25 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         LittleTilePreview preview = new LittleTilePreview(size, nbt);
         ret.add(preview);
         return ret;
+    }
+
+    /**
+     * Builds the preview of the deformed box from the corners as they currently stand, so the player sees the box
+     * update live while it is being shaped. Until the initial two clicks have closed a box there is nothing to deform
+     * yet and the regular chisel box preview is used instead.
+     */
+    @SideOnly(Side.CLIENT)
+    private LittleTileSize buildDeformedBoxPreview(NBTTagCompound nbt) {
+        LittleDeformedBoxHelper.currentCutout().writeToNBT(nbt);
+
+        // The tile is placed at DeformClickHelper.placementAnchor(), which already accounts for the corner bounding
+        // box's min corner, so no further backward shift is needed here.
+        nbt.setBoolean("fromChiselPosX", false);
+        nbt.setBoolean("fromChiselPosY", false);
+        nbt.setBoolean("fromChiselPosZ", false);
+        nbt.setInteger("fromChiselAlign", 1);
+
+        return LittleDeformedBoxHelper.currentBox().getSize();
     }
 
     @Override

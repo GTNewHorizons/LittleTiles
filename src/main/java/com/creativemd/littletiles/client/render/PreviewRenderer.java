@@ -103,6 +103,7 @@ public class PreviewRenderer {
             if (!ItemStack.areItemStackTagsEqual(lastItem, mc.thePlayer.getHeldItem())) {
                 markedHit = null;
                 firstHit = null;
+                LittleDeformedBoxHelper.reset();
             }
             lastItem = mc.thePlayer.getHeldItem();
 
@@ -155,6 +156,13 @@ public class PreviewRenderer {
                 }
 
                 if (markedHit != null) pos = markedHit;
+
+                // A box being deformed is anchored by its own corners, not by what the player is looking at - so it
+                // stays on screen even while looking at nothing.
+                boolean editingDeformedBox = mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel
+                        && LittleDeformedBoxHelper.isEditing()
+                        && new LittleToolHandler(mc.thePlayer.getHeldItem()).isDeformedBoxShape();
+                if (editingDeformedBox) pos = LittleDeformedBoxHelper.placementAnchor();
 
                 if (pos != null && mc.thePlayer.getHeldItem() != null) {
                     if (GameSettings.isKeyDown(LittleTilesClient.mark) && !LittleTilesClient.pressedMark) {

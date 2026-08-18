@@ -6,6 +6,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3i;
 
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
+
 public class LittleTileCutoutInfo {
 
     public LittleTileShapeMode type;
@@ -49,6 +52,19 @@ public class LittleTileCutoutInfo {
             copy[i] = new Vector3i(corners[i]);
         }
         return copy;
+    }
+
+    public static LittleTileCutoutInfo fromDeformedCorners(LittleTileBox box, Vector3i[] corners) {
+        LittleTileCutoutInfo info = new LittleTileCutoutInfo();
+        info.type = LittleTileShapeMode.DEFORMED_BOX;
+        info.size = new Vector3i(box.maxX - box.minX, box.maxY - box.minY, box.maxZ - box.minZ);
+        info.pos = new Vector3i();
+        info.orientation = 0;
+        info.corners = new Vector3i[corners.length];
+        for (int i = 0; i < corners.length; i++) {
+            info.corners[i] = new Vector3i(corners[i].x - box.minX, corners[i].y - box.minY, corners[i].z - box.minZ);
+        }
+        return info;
     }
 
     public static LittleTileCutoutInfo fromItemStack(ItemStack stack, LittleTileBlockPos start,
@@ -115,7 +131,23 @@ public class LittleTileCutoutInfo {
         cutoutInfo.negX = nbt.getBoolean("cutoutNegX");
         cutoutInfo.negY = nbt.getBoolean("cutoutNegY");
         cutoutInfo.negZ = nbt.getBoolean("cutoutNegZ");
+        if (cutoutInfo.type == LittleTileShapeMode.DEFORMED_BOX) {
+            cutoutInfo.corners = new Vector3i[Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT];
+            for (int i = 0; i < cutoutInfo.corners.length; i++) {
+                cutoutInfo.corners[i] = readVec(nbt, "cutoutCorner" + i);
+            }
+        }
         return cutoutInfo;
+    }
+
+    private static Vector3i readVec(NBTTagCompound nbt, String key) {
+        return new Vector3i(nbt.getInteger(key + "X"), nbt.getInteger(key + "Y"), nbt.getInteger(key + "Z"));
+    }
+
+    private static void writeVec(NBTTagCompound nbt, String key, Vector3i vec) {
+        nbt.setInteger(key + "X", vec.x);
+        nbt.setInteger(key + "Y", vec.y);
+        nbt.setInteger(key + "Z", vec.z);
     }
 
     public void writeToNBT(NBTTagCompound nbt) {
@@ -134,6 +166,11 @@ public class LittleTileCutoutInfo {
             nbt.setBoolean("cutoutNegX", negX);
             nbt.setBoolean("cutoutNegY", negY);
             nbt.setBoolean("cutoutNegZ", negZ);
+        }
+        if (type == LittleTileShapeMode.DEFORMED_BOX && corners != null) {
+            for (int i = 0; i < corners.length; i++) {
+                writeVec(nbt, "cutoutCorner" + i, corners[i]);
+            }
         }
     }
 }

@@ -49,6 +49,8 @@ public class LittleTileGeometryCache {
 
     /** Returns the cached mesh, calculating and retaining it when necessary. */
     public synchronized Mesh3d getOrCreateSimpleMesh() {
+        // Unlike culling, mesh creation reads no other tile caches, so it can stay under this monitor. Invalidation
+        // then runs either before calculation or after publication and no separate mesh generation is needed.
         LittleTileBox box = boxGetter.get();
         LittleTileCutoutInfo cutoutInfo = cutoutGetter.get();
         if (cutoutInfo == null || box == null) {

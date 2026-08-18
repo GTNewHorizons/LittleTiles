@@ -17,7 +17,7 @@ public class LittleTileGeometryCache {
 
     private final Supplier<LittleTileBox> boxGetter;
     private final Supplier<LittleTileCutoutInfo> cutoutGetter;
-    private volatile Mesh3d simpleMesh;
+    private Mesh3d simpleMesh;
 
     private volatile List<Triangle3d> visibleCutoutTriangles;
     private volatile List<Triangle3d> visibleBoxTriangles;
@@ -31,7 +31,7 @@ public class LittleTileGeometryCache {
     }
 
     /** Returns the cached mesh, calculating and retaining it when necessary. */
-    public Mesh3d getOrCreateSimpleMesh() {
+    public synchronized Mesh3d getOrCreateSimpleMesh() {
         LittleTileBox box = boxGetter.get();
         LittleTileCutoutInfo cutoutInfo = cutoutGetter.get();
         if (cutoutInfo == null || box == null) {
@@ -74,7 +74,7 @@ public class LittleTileGeometryCache {
         replacedBoxSides |= 1 << side.ordinal();
     }
 
-    public void invalidateMesh() {
+    public synchronized void invalidateMesh() {
         simpleMesh = null;
         invalidateCuts();
     }

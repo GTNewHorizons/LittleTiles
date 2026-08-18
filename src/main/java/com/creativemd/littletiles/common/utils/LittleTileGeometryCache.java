@@ -80,20 +80,18 @@ public class LittleTileGeometryCache {
     /**
      * The visible triangles and any ordinary box sides they replace, calculating and retaining them when necessary.
      */
-    public CullingResult getOrCreateCullingResult(Supplier<CullingResult> calculation) {
-        long generation;
+    public CullingResult getOrCreateCullingResult(long snapshotGeneration, Supplier<CullingResult> calculation) {
         synchronized (this) {
-            if (cullingResult != null) {
+            if (cutsGeneration == snapshotGeneration && cullingResult != null) {
                 return cullingResult;
             }
-            generation = cutsGeneration;
         }
 
         // Culling reads other tile caches, so calculate outside this monitor to avoid cross-tile deadlocks. The
-        // generation check prevents an invalidated calculation from being published afterward.
+        // generation captured with the cube prevents an old render snapshot from being published afterward.
         CullingResult calculated = calculation.get();
         synchronized (this) {
-            if (cutsGeneration == generation) {
+            if (cutsGeneration == snapshotGeneration) {
                 if (cullingResult == null) {
                     cullingResult = calculated;
                 }
@@ -101,6 +99,11 @@ public class LittleTileGeometryCache {
             }
         }
         return calculated;
+    }
+
+    /** Captures the cut generation before a render cube reads any of the geometry that the cut will describe. */
+    public synchronized long captureCutsGeneration() {
+        return cutsGeneration;
     }
 
     public synchronized void invalidateMesh() {

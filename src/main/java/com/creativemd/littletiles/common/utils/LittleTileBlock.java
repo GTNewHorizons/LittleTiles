@@ -75,6 +75,9 @@ public class LittleTileBlock extends LittleTile {
     @Override
     public ArrayList<LittleTilesCubeObject> getRenderingCubes() {
         ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
+        LittleTileGeometryCache cache = getGeometryCache();
+        // Capture before every input retained by the cube, so an older snapshot cannot populate a newer cut cache.
+        long cutsGeneration = cache.captureCutsGeneration();
         // read once: chunk builds run this off-thread while the main thread can reassign the box
         LittleTileBox box = boundingBox;
         if (box != null) {
@@ -82,7 +85,8 @@ public class LittleTileBlock extends LittleTile {
             cube.block = block;
             cube.meta = meta;
             cube.cutoutInfo = this.getCutoutInfo();
-            cube.geometryCache = getGeometryCache();
+            cube.geometryCache = cache;
+            cube.cutsGeneration = cutsGeneration;
             cubes.add(cube);
         }
         return cubes;

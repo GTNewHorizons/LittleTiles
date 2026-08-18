@@ -219,11 +219,6 @@ public class LittleToolHandler {
     }
 
     private void applyCutoutTransform(Matrix3f transform, LittleTileSize oldSize) {
-        // Skip transformed boxes for now
-        if (isDeformedBoxShape()) {
-            return;
-        }
-
         // Get saved orientation
         int orientation = getOrientation();
         Matrix3f matrix = OrientationMapper.fromId(orientation);

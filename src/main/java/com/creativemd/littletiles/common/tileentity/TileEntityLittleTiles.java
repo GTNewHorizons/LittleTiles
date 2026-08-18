@@ -379,8 +379,13 @@ public class TileEntityLittleTiles extends TileEntity {
 
     @SideOnly(Side.CLIENT)
     public void updateRender() {
-        // Culling looks across block borders, so what the neighbours had cut away can be stale now as well.
         invalidateCutCaches();
+        needsLightUpdate = true;
+        invalidateNeighbourRender();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void invalidateNeighbourRender() {
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             TileEntity neighbour = worldObj
                     .getTileEntity(xCoord + side.offsetX, yCoord + side.offsetY, zCoord + side.offsetZ);
@@ -389,6 +394,14 @@ public class TileEntityLittleTiles extends TileEntity {
             }
         }
         worldObj.markBlockRangeForRenderUpdate(xCoord - 1, yCoord - 1, zCoord - 1, xCoord + 1, yCoord + 1, zCoord + 1);
+    }
+
+    @Override
+    public void invalidate() {
+        super.invalidate();
+        if (worldObj != null && FMLCommonHandler.instance().getEffectiveSide().isClient()) {
+            invalidateNeighbourRender();
+        }
     }
 
     @SideOnly(Side.CLIENT)

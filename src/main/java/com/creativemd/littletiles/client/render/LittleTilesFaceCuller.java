@@ -20,6 +20,7 @@ import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileGeometryCache;
+import com.creativemd.littletiles.common.utils.LittleTileGeometryCache.BoxCullingResult;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 
 import cpw.mods.fml.relauncher.Side;
@@ -294,37 +295,37 @@ public final class LittleTilesFaceCuller {
     public static List<Triangle3d> visibleBoxTriangles(CullingContext culling, LittleTilesCubeObject cube,
             FaceClipper clipper) {
         LittleTileGeometryCache cache = cube.geometryCache;
-        List<Triangle3d> cached = cache.getVisibleBoxTriangles();
+        BoxCullingResult cached = cache.getBoxCullingResult();
         if (cached != null) {
             // the clipper is new for every render, so the sides that are drawn as triangles have to be hidden again
-            coverReplacedBoxSides(clipper, cube);
-            return cached;
+            coverReplacedBoxSides(clipper, cube, cached.getReplacedSides());
+            return cached.getTriangles();
         }
         List<Triangle3d> meshOccludingTriangles = getOccludingTriangles(culling, cube, true);
         if (meshOccludingTriangles.isEmpty()) {
-            cache.setVisibleBoxTriangles(Collections.emptyList());
+            cache.setBoxCullingResult(new BoxCullingResult(Collections.emptyList(), 0));
             return Collections.emptyList();
         }
         List<Triangle3d> allOccludingTriangles = getOccludingTriangles(culling, cube, false);
         List<Triangle3d> visible = new ArrayList<>();
+        int replacedSides = 0;
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             List<Triangle3d> face = boxFaceTriangles(cube, side);
             if (!overlapsAny(face, meshOccludingTriangles)) {
                 continue; // no mesh in this plane, the rectangle clipping of the box renderer covers this side
             }
             coverSide(clipper, cube, cube, side);
-            cache.addReplacedBoxSide(side);
+            replacedSides |= 1 << side.ordinal();
             for (Triangle3d triangle : face) {
                 visible.addAll(cutTriangle(triangle, allOccludingTriangles));
             }
         }
-        cache.setVisibleBoxTriangles(visible);
+        cache.setBoxCullingResult(new BoxCullingResult(visible, replacedSides));
         return visible;
     }
 
     /** Replays onto a fresh clipper which sides were replaced by triangles when the cut result was computed. */
-    private static void coverReplacedBoxSides(FaceClipper clipper, LittleTilesCubeObject cube) {
-        int replacedSides = cube.geometryCache.getReplacedBoxSides();
+    private static void coverReplacedBoxSides(FaceClipper clipper, LittleTilesCubeObject cube, int replacedSides) {
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             if ((replacedSides & 1 << side.ordinal()) != 0) {
                 coverSide(clipper, cube, cube, side);

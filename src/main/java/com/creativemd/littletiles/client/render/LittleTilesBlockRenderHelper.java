@@ -209,7 +209,7 @@ public class LittleTilesBlockRenderHelper {
                 if (cube.geometryCache.hasValidMesh() && cube.geometryCache.getVisibleCutoutTriangles() == null) {
                     return true;
                 }
-            } else if (coverage[i] instanceof FaceClipper && cube.geometryCache.getVisibleBoxTriangles() == null) {
+            } else if (coverage[i] instanceof FaceClipper && cube.geometryCache.getBoxCullingResult() == null) {
                 return true;
             }
         }

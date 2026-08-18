@@ -20,7 +20,8 @@ public class LittleTileGeometryCache {
     private Mesh3d simpleMesh;
 
     private volatile List<Triangle3d> visibleCutoutTriangles;
-    private volatile BoxCullingResult boxCullingResult;
+    private BoxCullingResult boxCullingResult;
+    private long cutsGeneration;
 
     public static final class BoxCullingResult {
 
@@ -75,12 +76,31 @@ public class LittleTileGeometryCache {
     }
 
     /** The visible box triangles and the rectangle sides they replace, or null when not yet computed. */
-    public BoxCullingResult getBoxCullingResult() {
+    public synchronized BoxCullingResult getBoxCullingResult() {
         return boxCullingResult;
     }
 
-    public void setBoxCullingResult(BoxCullingResult result) {
-        this.boxCullingResult = result;
+    public BoxCullingResult getOrCreateBoxCullingResult(Supplier<BoxCullingResult> calculation) {
+        long generation;
+        synchronized (this) {
+            if (boxCullingResult != null) {
+                return boxCullingResult;
+            }
+            generation = cutsGeneration;
+        }
+
+        // Culling reads other tile caches, so calculate outside this monitor to avoid cross-tile deadlocks. The
+        // generation check prevents an invalidated calculation from being published afterward.
+        BoxCullingResult calculated = calculation.get();
+        synchronized (this) {
+            if (cutsGeneration == generation) {
+                if (boxCullingResult == null) {
+                    boxCullingResult = calculated;
+                }
+                return boxCullingResult;
+            }
+        }
+        return calculated;
     }
 
     public synchronized void invalidateMesh() {
@@ -88,7 +108,8 @@ public class LittleTileGeometryCache {
         invalidateCuts();
     }
 
-    public void invalidateCuts() {
+    public synchronized void invalidateCuts() {
+        cutsGeneration++;
         visibleCutoutTriangles = null;
         boxCullingResult = null;
     }

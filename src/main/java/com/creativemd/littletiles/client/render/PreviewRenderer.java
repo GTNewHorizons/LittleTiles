@@ -62,7 +62,8 @@ public class PreviewRenderer {
         return ForgeDirection.UNKNOWN;
     }
 
-    public static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look, int amount) {
+    /** Turns a screen-relative arrow direction into a world direction, based on which way the player is facing. */
+    private static ForgeDirection relativeToLook(ForgeDirection direction, ForgeDirection direction_look) {
         if (direction != ForgeDirection.UP && direction != ForgeDirection.DOWN) {
             if (direction_look == ForgeDirection.EAST) {
                 direction = rotateDirection(direction);
@@ -77,9 +78,20 @@ public class PreviewRenderer {
                 direction = rotateDirection(direction);
             }
         }
+        return direction;
+    }
 
+    private static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look, int amount) {
         if (GuiScreen.isCtrlKeyDown()) amount = 16;
-        markedHit.moveInDirection(direction, amount);
+        markedHit.moveInDirection(relativeToLook(direction, direction_look), amount);
+    }
+
+    /**
+     * The arrow keys either move the marked preview or - with nothing marked at all - rotate the preview.
+     */
+    private void handleArrow(ForgeDirection move, ForgeDirection rotate, ForgeDirection direction_look, int align) {
+        if (markedHit != null) moveMarkedHit(move, direction_look, align);
+        else processKey(rotate);
     }
 
     @SubscribeEvent
@@ -157,32 +169,30 @@ public class PreviewRenderer {
                     // Rotate Block
                     if (GameSettings.isKeyDown(LittleTilesClient.up) && !LittleTilesClient.pressedUp) {
                         LittleTilesClient.pressedUp = true;
-                        if (markedHit != null) moveMarkedHit(
+                        handleArrow(
                                 mc.thePlayer.isSneaking() ? ForgeDirection.UP : ForgeDirection.NORTH,
+                                ForgeDirection.UP,
                                 direction_look,
                                 align);
-                        else processKey(ForgeDirection.UP);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.up)) LittleTilesClient.pressedUp = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.down) && !LittleTilesClient.pressedDown) {
                         LittleTilesClient.pressedDown = true;
-                        if (markedHit != null) moveMarkedHit(
+                        handleArrow(
                                 mc.thePlayer.isSneaking() ? ForgeDirection.DOWN : ForgeDirection.SOUTH,
+                                ForgeDirection.DOWN,
                                 direction_look,
                                 align);
-                        else processKey(ForgeDirection.DOWN);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.down)) LittleTilesClient.pressedDown = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.right) && !LittleTilesClient.pressedRight) {
                         LittleTilesClient.pressedRight = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.EAST, direction_look, align);
-                        else processKey(ForgeDirection.SOUTH);
+                        handleArrow(ForgeDirection.EAST, ForgeDirection.SOUTH, direction_look, align);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.right)) LittleTilesClient.pressedRight = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.left) && !LittleTilesClient.pressedLeft) {
                         LittleTilesClient.pressedLeft = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.WEST, direction_look, align);
-                        else processKey(ForgeDirection.NORTH);
+                        handleArrow(ForgeDirection.WEST, ForgeDirection.NORTH, direction_look, align);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.left)) LittleTilesClient.pressedLeft = false;
 
                     GL11.glEnable(GL11.GL_BLEND);

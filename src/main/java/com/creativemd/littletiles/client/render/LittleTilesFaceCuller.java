@@ -17,6 +17,7 @@ import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
 import com.creativemd.creativecore.lib.Vector3d;
+import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -248,7 +249,11 @@ public final class LittleTilesFaceCuller {
                 // copies, since these get moved and the mesh is the one cached on the neighbouring tile
                 List<Triangle3d> triangles;
                 if (neighbour.cutoutInfo != null) {
-                    triangles = neighbour.geometryCache.getOrCreateSimpleMesh().copy().getTriangles();
+                    Mesh3d mesh = neighbour.geometryCache.getOrCreateSimpleMesh();
+                    if (mesh == null) {
+                        continue;
+                    }
+                    triangles = mesh.copy().getTriangles();
                 } else {
                     triangles = boxFaceTriangles(neighbour, facingUs);
                 }
@@ -275,18 +280,22 @@ public final class LittleTilesFaceCuller {
      * ones in the same tile entity and the ones in the six neighbours.
      */
     public static List<Triangle3d> visibleCutoutTriangles(Supplier<CullingContext> culling,
-            LittleTilesCubeObject cube) {
+            LittleTilesCubeObject cube, Mesh3d mesh) {
         LittleTileGeometryCache cache = cube.geometryCache;
-        return cache.getOrCreateCullingResult(() -> calculateVisibleCutoutTriangles(culling.get(), cube))
+        return cache.getOrCreateCullingResult(() -> calculateVisibleCutoutTriangles(culling.get(), cube, mesh))
                 .getTriangles();
     }
 
-    /** Calculates cutout culling without modifying the retained cache. */
-    private static CullingResult calculateVisibleCutoutTriangles(CullingContext culling,
-            LittleTilesCubeObject cube) {
+    /**
+     * Calculates cutout culling without modifying the retained cache. Cuts the mesh the caller already resolved
+     * rather than fetching it again: the tile can lose its mesh at any moment, and re-reading it here would mean
+     * culling a different mesh than the one the caller decided to draw.
+     */
+    private static CullingResult calculateVisibleCutoutTriangles(CullingContext culling, LittleTilesCubeObject cube,
+            Mesh3d mesh) {
         List<Triangle3d> occludingTriangles = getOccludingTriangles(culling, cube, false);
         List<Triangle3d> visible = new ArrayList<>();
-        for (Triangle3d triangle : cube.geometryCache.getOrCreateSimpleMesh().getTriangles()) {
+        for (Triangle3d triangle : mesh.getTriangles()) {
             visible.addAll(cutTriangle(triangle, occludingTriangles));
         }
         return new CullingResult(visible, 0);
@@ -361,7 +370,11 @@ public final class LittleTilesFaceCuller {
                 continue;
             }
             if (occluder.cutoutInfo != null) {
-                occludingTriangles.addAll(occluder.geometryCache.getOrCreateSimpleMesh().getTriangles());
+                // as in prepareCulling: a tile that lost its mesh simply occludes nothing
+                Mesh3d occluderMesh = occluder.geometryCache.getOrCreateSimpleMesh();
+                if (occluderMesh != null) {
+                    occludingTriangles.addAll(occluderMesh.getTriangles());
+                }
             } else if (!meshOccludersOnly) {
                 for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
                     if (isFlush(cube, occluder, side)) {

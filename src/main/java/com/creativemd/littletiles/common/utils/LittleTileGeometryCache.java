@@ -55,7 +55,14 @@ public class LittleTileGeometryCache {
         this.cutoutGetter = cutoutGetter;
     }
 
-    /** Returns the cached mesh, calculating and retaining it when necessary. */
+    /**
+     * Returns the cached mesh, calculating and retaining it when necessary, or null when the tile currently has no
+     * box or no cutout to build one from.
+     * <p>
+     * Resolve it once and work with what you get back. There is deliberately no "does it have a mesh" query: the
+     * answer can stop being true before the caller acts on it, and a second call is not guaranteed to return what
+     * the first one did.
+     */
     public synchronized Mesh3d getOrCreateSimpleMesh() {
         // Unlike culling, mesh creation reads no other tile caches, so it can stay under this monitor. Invalidation
         // then runs either before calculation or after publication and no separate mesh generation is needed.
@@ -68,11 +75,6 @@ public class LittleTileGeometryCache {
             simpleMesh = Mesh3dUtil.meshFromTile(box, cutoutInfo);
         }
         return simpleMesh;
-    }
-
-    public boolean hasValidMesh() {
-        Mesh3d mesh = getOrCreateSimpleMesh();
-        return mesh != null && !mesh.getTriangles().isEmpty();
     }
 
     /**

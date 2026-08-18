@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
@@ -21,6 +22,7 @@ import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
@@ -85,6 +87,62 @@ public class PreviewRenderer {
 
     private static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look, int amount) {
         markedHit.moveInDirection(relativeToLook(direction, direction_look), stepAmount(amount));
+    }
+
+    /** The 12 edges of the box, as pairs of corner indices - the two corners of an edge differ in exactly one axis. */
+    private static final int[][] BOX_EDGES = {
+            { 0, 1 }, { 2, 3 }, { 4, 5 }, { 6, 7 }, // along x
+            { 0, 2 }, { 1, 3 }, { 4, 6 }, { 5, 7 }, // along y
+            { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }, // along z
+    };
+
+    /**
+     * Draws the deformed box being edited as a wireframe of its 12 edges. Faces are never filled, so the player can
+     * see the tiles behind the box while shaping it.
+     */
+    private static void renderBoxEdges() {
+        GL11.glColor4d(0.2, 0.8, 1, 0.9);
+        GL11.glBegin(GL11.GL_LINES);
+        for (int[] edge : BOX_EDGES) {
+            for (int index : edge) {
+                vertexAtCorner(index);
+            }
+        }
+        GL11.glEnd();
+    }
+
+    private static void vertexAtCorner(int index) {
+        Vec3 vec = LittleDeformedBoxHelper.cornerHitVec(index);
+        GL11.glVertex3d(
+                vec.xCoord - TileEntityRendererDispatcher.staticPlayerX,
+                vec.yCoord - TileEntityRendererDispatcher.staticPlayerY,
+                vec.zCoord - TileEntityRendererDispatcher.staticPlayerZ);
+    }
+
+    /**
+     * Draws a small cube on each of the 8 corners of the deformed box being edited, so the player can see what there
+     * is to grab. The selected corner is drawn in a different colour. These are the very same cubes
+     * {@link LittleDeformedBoxHelper#pickCorner} raytraces against, so what is clicked is what is shown.
+     */
+    private static void renderCornerMarkers(int grid) {
+        for (int i = 0; i < Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT; i++) {
+            AxisAlignedBB box = LittleDeformedBoxHelper.getCornerBoxAABB(i, grid);
+            boolean selected = LittleDeformedBoxHelper.isMarkedCorner(i);
+            RenderHelper3D.renderBlock(
+                    (box.minX + box.maxX) / 2 - TileEntityRendererDispatcher.staticPlayerX,
+                    (box.minY + box.maxY) / 2 - TileEntityRendererDispatcher.staticPlayerY,
+                    (box.minZ + box.maxZ) / 2 - TileEntityRendererDispatcher.staticPlayerZ,
+                    box.maxX - box.minX,
+                    box.maxY - box.minY,
+                    box.maxZ - box.minZ,
+                    0,
+                    0,
+                    0,
+                    selected ? 1 : 0.2,
+                    0.6,
+                    selected ? 0 : 1,
+                    selected ? 0.9 : 0.5);
+        }
     }
 
     private static void moveMarkedCorner(ForgeDirection direction, ForgeDirection direction_look, int amount) {
@@ -217,6 +275,11 @@ public class PreviewRenderer {
                     GL11.glDisable(GL11.GL_TEXTURE_2D);
                     GL11.glDepthMask(false);
 
+                    if (editingDeformedBox) {
+                        renderBoxEdges();
+                        renderCornerMarkers(align);
+                    }
+
                     ArrayList<PreviewTile> previews;
 
                     previews = PlacementHelper
@@ -226,6 +289,10 @@ public class PreviewRenderer {
                     double y = (double) pos.getPosY() - TileEntityRendererDispatcher.staticPlayerY;
                     double z = (double) pos.getPosZ() - TileEntityRendererDispatcher.staticPlayerZ;
                     for (PreviewTile previewTile : previews) {
+                        // A deformed box being edited was already drawn above, as a wireframe of its own corners -
+                        // filling its faces here would hide whatever the player is trying to line the box up against.
+                        if (editingDeformedBox) break;
+
                         GL11.glPushMatrix();
                         LittleTileBox previewBox = previewTile.getPreviewBox();
                         CubeObject cube = previewBox.getCube();
@@ -286,7 +353,9 @@ public class PreviewRenderer {
                         GL11.glPopMatrix();
                     }
 
-                    if (markedHit == null && mc.thePlayer.isSneaking()) {
+                    // Sneaking is how corners are nudged up/down, so the shift handler overlay would otherwise be on
+                    // screen for most of the time a box is being shaped.
+                    if (!editingDeformedBox && markedHit == null && mc.thePlayer.isSneaking()) {
                         ArrayList<ShiftHandler> shifthandlers = new ArrayList<>();
 
                         for (PreviewTile preview : previews)

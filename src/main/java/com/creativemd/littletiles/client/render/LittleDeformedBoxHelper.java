@@ -119,6 +119,15 @@ public final class LittleDeformedBoxHelper {
         return anchor;
     }
 
+    public static boolean isMarkedCorner(int index) {
+        return index == markedCorner;
+    }
+
+    /** The world position of a corner, for drawing it. */
+    public static Vec3 cornerHitVec(int index) {
+        return corners[index].toHitVec();
+    }
+
     /**
      * The pickable cube of a corner, in world coordinates: exactly the one grid cell the corner sits in
      */

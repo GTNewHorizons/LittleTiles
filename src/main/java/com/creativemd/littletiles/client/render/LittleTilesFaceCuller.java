@@ -295,15 +295,8 @@ public final class LittleTilesFaceCuller {
     public static List<Triangle3d> visibleBoxTriangles(CullingContext culling, LittleTilesCubeObject cube,
             FaceClipper clipper) {
         LittleTileGeometryCache cache = cube.geometryCache;
-        BoxCullingResult cached = cache.getBoxCullingResult();
-        if (cached != null) {
-            // the clipper is new for every render, so the sides that are drawn as triangles have to be hidden again
-            coverReplacedBoxSides(clipper, cube, cached.getReplacedSides());
-            return cached.getTriangles();
-        }
-
-        BoxCullingResult result = calculateBoxCulling(culling, cube);
-        cache.setBoxCullingResult(result);
+        BoxCullingResult result = cache.getOrCreateBoxCullingResult(() -> calculateBoxCulling(culling, cube));
+        // the clipper is new for every render, so cached replaced sides have to be hidden again
         coverReplacedBoxSides(clipper, cube, result.getReplacedSides());
         return result.getTriangles();
     }

@@ -78,9 +78,13 @@ public class PreviewRenderer {
         return direction;
     }
 
+    /** How far one arrow key press moves something: a single grid step, or a whole block while ctrl is held. */
+    private static int stepAmount(int amount) {
+        return GuiScreen.isCtrlKeyDown() ? 16 : amount;
+    }
+
     private static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look, int amount) {
-        if (GuiScreen.isCtrlKeyDown()) amount = 16;
-        markedHit.moveInDirection(relativeToLook(direction, direction_look), amount);
+        markedHit.moveInDirection(relativeToLook(direction, direction_look), stepAmount(amount));
     }
 
     /**

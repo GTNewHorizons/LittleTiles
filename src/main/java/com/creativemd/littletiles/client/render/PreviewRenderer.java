@@ -242,8 +242,6 @@ public class PreviewRenderer {
                         } else {
                             toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
                         }
-                        LittleTileShapeMode shape = toolHandler.getShape();
-
                         LittleTilesBlockRenderHelper.renderShape(
                                 toolHandler.getShape(),
                                 cubeX,

@@ -19,6 +19,7 @@ public class LittleTileGeometryCache {
     private final Supplier<LittleTileBox> boxGetter;
     private final Supplier<LittleTileCutoutInfo> cutoutGetter;
     private Mesh3d simpleMesh;
+    private volatile long meshGeneration;
 
     private CullingResult cullingResult;
     /**
@@ -68,18 +69,37 @@ public class LittleTileGeometryCache {
      * can stop being true before the caller acts on it, and a second call is not guaranteed to return what the first
      * one did.
      */
-    public synchronized Mesh3d getOrCreateSimpleMesh() {
-        // Unlike culling, mesh creation reads no other tile caches, so it can stay under this monitor. Invalidation
-        // then runs either before calculation or after publication and no separate mesh generation is needed.
+    public Mesh3d getOrCreateSimpleMesh() {
+        // Captured before the inputs are read, so an invalidation racing this calculation is never undone by it.
+        long generation = meshGeneration;
+
         LittleTileBox box = boxGetter.get();
         LittleTileCutoutInfo cutoutInfo = cutoutGetter.get();
         if (cutoutInfo == null || box == null) {
             return null;
         }
-        if (simpleMesh == null) {
-            simpleMesh = Mesh3dUtil.meshFromTile(box, cutoutInfo);
+
+        synchronized (this) {
+            if (meshGeneration == generation && simpleMesh != null) {
+                return simpleMesh;
+            }
         }
-        return simpleMesh;
+
+        // Triangulating outside the monitor is what keeps the client thread off it. Invalidation runs there for every
+        // tile of a block and its six neighbours on every block update, and blocking it behind a chunk worker's
+        // triangulation stalls the client while it holds the tile list lock the other workers need. The cost is that
+        // two workers arriving together both calculate; the generation check below still publishes only one result.
+        Mesh3d calculated = Mesh3dUtil.meshFromTile(box, cutoutInfo);
+
+        synchronized (this) {
+            if (meshGeneration == generation) {
+                if (simpleMesh == null) {
+                    simpleMesh = calculated;
+                }
+                return simpleMesh;
+            }
+        }
+        return calculated;
     }
 
     /**
@@ -117,6 +137,7 @@ public class LittleTileGeometryCache {
     }
 
     public synchronized void invalidateMesh() {
+        meshGeneration++;
         simpleMesh = null;
         invalidateCuts();
     }

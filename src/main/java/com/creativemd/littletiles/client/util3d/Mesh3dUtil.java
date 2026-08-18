@@ -213,15 +213,28 @@ public class Mesh3dUtil {
      * give visibly different silhouettes, and the shorter diagonal is the one that keeps the surface closest to flat.
      * Windings are fixed up against the centroid so every face ends up pointing outwards, except where the box has
      * been flattened - see {@link #nominalFaceNormal(int)}.
+     * <p>
+     * Deformed-box corners always remain in orientation-zero space. This method reconstructs and normalizes that
+     * original space from the corners; {@link #createMesh} applies the saved orientation to the completed mesh afterward.
+     * The stored cutout size may therefore describe the rotated tile bounds and must not be used to normalize corners.
      */
     private static Mesh3d createDeformedBoxMesh(LittleTileCutoutInfo cutoutInfo) {
         if (cutoutInfo.corners == null) {
             return new Mesh3d(new ArrayList<>());
         }
+        LittleTileBox cornerBounds = LittleTileBox.fromPoints(cutoutInfo.corners);
+        Vector3i originalSize = new Vector3i(
+                cornerBounds.maxX - cornerBounds.minX,
+                cornerBounds.maxY - cornerBounds.minY,
+                cornerBounds.maxZ - cornerBounds.minZ);
         Vector3d[] corners = new Vector3d[DEFORMED_BOX_CORNER_COUNT];
         Vector3d centroid = new Vector3d();
         for (int i = 0; i < corners.length; i++) {
-            corners[i] = toLocal(cutoutInfo.corners[i], cutoutInfo.size);
+            // cutoutInfo.size follows the rotated tile bounds, while the corners remain in orientation-zero space.
+            // Recover that space from the corners themselves so a non-cubic box is normalized before mesh rotation.
+            Vector3i corner = new Vector3i(cutoutInfo.corners[i]);
+            corner.sub(cornerBounds.minX, cornerBounds.minY, cornerBounds.minZ);
+            corners[i] = toLocal(corner, originalSize);
             centroid.add(corners[i]);
         }
         centroid.scale(1.0 / corners.length);

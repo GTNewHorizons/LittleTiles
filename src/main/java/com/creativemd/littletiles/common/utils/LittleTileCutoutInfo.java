@@ -16,6 +16,11 @@ public class LittleTileCutoutInfo {
     public ForgeDirection faceEnd = ForgeDirection.UNKNOWN;
     public int thickness;
     public boolean negX, negY, negZ;
+    /**
+     * The 8 corners of a {@link LittleTileShapeMode#DEFORMED_BOX}, relative to the tile box's min corner and indexed as
+     * described by <code>Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT</code>. Null for every other shape.
+     */
+    public Vector3i[] corners;
 
     public LittleTileCutoutInfo() {
         size = new Vector3i();
@@ -32,6 +37,18 @@ public class LittleTileCutoutInfo {
         negX = other.negX;
         negY = other.negY;
         negZ = other.negZ;
+        corners = copyCorners(other.corners);
+    }
+
+    public static Vector3i[] copyCorners(Vector3i[] corners) {
+        if (corners == null) {
+            return null;
+        }
+        Vector3i[] copy = new Vector3i[corners.length];
+        for (int i = 0; i < corners.length; i++) {
+            copy[i] = new Vector3i(corners[i]);
+        }
+        return copy;
     }
 
     public static LittleTileCutoutInfo fromItemStack(ItemStack stack, LittleTileBlockPos start,
@@ -39,7 +56,8 @@ public class LittleTileCutoutInfo {
         LittleToolHandler handler = new LittleToolHandler(stack);
         LittleTileShapeMode shape = handler.getShape();
 
-        if (shape == LittleTileShapeMode.BOX) {
+        // A deformed box is built from the corners the player dragged, not from a start/end pair.
+        if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.DEFORMED_BOX) {
             return null;
         }
 

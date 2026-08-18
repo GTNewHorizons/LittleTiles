@@ -175,19 +175,20 @@ public class TileEntityLittleTiles extends TileEntity {
         }
 
         for (LittleTile tile : tiles) {
-            if (tile.boundingBox == null) {
+            // read once: both can be reassigned while this runs, and the mesh has to describe the box it is tested
+            // against rather than a later revision of it
+            LittleTileBox boxOldTile = tile.boundingBox;
+            LittleTileCutoutInfo cutoutOldTile = tile.getCutoutInfo();
+            if (boxOldTile == null) {
                 continue;
             }
 
             // Skip all checks if bounding boxes don't even collide
-            if (!aabbNewTile.intersectsWith(tile.boundingBox.getBox())) {
+            if (!aabbNewTile.intersectsWith(boxOldTile.getBox())) {
                 continue;
             }
 
-            Mesh3d meshOldTile = null;
-            if (tile.getCutoutInfo() != null) {
-                meshOldTile = Mesh3dUtil.meshFromTile(tile.boundingBox, tile.getCutoutInfo());
-            }
+            Mesh3d meshOldTile = cutoutOldTile == null ? null : Mesh3dUtil.meshFromTile(boxOldTile, cutoutOldTile);
 
             if (meshOldTile == null) {
                 if (meshNewTile == null) {
@@ -195,7 +196,7 @@ public class TileEntityLittleTiles extends TileEntity {
                     return false;
                 } else {
                     // Special box-mesh collision
-                    if (TriangleBoundingBoxIntersect.intersect(meshNewTile, tile.boundingBox)) {
+                    if (TriangleBoundingBoxIntersect.intersect(meshNewTile, boxOldTile)) {
                         return false;
                     }
                 }
@@ -316,11 +317,14 @@ public class TileEntityLittleTiles extends TileEntity {
                     if (hit == null || hit.hitVec.distanceTo(pos) > Temphit.hitVec.distanceTo(pos) - EPSILON) {
                         boolean isHit = true;
                         if (tile.getCutoutInfo() != null) {
+                            // Resolved once. Asking a second time would be a different question: the tile can drop
+                            // its mesh in between, and the answer here decides whether the ray hit at all.
                             Mesh3d mesh = tile.getSimpleMesh();
-                            float distance = TriangleRayIntersect.intersects(mesh, xCoord, yCoord, zCoord, pos, look);
-                            if (mesh.getTriangles().isEmpty()) {
-                                // Workaround for buggy, empty meshes
-                                distance = 0;
+                            // A tile with no usable mesh is drawn as its plain box, so the ray has to hit it as one.
+                            // That is what the zero distance does - it is the nearest a cutout hit can be.
+                            float distance = 0;
+                            if (mesh != null && !mesh.getTriangles().isEmpty()) {
+                                distance = TriangleRayIntersect.intersects(mesh, xCoord, yCoord, zCoord, pos, look);
                             }
                             isHit = distance < lastCutoutDistance;
                             if (isHit) {

@@ -29,7 +29,9 @@ public class LittleTileGeometryCache {
         private final int replacedSides;
 
         public CullingResult(List<Triangle3d> triangles, int replacedSides) {
-            this.triangles = triangles;
+            // One instance is shared by every thread that renders this tile, so the list must not stay writable.
+            // Callers hand over a freshly built list and drop it, which is why wrapping is enough and no copy is made.
+            this.triangles = Collections.unmodifiableList(triangles);
             this.replacedSides = replacedSides;
         }
 

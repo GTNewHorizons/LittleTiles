@@ -75,11 +75,9 @@ public class LittleTileGeometryCache {
         return mesh != null && !mesh.getTriangles().isEmpty();
     }
 
-    /** The visible triangles and any ordinary box sides they replace, or null when not yet computed. */
-    public synchronized CullingResult getCullingResult() {
-        return cullingResult;
-    }
-
+    /**
+     * The visible triangles and any ordinary box sides they replace, calculating and retaining them when necessary.
+     */
     public CullingResult getOrCreateCullingResult(Supplier<CullingResult> calculation) {
         long generation;
         synchronized (this) {

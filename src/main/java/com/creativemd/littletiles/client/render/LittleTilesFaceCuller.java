@@ -7,6 +7,7 @@ import static com.creativemd.creativecore.common.utils.RotationUtils.Axis.AxisZ;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
@@ -273,9 +274,11 @@ public final class LittleTilesFaceCuller {
      * The triangles of a cutout's mesh that are still visible, after removing what the meshes around it hide - both the
      * ones in the same tile entity and the ones in the six neighbours.
      */
-    public static List<Triangle3d> visibleCutoutTriangles(CullingContext culling, LittleTilesCubeObject cube) {
+    public static List<Triangle3d> visibleCutoutTriangles(Supplier<CullingContext> culling,
+            LittleTilesCubeObject cube) {
         LittleTileGeometryCache cache = cube.geometryCache;
-        return cache.getOrCreateCullingResult(() -> calculateVisibleCutoutTriangles(culling, cube)).getTriangles();
+        return cache.getOrCreateCullingResult(() -> calculateVisibleCutoutTriangles(culling.get(), cube))
+                .getTriangles();
     }
 
     /** Calculates cutout culling without modifying the retained cache. */
@@ -293,10 +296,10 @@ public final class LittleTilesFaceCuller {
      * The counterpart of {@link #visibleCutoutTriangles}: the faces of a box that remain visible after culling against
      * meshes and other boxes.
      */
-    public static List<Triangle3d> visibleBoxTriangles(CullingContext culling, LittleTilesCubeObject cube,
+    public static List<Triangle3d> visibleBoxTriangles(Supplier<CullingContext> culling, LittleTilesCubeObject cube,
             FaceClipper clipper) {
         LittleTileGeometryCache cache = cube.geometryCache;
-        CullingResult result = cache.getOrCreateCullingResult(() -> calculateBoxCulling(culling, cube));
+        CullingResult result = cache.getOrCreateCullingResult(() -> calculateBoxCulling(culling.get(), cube));
         // the clipper is new for every render, so cached replaced sides have to be hidden again
         coverReplacedBoxSides(clipper, cube, result.getReplacedSides());
         return result.getTriangles();

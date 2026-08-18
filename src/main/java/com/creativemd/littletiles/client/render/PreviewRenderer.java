@@ -49,17 +49,13 @@ public class PreviewRenderer {
     private static ItemStack lastItem = null;
 
     private static ForgeDirection rotateDirection(ForgeDirection direction) {
-        switch (direction) {
-            case NORTH:
-                return ForgeDirection.EAST;
-            case EAST:
-                return ForgeDirection.SOUTH;
-            case SOUTH:
-                return ForgeDirection.WEST;
-            case WEST:
-                return ForgeDirection.NORTH;
-        }
-        return ForgeDirection.UNKNOWN;
+        return switch (direction) {
+            case NORTH -> ForgeDirection.EAST;
+            case EAST -> ForgeDirection.SOUTH;
+            case SOUTH -> ForgeDirection.WEST;
+            case WEST -> ForgeDirection.NORTH;
+            default -> ForgeDirection.UNKNOWN;
+        };
     }
 
     /** Turns a screen-relative arrow direction into a world direction, based on which way the player is facing. */

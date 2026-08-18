@@ -1,5 +1,6 @@
 package com.creativemd.littletiles.common.utils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -22,6 +23,11 @@ public class LittleTileGeometryCache {
     private CullingResult cullingResult;
     private long cutsGeneration;
 
+    /**
+     * A culling result and the box sides it replaces, kept together so one reference read always observes a coherent
+     * pair. One result serves a tile's cutout culling or its box culling, never both: a tile renders as exactly one
+     * cube, so only one of the two paths can ever populate this cache.
+     */
     public static final class CullingResult {
 
         private final List<Triangle3d> triangles;

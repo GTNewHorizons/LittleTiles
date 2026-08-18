@@ -31,6 +31,7 @@ import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTileGeometryCache;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 
@@ -205,8 +206,30 @@ public class LittleTilesBlockRenderHelper {
         return false;
     }
 
+    /**
+     * Whether no two cubes share a geometry cache. A cache holds a single culling result, so two cubes sharing one
+     * would overwrite each other's - and a cutout cube overwriting a box cube's result would also swap which of the
+     * two culling paths the cached value came from. Every tile currently renders as exactly one cube, which is what
+     * keeps this true.
+     */
+    private static boolean haveDistinctGeometryCaches(List<LittleTilesCubeObject> cubes) {
+        for (int i = 0; i < cubes.size(); i++) {
+            LittleTileGeometryCache cache = cubes.get(i).geometryCache;
+            if (cache == null) {
+                continue;
+            }
+            for (int j = i + 1; j < cubes.size(); j++) {
+                if (cubes.get(j).geometryCache == cache) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     public static boolean renderCubes(IBlockAccess world, ArrayList<LittleTilesCubeObject> cubes, int x, int y, int z,
             Block block, RenderBlocks renderer, ForgeDirection direction) {
+        assert haveDistinctGeometryCaches(cubes) : "Two cubes share one geometry cache, their culling results collide";
 
         final ExtendedRenderBlocks extraRenderer = extraRendererThreadLocal.get();
         extraRenderer.updateRenderer(renderer);

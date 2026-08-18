@@ -64,6 +64,19 @@ public final class LittleDeformedBoxHelper {
     }
 
     /**
+     * Whether no logical minimum corner has crossed its matching maximum corner. Collapsed edges are valid. Invalid
+     * boxes may exist temporarily while editing so they can be shown in red, but they cannot be placed.
+     */
+    public static boolean hasValidGeometry() {
+        for (int i = 0; i < corners.length; i++) {
+            if ((i & 1) == 0 && corners[i | 1].subtract(corners[i]).x < 0) return false;
+            if ((i & 2) == 0 && corners[i | 2].subtract(corners[i]).y < 0) return false;
+            if ((i & 4) == 0 && corners[i | 4].subtract(corners[i]).z < 0) return false;
+        }
+        return true;
+    }
+
+    /**
      * Materializes the 8 corners of the axis-aligned box the player just closed with two clicks. The two clicks name
      * two grid cells and the box covers both of them, so it spans from the lower cell's min corner to one grid step
      * past the upper cell - the corners are box <em>points</em>, not cells.

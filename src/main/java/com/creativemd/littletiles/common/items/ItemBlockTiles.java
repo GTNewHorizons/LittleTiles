@@ -121,6 +121,11 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
                 return true;
             }
 
+            // Invalid intermediate shapes remain editable and are rendered red, but must not become placed tiles.
+            if (!LittleDeformedBoxHelper.hasValidGeometry()) {
+                return true;
+            }
+
             // The preview carries the cutout in its nbt, so the placed stack keeps it as well. Both it and the
             // placement anchor have to be read before the corner state is dropped.
             ILittleTile littleTile = (ILittleTile) stack.getItem();

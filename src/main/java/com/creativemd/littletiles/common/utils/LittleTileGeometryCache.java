@@ -20,10 +20,27 @@ public class LittleTileGeometryCache {
     private Mesh3d simpleMesh;
 
     private volatile List<Triangle3d> visibleCutoutTriangles;
-    private volatile List<Triangle3d> visibleBoxTriangles;
+    private volatile BoxCullingResult boxCullingResult;
 
-    /** Bit set of {@link ForgeDirection#ordinal()}: the sides drawn as triangles instead of as rectangles. */
-    private int replacedBoxSides;
+    public static final class BoxCullingResult {
+
+        private final List<Triangle3d> triangles;
+        /** Bit set of {@link ForgeDirection#ordinal()}: sides drawn as triangles instead of rectangles. */
+        private final int replacedSides;
+
+        public BoxCullingResult(List<Triangle3d> triangles, int replacedSides) {
+            this.triangles = triangles;
+            this.replacedSides = replacedSides;
+        }
+
+        public List<Triangle3d> getTriangles() {
+            return triangles;
+        }
+
+        public int getReplacedSides() {
+            return replacedSides;
+        }
+    }
 
     public LittleTileGeometryCache(Supplier<LittleTileBox> boxGetter, Supplier<LittleTileCutoutInfo> cutoutGetter) {
         this.boxGetter = boxGetter;
@@ -57,21 +74,13 @@ public class LittleTileGeometryCache {
         this.visibleCutoutTriangles = triangles;
     }
 
-    /** The visible part of the box sides a mesh cuts into, null when it has to be computed again. */
-    public List<Triangle3d> getVisibleBoxTriangles() {
-        return visibleBoxTriangles;
+    /** The visible box triangles and the rectangle sides they replace, or null when not yet computed. */
+    public BoxCullingResult getBoxCullingResult() {
+        return boxCullingResult;
     }
 
-    public void setVisibleBoxTriangles(List<Triangle3d> triangles) {
-        this.visibleBoxTriangles = triangles;
-    }
-
-    public int getReplacedBoxSides() {
-        return replacedBoxSides;
-    }
-
-    public void addReplacedBoxSide(ForgeDirection side) {
-        replacedBoxSides |= 1 << side.ordinal();
+    public void setBoxCullingResult(BoxCullingResult result) {
+        this.boxCullingResult = result;
     }
 
     public synchronized void invalidateMesh() {
@@ -81,7 +90,6 @@ public class LittleTileGeometryCache {
 
     public void invalidateCuts() {
         visibleCutoutTriangles = null;
-        visibleBoxTriangles = null;
-        replacedBoxSides = 0;
+        boxCullingResult = null;
     }
 }

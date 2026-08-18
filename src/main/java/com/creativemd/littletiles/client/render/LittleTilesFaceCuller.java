@@ -246,7 +246,7 @@ public final class LittleTilesFaceCuller {
                 // copies, since these get moved and the mesh is the one cached on the neighbouring tile
                 List<Triangle3d> triangles;
                 if (neighbour.cutoutInfo != null) {
-                    triangles = neighbour.geometryCache.getSimpleMesh().copy().getTriangles();
+                    triangles = neighbour.geometryCache.getOrCreateSimpleMesh().copy().getTriangles();
                 } else {
                     triangles = boxFaceTriangles(neighbour, facingUs);
                 }
@@ -280,7 +280,7 @@ public final class LittleTilesFaceCuller {
         }
         List<Triangle3d> occludingTriangles = getOccludingTriangles(culling, cube, false);
         List<Triangle3d> visible = new ArrayList<>();
-        for (Triangle3d triangle : cube.geometryCache.getSimpleMesh().getTriangles()) {
+        for (Triangle3d triangle : cube.geometryCache.getOrCreateSimpleMesh().getTriangles()) {
             visible.addAll(cutTriangle(triangle, occludingTriangles));
         }
         cache.setVisibleCutoutTriangles(visible);
@@ -357,7 +357,7 @@ public final class LittleTilesFaceCuller {
                 continue;
             }
             if (occluder.cutoutInfo != null) {
-                occludingTriangles.addAll(occluder.geometryCache.getSimpleMesh().getTriangles());
+                occludingTriangles.addAll(occluder.geometryCache.getOrCreateSimpleMesh().getTriangles());
             } else if (!meshOccludersOnly) {
                 for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
                     if (isFlush(cube, occluder, side)) {

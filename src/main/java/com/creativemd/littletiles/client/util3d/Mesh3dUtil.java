@@ -249,9 +249,7 @@ public class Mesh3dUtil {
                 outward = nominalFaceNormal(f);
             }
 
-            // The shorter diagonal keeps a warped face's silhouette closest to flat.
-            boolean splitAlongFirstDiagonal = Mesh3d.distanceSquared(a, c) <= Mesh3d.distanceSquared(b, d);
-            if (splitAlongFirstDiagonal) {
+            if (splitsAlongFirstDiagonal(a, b, c, d)) {
                 addDeformedFaceTriangle(triangles, a, b, c, outward);
                 addDeformedFaceTriangle(triangles, a, c, d, outward);
             } else {
@@ -260,6 +258,19 @@ public class Mesh3dUtil {
             }
         }
         return new Mesh3d(triangles);
+    }
+
+    /**
+     * Which of a face's two diagonals it gets split along: true for a-c, false for b-d. The shorter one wins, since on
+     * a warped face the two splits give visibly different silhouettes and the shorter diagonal keeps the surface
+     * closest to flat.
+     * <p>
+     * Public because the preview draws this diagonal as a line, and a line showing a different split than the mesh
+     * actually uses would be worse than drawing none at all. The points must be in the cutout's local unit space
+     * ({@link #toLocal}), not world space - on a non-cubic box the normalization changes which diagonal is shorter.
+     */
+    public static boolean splitsAlongFirstDiagonal(Vector3d a, Vector3d b, Vector3d c, Vector3d d) {
+        return Mesh3d.distanceSquared(a, c) <= Mesh3d.distanceSquared(b, d);
     }
 
     private static void addDeformedFaceTriangle(List<Triangle3d> triangles, Vector3d a, Vector3d b, Vector3d c,

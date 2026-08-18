@@ -109,6 +109,8 @@ public class PreviewRenderer {
             }
         }
         GL11.glEnd();
+
+        renderFaceDiagonals();
     }
 
     private static void vertexAtCorner(int index) {
@@ -117,6 +119,56 @@ public class PreviewRenderer {
                 vec.xCoord - TileEntityRendererDispatcher.staticPlayerX,
                 vec.yCoord - TileEntityRendererDispatcher.staticPlayerY,
                 vec.zCoord - TileEntityRendererDispatcher.staticPlayerZ);
+    }
+
+    /**
+     * Draws the split diagonal of every face whose 4 corners are no longer coplanar, showing where the surface
+     * actually bends. The diagonal comes from {@link Mesh3dUtil#splitsAlongFirstDiagonal}, the same call the mesh
+     * itself is built from, so the line can never disagree with the geometry it is describing.
+     */
+    private static void renderFaceDiagonals() {
+        LittleTileCutoutInfo cutout = LittleDeformedBoxHelper.currentCutout();
+        Vector3d[] local = new Vector3d[cutout.corners.length];
+        for (int i = 0; i < local.length; i++) {
+            local[i] = Mesh3dUtil.toLocal(cutout.corners[i], cutout.size);
+        }
+
+        GL11.glColor4d(0.2, 0.8, 1, 0.45);
+        GL11.glBegin(GL11.GL_LINES);
+        for (int[] face : Mesh3dUtil.DEFORMED_BOX_FACES) {
+            if (isFacePlanar(face, cutout.corners)) {
+                continue;
+            }
+            boolean first = Mesh3dUtil
+                    .splitsAlongFirstDiagonal(local[face[0]], local[face[1]], local[face[2]], local[face[3]]);
+            vertexAtCorner(first ? face[0] : face[1]);
+            vertexAtCorner(first ? face[2] : face[3]);
+        }
+        GL11.glEnd();
+    }
+
+    /**
+     * Whether a face's 4 corners still lie in one plane - that is, whether the face is merely tilted or has actually
+     * been folded. A flat face is drawn by two coplanar triangles, so its diagonal is invisible on the surface and
+     * drawing it would suggest a bend that is not there; only a folded face has a fold worth showing.
+     * <p>
+     * Worked out as a scalar triple product in whole grid units, which makes the test exact: corner offsets are
+     * integers, so the product either is zero or it is not, and there is no epsilon to tune. Longs because a corner
+     * dragged a long way makes the intermediate cross product outgrow an int.
+     * <p>
+     * A face with three collinear corners counts as planar, correctly: some plane always contains that line and the
+     * fourth corner, and the mesh gets nothing but a degenerate triangle out of it.
+     */
+    private static boolean isFacePlanar(int[] face, Vector3i[] corners) {
+        Vector3i a = corners[face[0]];
+        long abx = corners[face[1]].x - a.x, aby = corners[face[1]].y - a.y, abz = corners[face[1]].z - a.z;
+        long acx = corners[face[2]].x - a.x, acy = corners[face[2]].y - a.y, acz = corners[face[2]].z - a.z;
+        long adx = corners[face[3]].x - a.x, ady = corners[face[3]].y - a.y, adz = corners[face[3]].z - a.z;
+
+        long nx = aby * acz - abz * acy;
+        long ny = abz * acx - abx * acz;
+        long nz = abx * acy - aby * acx;
+        return nx * adx + ny * ady + nz * adz == 0;
     }
 
     /**

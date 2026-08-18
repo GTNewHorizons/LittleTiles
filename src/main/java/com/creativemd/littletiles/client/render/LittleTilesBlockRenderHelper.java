@@ -307,7 +307,8 @@ public class LittleTilesBlockRenderHelper {
 
             if (cube instanceof LittleTilesCubeObject) {
                 LittleTilesCubeObject littleCube = (LittleTilesCubeObject) cube;
-                Mesh3d mesh = littleCube.geometryCache == null ? null : littleCube.geometryCache.getSimpleMesh();
+                Mesh3d mesh = littleCube.geometryCache == null ? null
+                        : littleCube.geometryCache.getOrCreateSimpleMesh();
                 if (mesh != null) {
                     mesh = mesh.copy();
                     // Recipe meshes retain their multi-block position (for example, x = 1..2 for a tile in the

@@ -30,7 +30,8 @@ public class LittleTileGeometryCache {
         this.cutoutGetter = cutoutGetter;
     }
 
-    public Mesh3d getSimpleMesh() {
+    /** Returns the cached mesh, calculating and retaining it when necessary. */
+    public Mesh3d getOrCreateSimpleMesh() {
         LittleTileBox box = boxGetter.get();
         LittleTileCutoutInfo cutoutInfo = cutoutGetter.get();
         if (cutoutInfo == null || box == null) {
@@ -43,7 +44,7 @@ public class LittleTileGeometryCache {
     }
 
     public boolean hasValidMesh() {
-        Mesh3d mesh = getSimpleMesh();
+        Mesh3d mesh = getOrCreateSimpleMesh();
         return mesh != null && !mesh.getTriangles().isEmpty();
     }
 

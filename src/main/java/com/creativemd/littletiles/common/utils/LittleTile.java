@@ -490,7 +490,7 @@ public abstract class LittleTile {
             return null;
         }
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
-            return geometryCache.getSimpleMesh();
+            return geometryCache.getOrCreateSimpleMesh();
         }
         return Mesh3dUtil.meshFromTile(box, cutout);
     }

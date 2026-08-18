@@ -279,17 +279,17 @@ public final class LittleTilesFaceCuller {
      * The triangles of a cutout's mesh that are still visible, after removing what the meshes around it hide - both the
      * ones in the same tile entity and the ones in the six neighbours.
      */
-    public static List<Triangle3d> visibleCutoutTriangles(Supplier<CullingContext> culling,
-            LittleTilesCubeObject cube, Mesh3d mesh) {
+    public static List<Triangle3d> visibleCutoutTriangles(Supplier<CullingContext> culling, LittleTilesCubeObject cube,
+            Mesh3d mesh) {
         LittleTileGeometryCache cache = cube.geometryCache;
         return cache.getOrCreateCullingResult(() -> calculateVisibleCutoutTriangles(culling.get(), cube, mesh))
                 .getTriangles();
     }
 
     /**
-     * Calculates cutout culling without modifying the retained cache. Cuts the mesh the caller already resolved
-     * rather than fetching it again: the tile can lose its mesh at any moment, and re-reading it here would mean
-     * culling a different mesh than the one the caller decided to draw.
+     * Calculates cutout culling without modifying the retained cache. Cuts the mesh the caller already resolved rather
+     * than fetching it again: the tile can lose its mesh at any moment, and re-reading it here would mean culling a
+     * different mesh than the one the caller decided to draw.
      */
     private static CullingResult calculateVisibleCutoutTriangles(CullingContext culling, LittleTilesCubeObject cube,
             Mesh3d mesh) {

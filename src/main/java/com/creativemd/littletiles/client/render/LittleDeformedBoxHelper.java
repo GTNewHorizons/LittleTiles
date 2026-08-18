@@ -1,5 +1,10 @@
 package com.creativemd.littletiles.client.render;
 
+import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
+import net.minecraftforge.common.util.ForgeDirection;
+
 import org.joml.Vector3i;
 
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
@@ -22,6 +27,8 @@ public final class LittleDeformedBoxHelper {
 
     /** The 8 absolute corner positions of the box being edited, or null while no box is being edited. */
     private static LittleTileBlockPos[] corners = null;
+    /** Index into {@link #corners} of the corner the player selected, or -1 if none is selected. */
+    private static int markedCorner = -1;
 
     private LittleDeformedBoxHelper() {}
 
@@ -31,6 +38,29 @@ public final class LittleDeformedBoxHelper {
 
     public static void reset() {
         corners = null;
+        markedCorner = -1;
+    }
+
+    public static boolean hasMarkedCorner() {
+        return markedCorner >= 0;
+    }
+
+    /**
+     * Selects the given corner, or deselects if it is already the selected one - so clicking a corner twice, or
+     * clicking nothing at all (-1), leaves nothing selected and the next right click places the box.
+     */
+    public static void toggleMarkedCorner(int corner) {
+        markedCorner = corner == markedCorner ? -1 : corner;
+    }
+
+    /** Moves the selected corner by a number of grid steps. */
+    public static void nudgeMarked(ForgeDirection direction, int amount) {
+        corners[markedCorner].moveInDirection(direction, amount);
+    }
+
+    /** Warps the selected corner to a position, which is how a right click moves it to where the player looks. */
+    public static void moveMarkedTo(LittleTileBlockPos pos) {
+        corners[markedCorner] = pos.copy();
     }
 
     /**
@@ -87,6 +117,39 @@ public final class LittleDeformedBoxHelper {
         anchor.moveSubY(bounds.minY);
         anchor.moveSubZ(bounds.minZ);
         return anchor;
+    }
+
+    /**
+     * The pickable cube of a corner, in world coordinates: exactly the one grid cell the corner sits in
+     */
+    public static AxisAlignedBB getCornerBoxAABB(int index, int grid) {
+        double size = grid / 16.0;
+        Vec3 vec = corners[index].toHitVec();
+        double minX = vec.xCoord - ((index & 1) != 0 ? size : 0);
+        double minY = vec.yCoord - ((index & 2) != 0 ? size : 0);
+        double minZ = vec.zCoord - ((index & 4) != 0 ? size : 0);
+        return AxisAlignedBB.getBoundingBox(minX, minY, minZ, minX + size, minY + size, minZ + size);
+    }
+
+    /** Raytraces the corner cubes and returns the index of the nearest one hit, or -1 if the ray misses all of them. */
+    public static int pickCorner(Vec3 start, Vec3 end, int grid) {
+        if (!isEditing()) {
+            return -1;
+        }
+        int best = -1;
+        double bestDistance = Double.MAX_VALUE;
+        for (int i = 0; i < corners.length; i++) {
+            MovingObjectPosition hit = getCornerBoxAABB(i, grid).calculateIntercept(start, end);
+            if (hit == null) {
+                continue;
+            }
+            double distance = start.squareDistanceTo(hit.hitVec);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        return best;
     }
 
     /** The cutout describing the box as it currently stands. */

@@ -115,6 +115,12 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
                 return true;
             }
 
+            // With a corner selected, right click warps it to where the player is looking instead of placing.
+            if (LittleDeformedBoxHelper.hasMarkedCorner()) {
+                LittleDeformedBoxHelper.moveMarkedTo(pos);
+                return true;
+            }
+
             // The preview carries the cutout in its nbt, so the placed stack keeps it as well. Both it and the
             // placement anchor have to be read before the corner state is dropped.
             ILittleTile littleTile = (ILittleTile) stack.getItem();

@@ -177,8 +177,8 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
     private LittleTileSize buildDeformedBoxPreview(NBTTagCompound nbt) {
         LittleDeformedBoxHelper.currentCutout().writeToNBT(nbt);
 
-        // The tile is placed at DeformClickHelper.placementAnchor(), which already accounts for the corner bounding
-        // box's min corner, so no further backward shift is needed here.
+        // The tile is placed at LittleDeformedBoxHelper.placementAnchor(), which already accounts for the corner
+        // bounding box's min corner, so no further backward shift is needed here.
         nbt.setBoolean("fromChiselPosX", false);
         nbt.setBoolean("fromChiselPosY", false);
         nbt.setBoolean("fromChiselPosZ", false);

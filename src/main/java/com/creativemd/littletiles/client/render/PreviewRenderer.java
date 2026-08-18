@@ -87,11 +87,17 @@ public class PreviewRenderer {
         markedHit.moveInDirection(relativeToLook(direction, direction_look), stepAmount(amount));
     }
 
+    private static void moveMarkedCorner(ForgeDirection direction, ForgeDirection direction_look, int amount) {
+        LittleDeformedBoxHelper.nudgeMarked(relativeToLook(direction, direction_look), stepAmount(amount));
+    }
+
     /**
-     * The arrow keys either move the marked preview or - with nothing marked at all - rotate the preview.
+     * The arrow keys mean one of three things depending on what is currently selected: nudge the selected corner of a
+     * deformed box, move the marked preview, or - with nothing marked at all - rotate the preview.
      */
     private void handleArrow(ForgeDirection move, ForgeDirection rotate, ForgeDirection direction_look, int align) {
-        if (markedHit != null) moveMarkedHit(move, direction_look, align);
+        if (LittleDeformedBoxHelper.hasMarkedCorner()) moveMarkedCorner(move, direction_look, align);
+        else if (markedHit != null) moveMarkedHit(move, direction_look, align);
         else processKey(rotate);
     }
 

@@ -3,6 +3,7 @@ package com.creativemd.littletiles.client.render;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
@@ -137,7 +138,7 @@ public class LittleTilesBlockRenderHelper {
     }
 
     private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
-            IBlockAccess world) {
+            Supplier<CullingContext> culling, IBlockAccess world) {
         if (!cube.geometryCache.hasValidMesh()) {
             return CutoutResult.FAILED;
         }
@@ -185,25 +186,39 @@ public class LittleTilesBlockRenderHelper {
     }
 
     /**
-     * Whether any cube still has to be culled, rather than being served from its cached cut result. Gathering the
-     * geometry to cull against reaches into the six neighbouring tile entities, which is not worth doing when every
-     * cube of this one already knows what is visible of it.
+     * Gathers the geometry to cull against on first use, at most once per render.
+     * <p>
+     * Preparing it reaches into the six neighbouring tile entities, which is not worth doing when every cube of this
+     * one is already served from its cached cut result. Deciding that up front is not safe though: a cache can be
+     * invalidated between the decision and the calculation, and the calculation would then run without the geometry
+     * it needs. Leaving it to the culler means the context is prepared exactly when something is really recomputed.
+     * <p>
+     * Confined to a single {@link #renderCubes} call on one thread, so it needs no synchronization of its own.
      */
-    private static boolean needsCulling(List<LittleTilesCubeObject> cubes, IFaceClipper[] coverage, int pass) {
-        for (int i = 0; i < cubes.size(); i++) {
-            LittleTilesCubeObject cube = cubes.get(i);
-            if (!cube.block.canRenderInPass(pass)) {
-                continue;
-            }
-            if (cube.cutoutInfo != null) {
-                if (cube.geometryCache.hasValidMesh() && cube.geometryCache.getCullingResult() == null) {
-                    return true;
-                }
-            } else if (coverage[i] instanceof FaceClipper && cube.geometryCache.getCullingResult() == null) {
-                return true;
-            }
+    private static final class LazyCullingContext implements Supplier<CullingContext> {
+
+        private final IBlockAccess world;
+        private final List<LittleTilesCubeObject> cubes;
+        private final int x;
+        private final int y;
+        private final int z;
+        private CullingContext context;
+
+        private LazyCullingContext(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x, int y, int z) {
+            this.world = world;
+            this.cubes = cubes;
+            this.x = x;
+            this.y = y;
+            this.z = z;
         }
-        return false;
+
+        @Override
+        public CullingContext get() {
+            if (context == null) {
+                context = LittleTilesFaceCuller.prepareCulling(world, cubes, x, y, z);
+            }
+            return context;
+        }
     }
 
     /**
@@ -241,9 +256,7 @@ public class LittleTilesBlockRenderHelper {
         boolean rendered = false;
 
         IFaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(world, cubes, x, y, z);
-        CullingContext cullingContext = needsCulling(cubes, coverage, pass)
-                ? LittleTilesFaceCuller.prepareCulling(world, cubes, x, y, z)
-                : null;
+        LazyCullingContext cullingContext = new LazyCullingContext(world, cubes, x, y, z);
 
         try {
             for (int i = 0; i < cubes.size(); i++) {

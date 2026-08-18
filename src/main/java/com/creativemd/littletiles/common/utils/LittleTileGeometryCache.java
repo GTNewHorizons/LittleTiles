@@ -21,7 +21,12 @@ public class LittleTileGeometryCache {
     private Mesh3d simpleMesh;
 
     private CullingResult cullingResult;
-    private long cutsGeneration;
+    /**
+     * Volatile so capturing it costs no lock. Every write and every decision made on it still happens under this
+     * object's monitor; the plain read only ever hands out a snapshot that gets re-checked there before anything is
+     * retained.
+     */
+    private volatile long cutsGeneration;
 
     /**
      * A culling result and the box sides it replaces, kept together so one reference read always observes a coherent
@@ -101,8 +106,13 @@ public class LittleTileGeometryCache {
         return calculated;
     }
 
-    /** Captures the cut generation before a render cube reads any of the geometry that the cut will describe. */
-    public synchronized long captureCutsGeneration() {
+    /**
+     * Captures the cut generation before a render cube reads any of the geometry that the cut will describe.
+     * <p>
+     * Deliberately lock-free: this runs for every tile of every neighbour on every render, and taking the monitor here
+     * would queue those reads behind mesh generation, which holds it for as long as a triangulation takes.
+     */
+    public long captureCutsGeneration() {
         return cutsGeneration;
     }
 

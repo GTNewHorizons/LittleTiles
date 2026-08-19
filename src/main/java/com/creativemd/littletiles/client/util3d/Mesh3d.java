@@ -252,15 +252,15 @@ public class Mesh3d {
     }
 
     /**
-     * Draws every triangle of this mesh with its normal and texture coordinates,
-     * viewed through the standard isometric icon transform, textured from the
-     * block atlas and lit with standard GUI item lighting.
+     * Draws every triangle of this mesh with its normal and texture coordinates, viewed through the standard isometric
+     * icon transform, textured from the block atlas and lit with standard GUI item lighting.
      *
-     * <p>Binds the block texture and enables blending, rescale-normal and
-     * lighting for the duration of the draw; all of it is restored to its
-     * previous state on return. The caller is responsible for the surrounding
-     * {@code glPushMatrix}/{@code glPopMatrix} pair, positioning, color, and
-     * any additional state of its own (for example alpha testing).</p>
+     * <p>
+     * Binds the block texture and enables blending, rescale-normal and lighting for the duration of the draw; all of it
+     * is restored to its previous state on return. The caller is responsible for the surrounding
+     * {@code glPushMatrix}/{@code glPopMatrix} pair, positioning, color, and any additional state of its own (for
+     * example alpha testing).
+     * </p>
      */
     public void renderIcon() {
         boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);

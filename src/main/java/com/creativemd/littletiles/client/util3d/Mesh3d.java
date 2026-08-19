@@ -8,10 +8,14 @@ import java.util.List;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3f;
 import org.joml.Vector3i;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
 
 import com.creativemd.creativecore.lib.Vector3d;
 
@@ -244,6 +248,56 @@ public class Mesh3d {
     public void setTextures(Block block, int meta) {
         for (Triangle3d triangle : triangles) {
             triangle.setTexture(block, meta);
+        }
+    }
+
+    /**
+     * Draws every triangle of this mesh with its normal and texture coordinates,
+     * viewed through the standard isometric icon transform, textured from the
+     * block atlas and lit with standard GUI item lighting.
+     *
+     * <p>Binds the block texture and enables blending, rescale-normal and
+     * lighting for the duration of the draw; all of it is restored to its
+     * previous state on return. The caller is responsible for the surrounding
+     * {@code glPushMatrix}/{@code glPopMatrix} pair, positioning, color, and
+     * any additional state of its own (for example alpha testing).</p>
+     */
+    public void renderIcon() {
+        boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
+        boolean rescaleWasEnabled = GL11.glIsEnabled(GL12.GL_RESCALE_NORMAL);
+        RenderHelper.enableGUIStandardItemLighting();
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+        GL11.glEnable(GL11.GL_LIGHTING);
+        Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+
+        GL11.glTranslatef(1.0F, 0.5F, 1.0F);
+        GL11.glScalef(1.0F, 1.0F, -1.0F);
+        GL11.glRotatef(210.0F, 1.0F, 0.0F, 0.0F);
+        GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
+        GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
+
+        GL11.glBegin(GL11.GL_TRIANGLES);
+        for (Triangle3d triangle : triangles) {
+            Vector3d normal = triangle.getNormal();
+            GL11.glNormal3d(normal.x, normal.y, normal.z);
+            GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);
+            GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
+            GL11.glTexCoord2d(triangle.getTex2().x, triangle.getTex2().y);
+            GL11.glVertex3d(triangle.getP2().x, triangle.getP2().y, triangle.getP2().z);
+            GL11.glTexCoord2d(triangle.getTex3().x, triangle.getTex3().y);
+            GL11.glVertex3d(triangle.getP3().x, triangle.getP3().y, triangle.getP3().z);
+        }
+        GL11.glEnd();
+
+        GL11.glDisable(GL11.GL_BLEND);
+        if (!rescaleWasEnabled) {
+            GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+        }
+        if (lightingWasEnabled) {
+            GL11.glEnable(GL11.GL_LIGHTING);
+        } else {
+            GL11.glDisable(GL11.GL_LIGHTING);
         }
     }
 

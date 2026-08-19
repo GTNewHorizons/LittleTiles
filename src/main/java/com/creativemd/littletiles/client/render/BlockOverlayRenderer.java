@@ -2,20 +2,16 @@ package com.creativemd.littletiles.client.render;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.entity.RenderItem;
-import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.IItemRenderer;
 
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
 
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
-import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
@@ -104,12 +100,7 @@ public class BlockOverlayRenderer implements IItemRenderer {
             return false;
         }
 
-        Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.locationBlocksTexture);
-        boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
-        RenderHelper.enableGUIStandardItemLighting();
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glEnable(GL12.GL_RESCALE_NORMAL);
-        GL11.glEnable(GL11.GL_LIGHTING);
+        boolean alphaTestWasEnabled = GL11.glIsEnabled(GL11.GL_ALPHA_TEST);
         GL11.glEnable(GL11.GL_ALPHA_TEST);
         GL11.glAlphaFunc(GL11.GL_GREATER, 0.1F);
 
@@ -119,30 +110,13 @@ public class BlockOverlayRenderer implements IItemRenderer {
         GL11.glTranslatef(16F * (1F - scale), 16F * (1F - scale), 0F);
         GL11.glTranslatef(-2.0F, 3.0F, -3.0F);
         GL11.glScalef(10.0F, 10.0F, 10.0F);
-        GL11.glTranslatef(1.0F, 0.5F, 1.0F);
-        GL11.glScalef(1.0F, 1.0F, -1.0F);
-        GL11.glRotatef(210.0F, 1.0F, 0.0F, 0.0F);
-        GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
-        GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
         GL11.glColor4f(1F, 1F, 1F, 1F);
-
-        for (Triangle3d triangle : mesh.getTriangles()) {
-            Vector3d normal = triangle.getNormal();
-            GL11.glBegin(GL11.GL_TRIANGLES);
-            GL11.glNormal3d(normal.x, normal.y, normal.z);
-            GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);
-            GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
-            GL11.glTexCoord2d(triangle.getTex2().x, triangle.getTex2().y);
-            GL11.glVertex3d(triangle.getP2().x, triangle.getP2().y, triangle.getP2().z);
-            GL11.glTexCoord2d(triangle.getTex3().x, triangle.getTex3().y);
-            GL11.glVertex3d(triangle.getP3().x, triangle.getP3().y, triangle.getP3().z);
-            GL11.glEnd();
+        mesh.renderIcon();
+        if (alphaTestWasEnabled) {
+            GL11.glEnable(GL11.GL_ALPHA_TEST);
+        } else {
+            GL11.glDisable(GL11.GL_ALPHA_TEST);
         }
-
-        GL11.glDisable(GL11.GL_BLEND);
-        GL11.glDisable(GL12.GL_RESCALE_NORMAL);
-        GL11.glDisable(GL11.GL_LIGHTING);
-        GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glPopMatrix();
 
         return true;

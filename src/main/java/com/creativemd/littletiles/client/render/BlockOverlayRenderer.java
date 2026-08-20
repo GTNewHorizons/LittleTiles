@@ -112,9 +112,7 @@ public class BlockOverlayRenderer implements IItemRenderer {
         GL11.glScalef(10.0F, 10.0F, 10.0F);
         GL11.glColor4f(1F, 1F, 1F, 1F);
         mesh.renderIcon();
-        if (alphaTestWasEnabled) {
-            GL11.glEnable(GL11.GL_ALPHA_TEST);
-        } else {
+        if (!alphaTestWasEnabled) {
             GL11.glDisable(GL11.GL_ALPHA_TEST);
         }
         GL11.glPopMatrix();

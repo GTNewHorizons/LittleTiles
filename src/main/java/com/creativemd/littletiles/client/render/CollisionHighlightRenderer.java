@@ -35,7 +35,6 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class CollisionHighlightRenderer {
 
     private static final int RADIUS_CHUNKS = 2;
-    private static final int RADIUS_BLOCKS = RADIUS_CHUNKS * 16;
     private static final int REFRESH_INTERVAL_TICKS = 5;
     private static final double EPSILON = 0.002;
     private static final float MIN_ALPHA = 0.4F;

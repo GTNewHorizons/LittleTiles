@@ -159,6 +159,11 @@ public class Triangle3d {
         p1 = rotateVector(p1, matrix);
         p2 = rotateVector(p2, matrix);
         p3 = rotateVector(p3, matrix);
+        // Mirrored orientations (used for flipped meshes) invert the winding order, so it has to be restored here to
+        // keep the normal pointing outwards.
+        if (matrix.determinant() < 0) {
+            flipWindingOrder();
+        }
     }
 
     /**

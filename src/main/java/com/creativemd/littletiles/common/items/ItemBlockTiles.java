@@ -317,7 +317,12 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
     @Override
     public void flipLittlePreview(ItemStack stack, ForgeDirection direction) {
-        // No need to flip one single tile!
+        // A single tile's box never needs flipping, but a chiseled mesh shape still does.
+        if (!stack.hasTagCompound()) return;
+        if (stack.stackTagCompound.hasKey("cutoutOrientation")) {
+            LittleTileSize oldSize = LittleTilePreview.getSizeFromNBT(stack.stackTagCompound);
+            new LittleToolHandler(stack).handleFlip(direction, oldSize);
+        }
     }
 
 }

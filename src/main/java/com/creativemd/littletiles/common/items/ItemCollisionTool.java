@@ -7,6 +7,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
@@ -27,7 +28,7 @@ public class ItemCollisionTool extends Item {
     @SideOnly(Side.CLIENT)
     @SuppressWarnings("unchecked")
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
-        list.add("Right Click to toggle tile collision");
+        list.add(StatCollector.translateToLocal("item.collision_tool.tooltip"));
     }
 
     @Override

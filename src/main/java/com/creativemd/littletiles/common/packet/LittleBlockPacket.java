@@ -6,6 +6,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -251,9 +252,10 @@ public class LittleBlockPacket extends CreativeCorePacket {
                             collisionTE.loadedTile.disableCollision = !collisionTE.loadedTile.disableCollision;
                             collisionTE.update();
                             player.addChatComponentMessage(
-                                    new ChatComponentText(
-                                            "Tile collision " + (collisionTE.loadedTile.disableCollision ? "disabled"
-                                                    : "enabled")));
+                                    new ChatComponentTranslation(
+                                            collisionTE.loadedTile.disableCollision
+                                                    ? "message.littletiles.tile_collision.disabled"
+                                                    : "message.littletiles.tile_collision.enabled"));
                         }
                         break;
                 }

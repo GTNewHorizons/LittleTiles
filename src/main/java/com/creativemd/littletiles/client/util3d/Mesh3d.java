@@ -265,6 +265,7 @@ public class Mesh3d {
     public void renderIcon() {
         boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
         boolean rescaleWasEnabled = GL11.glIsEnabled(GL12.GL_RESCALE_NORMAL);
+        boolean blendWasEnabled = GL11.glIsEnabled(GL11.GL_BLEND);
         RenderHelper.enableGUIStandardItemLighting();
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glEnable(GL12.GL_RESCALE_NORMAL);

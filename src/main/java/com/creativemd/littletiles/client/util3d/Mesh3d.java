@@ -274,8 +274,7 @@ public class Mesh3d {
         GL11.glTranslatef(1.0F, 0.5F, 1.0F);
         GL11.glScalef(1.0F, 1.0F, -1.0F);
         GL11.glRotatef(210.0F, 1.0F, 0.0F, 0.0F);
-        GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
-        GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
+        GL11.glRotatef(-45.0F, 0.0F, 1.0F, 0.0F);
 
         GL11.glBegin(GL11.GL_TRIANGLES);
         for (Triangle3d triangle : triangles) {

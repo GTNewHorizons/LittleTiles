@@ -98,7 +98,7 @@ public class LittleTiles {
             .setCreativeTab(creativeTabLittleTiles);
     public static Item rubberMallet = new ItemRubberMallet().setUnlocalizedName("LTRubberMallet")
             .setCreativeTab(creativeTabLittleTiles);
-    public static Item collisionTool = new ItemCollisionTool().setUnlocalizedName("staff_of_intangibility")
+    public static Item collisionTool = new ItemCollisionTool().setUnlocalizedName("collision_tool")
             .setCreativeTab(creativeTabLittleTiles);
 
     public static AngelicaCompat angelicaCompat;

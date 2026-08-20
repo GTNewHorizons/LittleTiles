@@ -293,9 +293,7 @@ public class Mesh3d {
         if (!rescaleWasEnabled) {
             GL11.glDisable(GL12.GL_RESCALE_NORMAL);
         }
-        if (lightingWasEnabled) {
-            GL11.glEnable(GL11.GL_LIGHTING);
-        } else {
+        if (!lightingWasEnabled) {
             GL11.glDisable(GL11.GL_LIGHTING);
         }
     }

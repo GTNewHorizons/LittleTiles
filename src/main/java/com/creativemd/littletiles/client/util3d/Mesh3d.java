@@ -290,7 +290,9 @@ public class Mesh3d {
         }
         GL11.glEnd();
 
-        GL11.glDisable(GL11.GL_BLEND);
+        if (!blendWasEnabled) {
+            GL11.glDisable(GL11.GL_BLEND);
+        }
         if (!rescaleWasEnabled) {
             GL11.glDisable(GL12.GL_RESCALE_NORMAL);
         }

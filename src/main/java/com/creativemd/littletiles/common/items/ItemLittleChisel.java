@@ -155,7 +155,7 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
         else tile = new LittleTileBlock(block, meta);
 
         size.writeToNBT("size", nbt);
-        tile.saveTile(nbt);
+        tile.saveTileForItem(nbt);
         LittleTilePreview preview = new LittleTilePreview(size, nbt);
         ret.add(preview);
         return ret;

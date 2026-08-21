@@ -211,7 +211,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
         for (int i = 0; i < tiles.size(); i++) {
             NBTTagCompound nbt = new NBTTagCompound();
             tiles.get(i).boundingBox.writeToNBT("bBox", nbt);
-            tiles.get(i).saveTile(nbt);
+            tiles.get(i).saveTileForItem(nbt);
             stack.stackTagCompound.setTag("tile" + i, nbt);
         }
     }

@@ -187,7 +187,7 @@ public class BlockTile extends BlockContainer {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
         if (littleTile != null) {
             for (LittleTile tile : littleTile.getTiles()) {
-                if (tile.boundingBox != null) {
+                if (!tile.disableCollision && tile.boundingBox != null) {
                     AxisAlignedBB box = tile.boundingBox.getBox().getOffsetBoundingBox(x, y, z);
                     if (axis.intersectsWith(box)) list.add(box);
                 }

@@ -73,6 +73,14 @@ public class Triangle3d {
         p3.add(x, y, z);
     }
 
+    public void inflate(double epsilon) {
+        Vector3d n = getNormal();
+        n.x *= epsilon;
+        n.y *= epsilon;
+        n.z *= epsilon;
+        translate(n);
+    }
+
     public Vector3d getNormal() {
         Vector3d normal = unnormalizedNormal();
         normal.normalize();
@@ -159,6 +167,11 @@ public class Triangle3d {
         p1 = rotateVector(p1, matrix);
         p2 = rotateVector(p2, matrix);
         p3 = rotateVector(p3, matrix);
+        // Mirrored orientations (used for flipped meshes) invert the winding order, so it has to be restored here to
+        // keep the normal pointing outwards.
+        if (matrix.determinant() < 0) {
+            flipWindingOrder();
+        }
     }
 
     /**

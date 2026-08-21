@@ -9,6 +9,7 @@ import net.minecraft.block.BlockAir;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -20,6 +21,7 @@ import org.lwjgl.opengl.GL11;
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.creativecore.client.rendering.ExtendedRenderBlocks;
 import com.creativemd.creativecore.client.rendering.IFaceClipper;
+import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.lib.Vector3d;
@@ -40,6 +42,48 @@ public class LittleTilesBlockRenderHelper {
 
     private static final ThreadLocal<ExtendedRenderBlocks> extraRendererThreadLocal = ThreadLocal
             .withInitial(ExtendedRenderBlocks::new);
+
+    public static void renderShape(LittleTileShapeMode shape, double centerX, double centerY, double centerZ, Vec3 size,
+            Vector3d cutoutScale, int orientation, Vector3i posCutout, Vec3 color, double alpha) {
+        if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
+            RenderHelper3D.renderBlock(
+                    centerX,
+                    centerY,
+                    centerZ,
+                    size.xCoord,
+                    size.yCoord,
+                    size.zCoord,
+                    0,
+                    0,
+                    0,
+                    color.xCoord,
+                    color.yCoord,
+                    color.zCoord,
+                    alpha);
+        } else {
+            if (cutoutScale == null) {
+                cutoutScale = new Vector3d(size.xCoord, size.yCoord, size.zCoord);
+            }
+            Vector3i posSubMax = new Vector3i(
+                    (int) Math.round(size.xCoord * 16),
+                    (int) Math.round(size.yCoord * 16),
+                    (int) Math.round(size.zCoord * 16));
+            renderMesh(
+                    centerX - size.xCoord / 2D,
+                    centerY - size.yCoord / 2D,
+                    centerZ - size.zCoord / 2D,
+                    cutoutScale,
+                    orientation,
+                    color.xCoord,
+                    color.yCoord,
+                    color.zCoord,
+                    alpha,
+                    posCutout,
+                    new Vector3i(),
+                    posSubMax,
+                    shape);
+        }
+    }
 
     public static void renderMesh(double x, double y, double z, Vector3d cutoutScale, int orientation, double red,
             double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax,

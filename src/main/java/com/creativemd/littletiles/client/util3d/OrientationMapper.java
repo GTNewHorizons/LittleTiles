@@ -9,7 +9,8 @@ import org.joml.Matrix3f;
 
 public class OrientationMapper {
 
-    private static final int NUM_ORIENTATIONS = 24;
+    /** The 24 proper rotations plus their 24 mirrored counterparts, covering every flipped/rotated cube orientation. */
+    private static final int NUM_ORIENTATIONS = 48;
     private static final List<Matrix3f> ORIENTATIONS = new ArrayList<>();
     private static final Map<String, Integer> LOOKUP = new HashMap<>();
 
@@ -37,8 +38,23 @@ public class OrientationMapper {
             }
         }
 
+        // Mirror every proper rotation found above to also cover the 24 improper (reflected) orientations, giving the
+        // full 48-element cube symmetry group needed to represent flipped meshes.
+        Matrix3f mirror = new Matrix3f(-1, 0, 0, 0, 1, 0, 0, 0, 1);
+        int properCount = ORIENTATIONS.size();
+        for (int i = 0; i < properCount; i++) {
+            Matrix3f mirrored = new Matrix3f(mirror).mul(ORIENTATIONS.get(i));
+            snapToCubeOrientation(mirrored);
+
+            String key = toKey(mirrored);
+            if (!LOOKUP.containsKey(key)) {
+                ORIENTATIONS.add(mirrored);
+                LOOKUP.put(key, id++);
+            }
+        }
+
         if (ORIENTATIONS.size() != NUM_ORIENTATIONS)
-            throw new RuntimeException("Expected 24 orientations, got " + ORIENTATIONS.size());
+            throw new RuntimeException("Expected " + NUM_ORIENTATIONS + " orientations, got " + ORIENTATIONS.size());
     }
 
     /**

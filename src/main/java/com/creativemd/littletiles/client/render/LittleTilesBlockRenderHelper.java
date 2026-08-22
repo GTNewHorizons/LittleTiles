@@ -109,13 +109,13 @@ public class LittleTilesBlockRenderHelper {
         GL11.glTranslated(x, y, z);
         GL11.glColor4d(red, green, blue, alpha);
 
+        GL11.glBegin(GL11.GL_TRIANGLES);
         for (Triangle3d triangle : mesh.getTriangles()) {
-            GL11.glBegin(GL11.GL_TRIANGLES);
             GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
             GL11.glVertex3d(triangle.getP2().x, triangle.getP2().y, triangle.getP2().z);
             GL11.glVertex3d(triangle.getP3().x, triangle.getP3().y, triangle.getP3().z);
-            GL11.glEnd();
         }
+        GL11.glEnd();
 
         GL11.glPopMatrix();
     }
@@ -307,16 +307,16 @@ public class LittleTilesBlockRenderHelper {
                     boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
                     GL11.glDisable(GL11.GL_LIGHTING);
                     GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
+                    GL11.glBegin(GL11.GL_TRIANGLES);
                     for (Triangle3d triangle : mesh.getTriangles()) {
-                        GL11.glBegin(GL11.GL_TRIANGLES);
                         GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);
                         GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
                         GL11.glTexCoord2d(triangle.getTex2().x, triangle.getTex2().y);
                         GL11.glVertex3d(triangle.getP2().x, triangle.getP2().y, triangle.getP2().z);
                         GL11.glTexCoord2d(triangle.getTex3().x, triangle.getTex3().y);
                         GL11.glVertex3d(triangle.getP3().x, triangle.getP3().y, triangle.getP3().z);
-                        GL11.glEnd();
                     }
+                    GL11.glEnd();
                     GL11.glTranslatef(0.5F, 0.5F, 0.5F);
                     if (lightingWasEnabled) {
                         GL11.glEnable(GL11.GL_LIGHTING);

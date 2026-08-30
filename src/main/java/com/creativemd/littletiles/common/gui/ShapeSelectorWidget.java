@@ -72,7 +72,7 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
     public ShapeSelectorWidget addChoice(ShapeSelected onSelect, LittleTileShapeMode shape) {
         ButtonWidget<?> button = new ButtonWidget<>();
         ShapePreviewWidget preview = new ShapePreviewWidget(shape);
-        int itemWidth = Math.max(0, (getArea().width <= 0 ? 230 : getArea().width) - ROW_CONTENT_GUTTER);
+        int itemWidth = Math.max(0, (getArea().width <= 0 ? 180 : getArea().width) - ROW_CONTENT_GUTTER);
         button.size(itemWidth, ROW_HEIGHT);
         preview.size(itemWidth, ROW_HEIGHT);
 

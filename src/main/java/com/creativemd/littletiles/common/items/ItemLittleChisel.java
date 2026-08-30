@@ -58,7 +58,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<PlayerInventoryGuiData> {
 
-    private static final int WIDGET_WIDTH = 180;
+    private static final int WIDGET_WIDTH = 230;
     private static final int WIDGET_MARGIN = 5;
 
     public ItemLittleChisel() {

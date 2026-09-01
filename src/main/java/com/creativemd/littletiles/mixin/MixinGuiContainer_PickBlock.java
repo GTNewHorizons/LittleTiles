@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Slot;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 
 import org.spongepowered.asm.mixin.Mixin;
@@ -62,10 +63,10 @@ public abstract class MixinGuiContainer_PickBlock {
             return;
         }
 
-        // Will need additional handling if we want to support additional meta (like Forestry wood, which is not stored
-        // in the ItemStack's damage value)
-        new LittleToolHandler(cursorStack).setBlock(block, targetStack.getItemDamage());
-        PacketHandler.sendPacketToServer(new LittleCursorItemUpdatePacket(cursorStack.getTagCompound()));
+        new LittleToolHandler(cursorStack)
+                .setBlock(block, ((ItemBlock) targetStack.getItem()).getMetadata(targetStack.getItemDamage()));
+
+        PacketHandler.sendPacketToServer(new LittleCursorItemUpdatePacket(targetStack));
 
         ci.cancel();
     }

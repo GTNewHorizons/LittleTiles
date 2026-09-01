@@ -12,7 +12,7 @@ public final class ChiselPickGuiHelper {
     private static Method NEI_GET_STACK_MOUSE_OVER;
 
     static {
-        if (Loader.instance() != null && Loader.isModLoaded("NotEnoughItems")) {
+        if (Loader.isModLoaded("NotEnoughItems")) {
             try {
                 Class<?> manager = Class.forName("codechicken.nei.guihook.GuiContainerManager");
                 NEI_GET_STACK_MOUSE_OVER = manager.getMethod("getStackMouseOver", GuiContainer.class);

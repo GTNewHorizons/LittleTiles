@@ -1,11 +1,14 @@
 package com.creativemd.littletiles.common.packet;
 
+import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.common.BlockValidator;
+import com.creativemd.littletiles.common.utils.LittleToolHandler;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -13,24 +16,24 @@ import io.netty.buffer.ByteBuf;
 
 public class LittleCursorItemUpdatePacket extends CreativeCorePacket {
 
-    public NBTTagCompound nbt;
+    public ItemStack itemStack;
 
     public LittleCursorItemUpdatePacket() {
 
     }
 
-    public LittleCursorItemUpdatePacket(NBTTagCompound nbt) {
-        this.nbt = nbt;
+    public LittleCursorItemUpdatePacket(ItemStack itemStack) {
+        this.itemStack = itemStack;
     }
 
     @Override
     public void writeBytes(ByteBuf buf) {
-        writeNBT(buf, nbt);
+        writeItemStack(buf, itemStack);
     }
 
     @Override
     public void readBytes(ByteBuf buf) {
-        nbt = readNBT(buf);
+        itemStack = readItemStack(buf);
     }
 
     @Override
@@ -41,11 +44,19 @@ public class LittleCursorItemUpdatePacket extends CreativeCorePacket {
 
     @Override
     public void executeServer(EntityPlayer player) {
-        ItemStack cursor = player.inventory.getItemStack();
-        if (cursor == null || cursor.getItem() != LittleTiles.chisel) {
+
+        ItemStack cursorStack = player.inventory.getItemStack();
+        if (cursorStack == null || cursorStack.getItem() != LittleTiles.chisel) {
             return;
         }
-        cursor.setTagCompound(nbt);
+
+        Block block = Block.getBlockFromItem(itemStack.getItem());
+        if (!BlockValidator.isBlockValid(block)) {
+            return;
+        }
+
+        new LittleToolHandler(cursorStack)
+                .setBlock(block, ((ItemBlock) itemStack.getItem()).getMetadata(itemStack.getItemDamage()));
     }
 
 }

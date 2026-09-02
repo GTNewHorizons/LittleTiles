@@ -130,6 +130,11 @@ public class LittleTilesBlockRenderHelper {
         FAILED
     }
 
+    public static int resolveRenderColor(int cubeColor, Block block, int meta) {
+        if (cubeColor != ColorUtils.WHITE) return cubeColor;
+        return block.getRenderColor(meta);
+    }
+
     private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
             IBlockAccess world) {
         if (!cube.geometryCache.hasValidMesh()) {
@@ -154,6 +159,9 @@ public class LittleTilesBlockRenderHelper {
 
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
         tess.setBrightness(brightness);
+
+        int color = resolveRenderColor(cube.color, cube.block, cube.meta);
+
         for (Triangle3d triangle : mesh.getTriangles()) {
             Vector3d p1 = triangle.getP1();
             Vector3d p2 = triangle.getP2();
@@ -161,7 +169,7 @@ public class LittleTilesBlockRenderHelper {
             Vector2d tex1 = triangle.getTex1();
             Vector2d tex2 = triangle.getTex2();
             Vector2d tex3 = triangle.getTex3();
-            tess.setColorOpaque_I(cube.color);
+            tess.setColorOpaque_I(color);
             tess.addVertexWithUV(p1.x, p1.y, p1.z, tex1.x, tex1.y);
             tess.addVertexWithUV(p2.x, p2.y, p2.z, tex2.x, tex2.y);
             tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
@@ -279,9 +287,7 @@ public class LittleTilesBlockRenderHelper {
                 block = cube.block;
                 meta = 0;
             }
-
-            int j = block.getRenderColor(metadata);
-            if (cube.color != ColorUtils.WHITE) j = cube.color;
+            int j = resolveRenderColor(cube.color, block, metadata);
 
             float f1 = (float) (j >> 16 & 255) / 255.0F;
             float f2 = (float) (j >> 8 & 255) / 255.0F;

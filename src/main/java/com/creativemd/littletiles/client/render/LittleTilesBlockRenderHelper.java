@@ -229,8 +229,9 @@ public class LittleTilesBlockRenderHelper {
                 if (!cube.block.canRenderInPass(pass)) {
                     continue;
                 }
+                fake.overrideMeta = cube.meta;
                 if (cube.cutoutInfo != null) {
-                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, world);
+                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, fake);
                     if (result == CutoutResult.DRAWN) {
                         rendered = true;
                         continue;
@@ -252,7 +253,6 @@ public class LittleTilesBlockRenderHelper {
                     extraRenderer.clearOverrideBlockTexture();
                     extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
                     extraRenderer.meta = cube.meta;
-                    fake.overrideMeta = cube.meta;
                     extraRenderer.color = cube.color;
                     extraRenderer.faceClipper = coverage[i];
                     extraRenderer.lockBlockBounds = true;
@@ -268,7 +268,7 @@ public class LittleTilesBlockRenderHelper {
                     extraRenderer.lockBlockBounds = false;
                     extraRenderer.color = ColorUtils.WHITE;
                     if (!boxTriangles.isEmpty()) {
-                        renderTriangles(x, y, z, cube, boxTriangles, world);
+                        renderTriangles(x, y, z, cube, boxTriangles, fake);
                     }
                 }
             }

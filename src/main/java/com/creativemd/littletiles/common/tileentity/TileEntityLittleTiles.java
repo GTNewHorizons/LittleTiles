@@ -15,6 +15,7 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
+import net.minecraft.world.EnumSkyBlock;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.utils.CubeObject;
@@ -82,6 +83,9 @@ public class TileEntityLittleTiles extends TileEntity {
 
     public void updateTiles(boolean cleanupTileEntityIfLast) {
         if (worldObj != null) {
+            needsLightUpdate = true;
+            worldObj.updateLightByType(EnumSkyBlock.Block, xCoord, yCoord, zCoord);
+
             update();
             updateNeighbor();
             if (!worldObj.isRemote && tiles.isEmpty() && cleanupTileEntityIfLast) {
@@ -376,7 +380,6 @@ public class TileEntityLittleTiles extends TileEntity {
                 ((TileEntityLittleTiles) neighbour).invalidateCutCaches();
             }
         }
-        needsLightUpdate = true;
         worldObj.markBlockRangeForRenderUpdate(xCoord - 1, yCoord - 1, zCoord - 1, xCoord + 1, yCoord + 1, zCoord + 1);
     }
 

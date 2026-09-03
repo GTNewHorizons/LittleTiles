@@ -123,6 +123,11 @@ public class LittleTileBlock extends LittleTile {
 
     @Override
     public int getLightValue(IBlockAccess world, int x, int y, int z) {
+        if (world != null) {
+            // Pass the tile's own block and meta through so metadata/context-aware light
+            // values are computed correctly.
+            return block.getLightValue(new LittleTileBlockAccess(world, block, meta, x, y, z), x, y, z);
+        }
         return block.getLightValue();
     }
 

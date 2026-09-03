@@ -158,6 +158,13 @@ public class LittleTilesBlockRenderHelper {
         Tessellator tess = Tessellator.instance;
 
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
+        // Force brightness to 15 for blocks that emits.
+        // This is to support blocks like Caelestis Lapis from extraUtils.
+        int emitted = world.getBlock(x, y, z).getLightValue(world, x, y, z);
+        if (emitted > 0) {
+            int block = (brightness >> 4 & 15) | 15;
+            brightness |= (block << 4);
+        }
         tess.setBrightness(brightness);
 
         int color = resolveRenderColor(cube.color, cube.block, cube.meta);

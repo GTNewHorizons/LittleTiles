@@ -11,29 +11,25 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public class IBlockAccessFake implements IBlockAccess {
 
-    public IBlockAccess world;
-    public Block block;
-    public int meta;
-    public TileEntity te;
-    public int posX;
-    public int posY;
-    public int posZ;
+    private IBlockAccess world;
+    private Block block;
+    private int meta;
+    private int posX;
+    private int posY;
+    private int posZ;
 
-    public IBlockAccessFake(IBlockAccess world) {
-        this.world = world;
-    }
+    public IBlockAccessFake() {}
 
-    public IBlockAccessFake(IBlockAccess world, int x, int y, int z) {
+    public void setWorld(IBlockAccess world, int x, int y, int z) {
         this.world = world;
         this.posX = x;
         this.posY = y;
         this.posZ = z;
     }
 
-    public void setPos(int x, int y, int z) {
-        this.posX = x;
-        this.posY = y;
-        this.posZ = z;
+    public void setBlock(final Block block, final int meta) {
+        this.block = block;
+        this.meta = meta;
     }
 
     private boolean isTilePos(int x, int y, int z) {
@@ -48,7 +44,7 @@ public class IBlockAccessFake implements IBlockAccess {
 
     @Override
     public TileEntity getTileEntity(int x, int y, int z) {
-        if (te != null && isTilePos(x, y, z)) return te;
+        if (isTilePos(x, y, z)) return null;
         return world.getTileEntity(x, y, z);
     }
 

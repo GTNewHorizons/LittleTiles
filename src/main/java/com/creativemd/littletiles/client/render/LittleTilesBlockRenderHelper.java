@@ -212,9 +212,7 @@ public class LittleTilesBlockRenderHelper {
         extraRenderer.updateRenderer(renderer);
 
         final IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
-        fake.world = renderer.blockAccess;
-        fake.setPos(x, y, z);
-        fake.block = block;
+        fake.setWorld(renderer.blockAccess, x, y, z);
 
         int pass = ForgeHooksClient.getWorldRenderPass();
         boolean rendered = false;
@@ -250,10 +248,10 @@ public class LittleTilesBlockRenderHelper {
                         boxTriangles = LittleTilesFaceCuller.visibleBoxTriangles(cullingContext, cube, clipper);
                     }
                     rendered = true;
+                    fake.setBlock(cube.block, cube.meta);
                     extraRenderer.clearOverrideBlockTexture();
                     extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
                     extraRenderer.meta = cube.meta;
-                    fake.meta = cube.meta;
                     extraRenderer.color = cube.color;
                     extraRenderer.faceClipper = coverage[i];
                     extraRenderer.lockBlockBounds = true;
@@ -275,7 +273,6 @@ public class LittleTilesBlockRenderHelper {
             }
         } finally {
             extraRenderer.faceClipper = null;
-            fake.world = null;
         }
         return rendered;
     }

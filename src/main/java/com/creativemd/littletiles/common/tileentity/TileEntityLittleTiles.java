@@ -84,8 +84,9 @@ public class TileEntityLittleTiles extends TileEntity {
     public void updateTiles(boolean cleanupTileEntityIfLast) {
         if (worldObj != null) {
             needsLightUpdate = true;
+            final int lastLight = lastMaxLightValue;
 
-            if (lastMaxLightValue != getMaxLightValue()) {
+            if (lastLight != getMaxLightValue()) {
                 worldObj.updateLightByType(EnumSkyBlock.Block, xCoord, yCoord, zCoord);
             }
 

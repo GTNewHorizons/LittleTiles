@@ -5,7 +5,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Slot;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,18 +14,27 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
-import com.creativemd.littletiles.client.ChiselPickGuiHelper;
 import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.items.ItemLittleChisel;
-import com.creativemd.littletiles.common.packet.LittleCursorItemUpdatePacket;
+import com.creativemd.littletiles.common.packet.LittleCursorBlockUpdatePacket;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 
+import codechicken.nei.guihook.GuiContainerManager;
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 @Mixin(GuiContainer.class)
 public abstract class MixinGuiContainer_PickBlock {
+
+    private static boolean neiLoaded = false;
+
+    static {
+        try {
+            neiLoaded = Loader.isModLoaded("NotEnoughItems");
+        } catch (Exception ignored) {}
+    }
 
     // Middle Click on an item with the Little Chisel picked up switches to that block. Intercepts the top-level
     // mouseClicked so it works for real inventory slots and, when NEI is present, NEI item panels
@@ -46,29 +54,42 @@ public abstract class MixinGuiContainer_PickBlock {
             return;
         }
 
-        ItemStack targetStack = ChiselPickGuiHelper.getNEIStackMouseOver((GuiContainer) (Object) this);
-        if (targetStack == null) {
-            // Fallback to the default slot detection.
-            Slot slot = littletiles$invokeGetSlotAtPosition(mouseX, mouseY);
-            if (slot != null) {
-                targetStack = slot.getStack();
+        // Sink middle click as soon as chisel is picked up
+        ci.cancel();
+
+        ItemStack hoveredStack = null;
+        // get the hovered stack from the active container
+        try {
+            // try regular container
+            Slot hoveredSlot = littletiles$invokeGetSlotAtPosition(mouseX, mouseY);
+
+            // get the stack
+            if (hoveredSlot != null) {
+                hoveredStack = hoveredSlot.getStack();
             }
+
+            // try NEI
+            if (hoveredStack == null && neiLoaded) {
+                hoveredStack = (ItemStack) (GuiContainerManager.getStackMouseOver((GuiContainer) (Object) this));
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        if (targetStack == null) {
+
+        if (hoveredStack == null) {
             return;
         }
 
-        Block block = Block.getBlockFromItem(targetStack.getItem());
+        Block block = Block.getBlockFromItem(hoveredStack.getItem());
         if (!BlockValidator.isBlockValid(block)) {
             return;
         }
+        final int meta = hoveredStack.getItem().getMetadata(hoveredStack.getItemDamage());
+        new LittleToolHandler(cursorStack).setBlock(block, meta);
 
-        new LittleToolHandler(cursorStack)
-                .setBlock(block, ((ItemBlock) targetStack.getItem()).getMetadata(targetStack.getItemDamage()));
-
-        PacketHandler.sendPacketToServer(new LittleCursorItemUpdatePacket(targetStack));
-
-        ci.cancel();
+        PacketHandler.sendPacketToServer(new LittleCursorBlockUpdatePacket(Block.getIdFromBlock(block), meta));
     }
 
     @Invoker("getSlotAtPosition")

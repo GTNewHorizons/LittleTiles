@@ -2,7 +2,6 @@ package com.creativemd.littletiles.common.packet;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
@@ -14,26 +13,30 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 
-public class LittleCursorItemUpdatePacket extends CreativeCorePacket {
+public class LittleCursorBlockUpdatePacket extends CreativeCorePacket {
 
-    public ItemStack itemStack;
+    public int blockId;
+    public int meta;
 
-    public LittleCursorItemUpdatePacket() {
+    public LittleCursorBlockUpdatePacket() {
 
     }
 
-    public LittleCursorItemUpdatePacket(ItemStack itemStack) {
-        this.itemStack = itemStack;
+    public LittleCursorBlockUpdatePacket(final int blockId, final int meta) {
+        this.blockId = blockId;
+        this.meta = meta;
     }
 
     @Override
     public void writeBytes(ByteBuf buf) {
-        writeItemStack(buf, itemStack);
+        buf.writeInt(blockId);
+        buf.writeInt(meta);
     }
 
     @Override
     public void readBytes(ByteBuf buf) {
-        itemStack = readItemStack(buf);
+        blockId = buf.readInt();
+        meta = buf.readInt();
     }
 
     @Override
@@ -50,13 +53,12 @@ public class LittleCursorItemUpdatePacket extends CreativeCorePacket {
             return;
         }
 
-        Block block = Block.getBlockFromItem(itemStack.getItem());
+        Block block = Block.getBlockById(blockId);
         if (!BlockValidator.isBlockValid(block)) {
             return;
         }
 
-        new LittleToolHandler(cursorStack)
-                .setBlock(block, ((ItemBlock) itemStack.getItem()).getMetadata(itemStack.getItemDamage()));
+        new LittleToolHandler(cursorStack).setBlock(block, meta);
     }
 
 }

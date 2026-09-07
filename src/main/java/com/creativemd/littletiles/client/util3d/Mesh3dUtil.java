@@ -19,6 +19,8 @@ public class Mesh3dUtil {
     private static Mesh3d MESH_SLOPE;
     private static Mesh3d MESH_SLOPE_CONCAVE;
     private static Mesh3d MESH_SLOPE_CONVEX;
+    private static Mesh3d MESH_SLOPE_CONVEX_INNER_CORNER;
+    private static Mesh3d MESH_SLOPE_CONVEX_OUTER_CORNER;
     private static Mesh3d MESH_SLOPE_TRIANGLE;
     private static Mesh3d MESH_SLOPE_TRIANGLE_CORNER;
     private static Mesh3d MESH_SLOPE_TRIANGLE_ALT;
@@ -29,6 +31,8 @@ public class Mesh3dUtil {
         MESH_SLOPE = Mesh3dObjLoader.load("slope");
         MESH_SLOPE_CONCAVE = Mesh3dObjLoader.load("slope_concave");
         MESH_SLOPE_CONVEX = Mesh3dObjLoader.load("slope_convex");
+        MESH_SLOPE_CONVEX_INNER_CORNER = Mesh3dObjLoader.load("slope_convex_inner");
+        MESH_SLOPE_CONVEX_OUTER_CORNER = Mesh3dObjLoader.load("slope_convex_outer");
         MESH_SLOPE_TRIANGLE = Mesh3dObjLoader.load("slope_triangle");
         MESH_SLOPE_TRIANGLE_CORNER = Mesh3dObjLoader.load("slope_triangle_corner");
         MESH_SLOPE_TRIANGLE_ALT = Mesh3dObjLoader.load("slope_triangle_alternate");
@@ -189,6 +193,8 @@ public class Mesh3dUtil {
             }
             case SLOPE_CONCAVE -> MESH_SLOPE_CONCAVE.copy();
             case SLOPE_CONVEX -> MESH_SLOPE_CONVEX.copy();
+            case SLOPE_CONVEX_INNER_CORNER -> MESH_SLOPE_CONVEX_INNER_CORNER.copy();
+            case SLOPE_CONVEX_OUTER_CORNER -> MESH_SLOPE_CONVEX_OUTER_CORNER.copy();
             case SLOPE_TRIANGLE -> MESH_SLOPE_TRIANGLE.copy();
             case SLOPE_TRIANGLE_CORNER -> MESH_SLOPE_TRIANGLE_CORNER.copy();
             case SLOPE_TRIANGLE_ALT -> MESH_SLOPE_TRIANGLE_ALT.copy();

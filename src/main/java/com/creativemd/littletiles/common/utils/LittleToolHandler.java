@@ -99,7 +99,11 @@ public class LittleToolHandler {
         if (tag.hasKey("shape")) {
             shape = tag.getByte("shape");
         }
-        return LittleTileShapeMode.values()[shape];
+        LittleTileShapeMode[] modes = LittleTileShapeMode.values();
+        if (shape < 0 || shape >= modes.length) {
+            shape = 0;
+        }
+        return modes[shape];
     }
 
     public void setShape(int shape) {

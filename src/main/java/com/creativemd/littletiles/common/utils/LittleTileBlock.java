@@ -14,12 +14,14 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.littletiles.LittleTiles;
 
 public class LittleTileBlock extends LittleTile {
 
     public Block block;
     public int meta;
+    public static IBlockAccessFake fake = null;
 
     public LittleTileBlock(Block block, int meta) {
         super();
@@ -126,7 +128,14 @@ public class LittleTileBlock extends LittleTile {
         if (world != null) {
             // Pass the tile's own block and meta through so metadata/context-aware light
             // values are computed correctly.
-            return block.getLightValue(new LittleTileBlockAccess(world, block, meta, x, y, z), x, y, z);
+            if (fake == null) fake = new IBlockAccessFake(world, x, y, z);
+            else {
+                fake.world = world;
+                fake.setPos(x, y, z);
+            }
+            fake.block = block;
+            fake.meta = meta;
+            return block.getLightValue(fake, x, y, z);
         }
         return block.getLightValue();
     }

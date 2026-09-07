@@ -38,7 +38,8 @@ public class BlockRenderHelper {
 
             if (cubes.get(i).block != null) if (cubes.get(i).meta != -1) {
                 if (fake == null) {
-                    fake = new IBlockAccessFake(renderer.blockAccess);
+                    fake = new IBlockAccessFake(renderer.blockAccess, x, y, z);
+                    fake.block = block;
                     extraRenderer.blockAccess = fake;
                 }
 
@@ -53,7 +54,7 @@ public class BlockRenderHelper {
                         cubes.get(i).maxY,
                         cubes.get(i).maxZ);
                 extraRenderer.meta = cubes.get(i).meta;
-                fake.overrideMeta = cubes.get(i).meta;
+                fake.meta = cubes.get(i).meta;
                 extraRenderer.color = cubes.get(i).color;
                 extraRenderer.lockBlockBounds = true;
                 extraRenderer.renderBlockAllFaces(cubes.get(i).block, x, y, z);

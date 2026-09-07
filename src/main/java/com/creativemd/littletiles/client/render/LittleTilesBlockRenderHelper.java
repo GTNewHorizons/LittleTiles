@@ -159,12 +159,11 @@ public class LittleTilesBlockRenderHelper {
 
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
         // Force brightness to 15 for blocks that emits.
-        // This is to support blocks like Caelestis Lapis from extraUtils.
+        // This is a workaround to support blocks like Caelestis Lapis from extraUtils.
+        // TODO: Investigate a better way to handle this (POC:
+        // https://github.com/GTNewHorizons/LittleTiles/commits/refactor-brightness/)
         int emitted = world.getBlock(x, y, z).getLightValue(world, x, y, z);
-        if (emitted > 0) {
-            int block = (brightness >> 4 & 15) | 15;
-            brightness |= (block << 4);
-        }
+        if (emitted > 0) brightness |= (15 << 4);
         tess.setBrightness(brightness);
 
         int color = resolveRenderColor(cube.color, cube.block, cube.meta);
@@ -214,6 +213,8 @@ public class LittleTilesBlockRenderHelper {
 
         final IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
         fake.world = renderer.blockAccess;
+        fake.setPos(x, y, z);
+        fake.block = block;
 
         int pass = ForgeHooksClient.getWorldRenderPass();
         boolean rendered = false;
@@ -252,7 +253,7 @@ public class LittleTilesBlockRenderHelper {
                     extraRenderer.clearOverrideBlockTexture();
                     extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
                     extraRenderer.meta = cube.meta;
-                    fake.overrideMeta = cube.meta;
+                    fake.meta = cube.meta;
                     extraRenderer.color = cube.color;
                     extraRenderer.faceClipper = coverage[i];
                     extraRenderer.lockBlockBounds = true;

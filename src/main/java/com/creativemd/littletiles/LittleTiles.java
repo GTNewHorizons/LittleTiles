@@ -38,11 +38,7 @@ import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.sorting.LittleTileSortingList;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
-import com.creativemd.littletiles.common.utils.LittleTile;
-import com.creativemd.littletiles.common.utils.LittleTileBlock;
-import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
-import com.creativemd.littletiles.common.utils.LittleTileTileEntity;
-import com.creativemd.littletiles.common.utils.LittleTilesCreativeTab;
+import com.creativemd.littletiles.common.utils.*;
 import com.creativemd.littletiles.server.LittleTilesServer;
 import com.creativemd.littletiles.waila.Waila;
 
@@ -103,6 +99,7 @@ public class LittleTiles {
             .setCreativeTab(creativeTabLittleTiles);
 
     public static AngelicaCompat angelicaCompat;
+    public static NEICompat neiCompat;
 
     @EventHandler
     public void Init(FMLInitializationEvent event) {
@@ -174,6 +171,9 @@ public class LittleTiles {
         }
         if (Loader.isModLoaded("Waila")) {
             Waila.init();
+        }
+        if (Loader.isModLoaded("NotEnoughItems")) {
+            neiCompat = new NEICompat();
         }
     }
 

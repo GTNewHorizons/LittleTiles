@@ -14,27 +14,18 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
+import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.items.ItemLittleChisel;
 import com.creativemd.littletiles.common.packet.LittleCursorBlockUpdatePacket;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 
-import codechicken.nei.guihook.GuiContainerManager;
-import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 @Mixin(GuiContainer.class)
 public abstract class MixinGuiContainer_PickBlock {
-
-    private static boolean neiLoaded = false;
-
-    static {
-        try {
-            neiLoaded = Loader.isModLoaded("NotEnoughItems");
-        } catch (Exception ignored) {}
-    }
 
     // Middle Click on an item with the Little Chisel picked up switches to that block. Intercepts the top-level
     // mouseClicked so it works for real inventory slots and, when NEI is present, NEI item panels
@@ -69,8 +60,8 @@ public abstract class MixinGuiContainer_PickBlock {
             }
 
             // try NEI
-            if (hoveredStack == null && neiLoaded) {
-                hoveredStack = (ItemStack) (GuiContainerManager.getStackMouseOver((GuiContainer) (Object) this));
+            if (hoveredStack == null && LittleTiles.neiCompat != null && !LittleTiles.neiCompat.isNEIHidden()) {
+                hoveredStack = LittleTiles.neiCompat.getStackMouseOver((GuiContainer) (Object) this);
             }
         } catch (RuntimeException e) {
             throw e;

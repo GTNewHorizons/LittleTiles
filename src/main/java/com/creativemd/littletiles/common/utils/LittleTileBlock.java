@@ -21,7 +21,8 @@ public class LittleTileBlock extends LittleTile {
 
     public Block block;
     public int meta;
-    private static final ThreadLocal<IBlockAccessFake> fake = ThreadLocal.withInitial(IBlockAccessFake::new);
+    private static final ThreadLocal<IBlockAccessFake> blockAccessFakeThreadLocal = ThreadLocal
+            .withInitial(IBlockAccessFake::new);
 
     public LittleTileBlock(Block block, int meta) {
         super();
@@ -129,10 +130,12 @@ public class LittleTileBlock extends LittleTile {
             // Pass the tile's own block and meta through so metadata/context-aware light
             // values are computed correctly.
 
-            fake.get().setWorld(world, x, y, z);
-            fake.get().setBlock(block, meta);
+            IBlockAccessFake blockAccessFake = blockAccessFakeThreadLocal.get();
 
-            return block.getLightValue(fake.get(), x, y, z);
+            blockAccessFake.setWorld(world, x, y, z);
+            blockAccessFake.setBlock(block, meta);
+
+            return block.getLightValue(blockAccessFake, x, y, z);
         }
         return block.getLightValue();
     }

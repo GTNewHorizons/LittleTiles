@@ -136,7 +136,7 @@ public class LittleTilesBlockRenderHelper {
     }
 
     private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
-            IBlockAccess world) {
+            IBlockAccess world, IBlockAccessFake fake) {
         if (!cube.geometryCache.hasValidMesh()) {
             return CutoutResult.FAILED;
         }
@@ -145,12 +145,12 @@ public class LittleTilesBlockRenderHelper {
         if (visible.isEmpty()) {
             return CutoutResult.HIDDEN;
         }
-        renderTriangles(x, y, z, cube, visible, world);
+        renderTriangles(x, y, z, cube, visible, world, fake);
         return CutoutResult.DRAWN;
     }
 
     private static void renderTriangles(int x, int y, int z, LittleTilesCubeObject cube, List<Triangle3d> triangles,
-            IBlockAccess world) {
+            IBlockAccess world, IBlockAccessFake fake) {
         // cut results are cached on the tile and must not be textured or translated in place
         Mesh3d mesh = new Mesh3d(triangles).copy();
         mesh.setTextures(cube.block, cube.meta);
@@ -162,7 +162,7 @@ public class LittleTilesBlockRenderHelper {
         // This is a workaround to support blocks like Caelestis Lapis from extraUtils.
         // TODO: Investigate a better way to handle this (POC:
         // https://github.com/GTNewHorizons/LittleTiles/commits/refactor-brightness/)
-        int emitted = world.getBlock(x, y, z).getLightValue(world, x, y, z);
+        int emitted = cube.block.getLightValue(fake, x, y, z);
         if (emitted > 0) brightness |= (15 << 4);
         tess.setBrightness(brightness);
 
@@ -228,8 +228,10 @@ public class LittleTilesBlockRenderHelper {
                 if (!cube.block.canRenderInPass(pass)) {
                     continue;
                 }
+                if (cube.block != null && cube.meta != -1) fake.setBlock(cube.block, cube.meta);
+
                 if (cube.cutoutInfo != null) {
-                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, world);
+                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, world, fake);
                     if (result == CutoutResult.DRAWN) {
                         rendered = true;
                         continue;
@@ -248,7 +250,6 @@ public class LittleTilesBlockRenderHelper {
                         boxTriangles = LittleTilesFaceCuller.visibleBoxTriangles(cullingContext, cube, clipper);
                     }
                     rendered = true;
-                    fake.setBlock(cube.block, cube.meta);
                     extraRenderer.clearOverrideBlockTexture();
                     extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
                     extraRenderer.meta = cube.meta;
@@ -267,12 +268,13 @@ public class LittleTilesBlockRenderHelper {
                     extraRenderer.lockBlockBounds = false;
                     extraRenderer.color = ColorUtils.WHITE;
                     if (!boxTriangles.isEmpty()) {
-                        renderTriangles(x, y, z, cube, boxTriangles, world);
+                        renderTriangles(x, y, z, cube, boxTriangles, world, fake);
                     }
                 }
             }
         } finally {
             extraRenderer.faceClipper = null;
+            fake.setWorld(null, 0, 0, 0);
         }
         return rendered;
     }

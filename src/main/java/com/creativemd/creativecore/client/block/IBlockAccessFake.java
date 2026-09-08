@@ -20,6 +20,15 @@ public class IBlockAccessFake implements IBlockAccess {
 
     public IBlockAccessFake() {}
 
+    public void reset() {
+        this.world = null;
+        this.posX = 0;
+        this.posY = 0;
+        this.posZ = 0;
+        this.block = null;
+        this.meta = 0;
+    }
+
     public void setWorld(IBlockAccess world, int x, int y, int z) {
         this.world = world;
         this.posX = x;

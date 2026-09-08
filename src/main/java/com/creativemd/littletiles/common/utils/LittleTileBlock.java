@@ -129,13 +129,15 @@ public class LittleTileBlock extends LittleTile {
         if (world != null) {
             // Pass the tile's own block and meta through so metadata/context-aware light
             // values are computed correctly.
-
             IBlockAccessFake blockAccessFake = blockAccessFakeThreadLocal.get();
 
-            blockAccessFake.setWorld(world, x, y, z);
-            blockAccessFake.setBlock(block, meta);
-
-            return block.getLightValue(blockAccessFake, x, y, z);
+            try {
+                blockAccessFake.setWorld(world, x, y, z);
+                blockAccessFake.setBlock(block, meta);
+                return block.getLightValue(blockAccessFake, x, y, z);
+            } finally {
+                blockAccessFake.reset();
+            }
         }
         return block.getLightValue();
     }

@@ -28,7 +28,7 @@ public class ExtendedRenderBlocks extends RenderBlocks {
     }
 
     public ExtendedRenderBlocks() {
-        blockAccess = new IBlockAccessFake(null);
+        blockAccess = new IBlockAccessFake();
     }
 
     public ExtendedRenderBlocks(RenderBlocks renderer) {

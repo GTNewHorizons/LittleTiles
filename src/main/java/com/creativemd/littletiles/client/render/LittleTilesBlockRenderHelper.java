@@ -136,7 +136,7 @@ public class LittleTilesBlockRenderHelper {
     }
 
     private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
-            IBlockAccess world, IBlockAccessFake fake) {
+            IBlockAccessFake fake) {
         if (!cube.geometryCache.hasValidMesh()) {
             return CutoutResult.FAILED;
         }
@@ -145,12 +145,12 @@ public class LittleTilesBlockRenderHelper {
         if (visible.isEmpty()) {
             return CutoutResult.HIDDEN;
         }
-        renderTriangles(x, y, z, cube, visible, world, fake);
+        renderTriangles(x, y, z, cube, visible, fake);
         return CutoutResult.DRAWN;
     }
 
     private static void renderTriangles(int x, int y, int z, LittleTilesCubeObject cube, List<Triangle3d> triangles,
-            IBlockAccess world, IBlockAccessFake fake) {
+            IBlockAccessFake fake) {
         // cut results are cached on the tile and must not be textured or translated in place
         Mesh3d mesh = new Mesh3d(triangles).copy();
         mesh.setTextures(cube.block, cube.meta);
@@ -231,7 +231,7 @@ public class LittleTilesBlockRenderHelper {
                 if (cube.block != null && cube.meta != -1) fake.setBlock(cube.block, cube.meta);
 
                 if (cube.cutoutInfo != null) {
-                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, world, fake);
+                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, fake);
                     if (result == CutoutResult.DRAWN) {
                         rendered = true;
                         continue;
@@ -268,7 +268,7 @@ public class LittleTilesBlockRenderHelper {
                     extraRenderer.lockBlockBounds = false;
                     extraRenderer.color = ColorUtils.WHITE;
                     if (!boxTriangles.isEmpty()) {
-                        renderTriangles(x, y, z, cube, boxTriangles, world, fake);
+                        renderTriangles(x, y, z, cube, boxTriangles, fake);
                     }
                 }
             }

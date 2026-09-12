@@ -127,10 +127,8 @@ public class LittleTileGeometryCache {
     }
 
     /**
-     * Captures the cut generation before a render cube reads any of the geometry that the cut will describe.
-     * <p>
-     * Deliberately lock-free: this runs for every tile of every neighbour on every render, and taking the monitor here
-     * would queue those reads behind mesh generation, which holds it for as long as a triangulation takes.
+     * Captures the cut generation without taking the cache monitor. World rendering captures all generations under
+     * the tile entity's list monitor along with membership, before reading any cube or occluder geometry.
      */
     public long captureCutsGeneration() {
         return cutsGeneration;

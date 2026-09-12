@@ -3,6 +3,7 @@ package com.creativemd.littletiles.client.render;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
@@ -31,6 +32,7 @@ import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTileGeometryCache;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 
@@ -135,13 +137,17 @@ public class LittleTilesBlockRenderHelper {
         return block.getRenderColor(meta);
     }
 
-    private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
-            IBlockAccess world) {
-        if (!cube.geometryCache.hasValidMesh()) {
+    private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube,
+            Supplier<CullingContext> culling, IBlockAccess world) {
+        // Resolved once and handed to the culler. Asking again inside would be a different question: the tile can
+        // drop its mesh in between, and an empty cut result reads as HIDDEN, which would skip the cube entirely
+        // instead of falling back to drawing it as a plain box.
+        Mesh3d mesh = cube.geometryCache.getOrCreateSimpleMesh();
+        if (mesh == null || mesh.getTriangles().isEmpty()) {
             return CutoutResult.FAILED;
         }
 
-        List<Triangle3d> visible = LittleTilesFaceCuller.visibleCutoutTriangles(culling, cube);
+        List<Triangle3d> visible = LittleTilesFaceCuller.visibleCutoutTriangles(culling, cube, mesh);
         if (visible.isEmpty()) {
             return CutoutResult.HIDDEN;
         }
@@ -184,29 +190,65 @@ public class LittleTilesBlockRenderHelper {
     }
 
     /**
-     * Whether any cube still has to be culled, rather than being served from its cached cut result. Gathering the
-     * geometry to cull against reaches into the six neighbouring tile entities, which is not worth doing when every
-     * cube of this one already knows what is visible of it.
+     * Gathers the geometry to cull against on first use, at most once per render.
+     * <p>
+     * Preparing it reaches into the six neighbouring tile entities, which is not worth doing when every cube of this
+     * one is already served from its cached cut result. Deciding that up front is not safe though: a cache can be
+     * invalidated between the decision and the calculation, and the calculation would then run without the geometry it
+     * needs. Leaving it to the culler means the context is prepared exactly when something is really recomputed.
+     * <p>
+     * Confined to a single {@link #renderCubes} call on one thread, so it needs no synchronization of its own.
      */
-    private static boolean needsCulling(List<LittleTilesCubeObject> cubes, IFaceClipper[] coverage, int pass) {
+    private static final class LazyCullingContext implements Supplier<CullingContext> {
+
+        private final IBlockAccess world;
+        private final List<LittleTilesCubeObject> cubes;
+        private final int x;
+        private final int y;
+        private final int z;
+        private CullingContext context;
+
+        private LazyCullingContext(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x, int y, int z) {
+            this.world = world;
+            this.cubes = cubes;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        @Override
+        public CullingContext get() {
+            if (context == null) {
+                context = LittleTilesFaceCuller.prepareCulling(world, cubes, x, y, z);
+            }
+            return context;
+        }
+    }
+
+    /**
+     * Whether no two cubes share a geometry cache. A cache holds a single culling result, so two cubes sharing one
+     * would overwrite each other's - and a cutout cube overwriting a box cube's result would also swap which of the two
+     * culling paths the cached value came from. Every tile currently renders as exactly one cube, which is what keeps
+     * this true.
+     */
+    private static boolean haveDistinctGeometryCaches(List<LittleTilesCubeObject> cubes) {
         for (int i = 0; i < cubes.size(); i++) {
-            LittleTilesCubeObject cube = cubes.get(i);
-            if (!cube.block.canRenderInPass(pass)) {
+            LittleTileGeometryCache cache = cubes.get(i).geometryCache;
+            if (cache == null) {
                 continue;
             }
-            if (cube.cutoutInfo != null) {
-                if (cube.geometryCache.hasValidMesh() && cube.geometryCache.getVisibleCutoutTriangles() == null) {
-                    return true;
+            for (int j = i + 1; j < cubes.size(); j++) {
+                if (cubes.get(j).geometryCache == cache) {
+                    return false;
                 }
-            } else if (coverage[i] instanceof FaceClipper && cube.geometryCache.getVisibleBoxTriangles() == null) {
-                return true;
             }
         }
-        return false;
+        return true;
     }
 
     public static boolean renderCubes(IBlockAccess world, ArrayList<LittleTilesCubeObject> cubes, int x, int y, int z,
             Block block, RenderBlocks renderer, ForgeDirection direction) {
+        assert haveDistinctGeometryCaches(cubes) : "Two cubes share one geometry cache, their culling results collide";
 
         final ExtendedRenderBlocks extraRenderer = extraRendererThreadLocal.get();
         extraRenderer.updateRenderer(renderer);
@@ -218,9 +260,7 @@ public class LittleTilesBlockRenderHelper {
         boolean rendered = false;
 
         IFaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(world, cubes, x, y, z);
-        CullingContext cullingContext = needsCulling(cubes, coverage, pass)
-                ? LittleTilesFaceCuller.prepareCulling(world, cubes, x, y, z)
-                : null;
+        LazyCullingContext cullingContext = new LazyCullingContext(world, cubes, x, y, z);
 
         try {
             for (int i = 0; i < cubes.size(); i++) {
@@ -264,13 +304,16 @@ public class LittleTilesBlockRenderHelper {
                     LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
                 }
                 extraRenderer.field_152631_f = true;
-                extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
-                extraRenderer.field_152631_f = false;
-                if (LittleTiles.angelicaCompat != null) {
-                    LittleTiles.angelicaCompat.resetShaderMaterialOverride();
+                try {
+                    extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
+                } finally {
+                    extraRenderer.field_152631_f = false;
+                    if (LittleTiles.angelicaCompat != null) {
+                        LittleTiles.angelicaCompat.resetShaderMaterialOverride();
+                    }
+                    extraRenderer.lockBlockBounds = false;
+                    extraRenderer.color = ColorUtils.WHITE;
                 }
-                extraRenderer.lockBlockBounds = false;
-                extraRenderer.color = ColorUtils.WHITE;
                 if (!boxTriangles.isEmpty()) {
                     renderTriangles(x, y, z, cube, boxTriangles, fake);
                 }
@@ -307,7 +350,8 @@ public class LittleTilesBlockRenderHelper {
 
             if (cube instanceof LittleTilesCubeObject) {
                 LittleTilesCubeObject littleCube = (LittleTilesCubeObject) cube;
-                Mesh3d mesh = littleCube.geometryCache == null ? null : littleCube.geometryCache.getSimpleMesh();
+                Mesh3d mesh = littleCube.geometryCache == null ? null
+                        : littleCube.geometryCache.getOrCreateSimpleMesh();
                 if (mesh != null) {
                     mesh = mesh.copy();
                     // Recipe meshes retain their multi-block position (for example, x = 1..2 for a tile in the

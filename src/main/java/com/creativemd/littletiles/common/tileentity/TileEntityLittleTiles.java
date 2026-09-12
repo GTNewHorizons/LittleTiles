@@ -28,6 +28,7 @@ import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 
@@ -41,20 +42,56 @@ public class TileEntityLittleTiles extends TileEntity {
         return Collections.synchronizedList(new ArrayList<LittleTile>());
     }
 
-    private List<LittleTile> tiles = createTileList();
+    // The monitor must survive list replacement: render snapshots and cut invalidation share it.
+    private final List<LittleTile> tiles = createTileList();
 
     public void setTiles(List<LittleTile> tiles) {
-        this.tiles = tiles;
+        replaceTiles(tiles);
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) updateCustomRenderer();
+    }
+
+    private void replaceTiles(List<LittleTile> replacement) {
+        // Copy before clearing, including when the caller supplies our own list.
+        List<LittleTile> snapshot = new ArrayList<>(replacement);
+        synchronized (tiles) {
+            tiles.clear();
+            tiles.addAll(snapshot);
+        }
     }
 
     public List<LittleTile> getTiles() {
         return tiles;
     }
 
-    public ArrayList<LittleTile> customRenderingTiles = new ArrayList<>();
+    /**
+     * Captures membership and every cut generation before reading any render geometry. Invalidation uses the same list
+     * monitor, so an old list cannot acquire a new generation after a tile was added or removed. Geometry is read
+     * outside the monitor: stale renders are allowed, but the cache generation checks prevent retaining their cuts.
+     */
+    @SideOnly(Side.CLIENT)
+    public ArrayList<LittleTilesCubeObject> getRenderingCubes() {
+        List<LittleTile> snapshot;
+        long[] cutsGenerations;
+        synchronized (tiles) {
+            snapshot = new ArrayList<>(tiles);
+            cutsGenerations = new long[snapshot.size()];
+            for (int i = 0; i < snapshot.size(); i++) {
+                cutsGenerations[i] = snapshot.get(i).getGeometryCache().captureCutsGeneration();
+            }
+        }
 
-    public boolean needsLightUpdate = true;
+        ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
+        for (int i = 0; i < snapshot.size(); i++) {
+            for (LittleTilesCubeObject cube : snapshot.get(i).getRenderingCubes()) {
+                // Use the generation of the list snapshot, not one captured later during cube construction.
+                cube.cutsGeneration = cutsGenerations[i];
+                cubes.add(cube);
+            }
+        }
+        return cubes;
+    }
+
+    public ArrayList<LittleTile> customRenderingTiles = new ArrayList<>();
 
     public boolean removeTile(LittleTile tile) {
         return removeTile(tile, true);
@@ -83,10 +120,7 @@ public class TileEntityLittleTiles extends TileEntity {
 
     public void updateTiles(boolean cleanupTileEntityIfLast) {
         if (worldObj != null) {
-            needsLightUpdate = true;
-            final int lastLight = lastMaxLightValue;
-
-            if (lastLight != getMaxLightValue()) {
+            if (recalculateMaxLightValue()) {
                 worldObj.updateLightByType(EnumSkyBlock.Block, xCoord, yCoord, zCoord);
             }
 
@@ -175,19 +209,20 @@ public class TileEntityLittleTiles extends TileEntity {
         }
 
         for (LittleTile tile : tiles) {
-            if (tile.boundingBox == null) {
+            // read once: both can be reassigned while this runs, and the mesh has to describe the box it is tested
+            // against rather than a later revision of it
+            LittleTileBox boxOldTile = tile.boundingBox;
+            LittleTileCutoutInfo cutoutOldTile = tile.getCutoutInfo();
+            if (boxOldTile == null) {
                 continue;
             }
 
             // Skip all checks if bounding boxes don't even collide
-            if (!aabbNewTile.intersectsWith(tile.boundingBox.getBox())) {
+            if (!aabbNewTile.intersectsWith(boxOldTile.getBox())) {
                 continue;
             }
 
-            Mesh3d meshOldTile = null;
-            if (tile.getCutoutInfo() != null) {
-                meshOldTile = Mesh3dUtil.meshFromTile(tile.boundingBox, tile.getCutoutInfo());
-            }
+            Mesh3d meshOldTile = cutoutOldTile == null ? null : Mesh3dUtil.meshFromTile(boxOldTile, cutoutOldTile);
 
             if (meshOldTile == null) {
                 if (meshNewTile == null) {
@@ -195,7 +230,7 @@ public class TileEntityLittleTiles extends TileEntity {
                     return false;
                 } else {
                     // Special box-mesh collision
-                    if (TriangleBoundingBoxIntersect.intersect(meshNewTile, tile.boundingBox)) {
+                    if (TriangleBoundingBoxIntersect.intersect(meshNewTile, boxOldTile)) {
                         return false;
                     }
                 }
@@ -229,14 +264,14 @@ public class TileEntityLittleTiles extends TileEntity {
     @Override
     public void readFromNBT(NBTTagCompound nbt) {
         super.readFromNBT(nbt);
-        if (tiles != null) tiles.clear();
-        tiles = createTileList();
+        List<LittleTile> loadedTiles = new ArrayList<>();
         int count = nbt.getInteger("tilesCount");
         for (int i = 0; i < count; i++) {
             NBTTagCompound tileNBT = nbt.getCompoundTag("t" + i);
             LittleTile tile = LittleTile.CreateandLoadTile(this, worldObj, tileNBT);
-            if (tile != null) tiles.add(tile);
+            if (tile != null) loadedTiles.add(tile);
         }
+        replaceTiles(loadedTiles);
         updateTiles();
     }
 
@@ -280,13 +315,14 @@ public class TileEntityLittleTiles extends TileEntity {
     @Override
     @SideOnly(Side.CLIENT)
     public void onDataPacket(NetworkManager net, S35PacketUpdateTileEntity pkt) {
-        tiles.clear();
+        List<LittleTile> loadedTiles = new ArrayList<>();
         int count = pkt.func_148857_g().getInteger("tilesCount");
         for (int i = 0; i < count; i++) {
             NBTTagCompound tileNBT = pkt.func_148857_g().getCompoundTag("t" + i);
             LittleTile tile = LittleTile.CreateandLoadTile(this, worldObj, tileNBT);
-            if (tile != null) tiles.add(tile);
+            if (tile != null) loadedTiles.add(tile);
         }
+        replaceTiles(loadedTiles);
         updateTiles();
     }
 
@@ -316,11 +352,14 @@ public class TileEntityLittleTiles extends TileEntity {
                     if (hit == null || hit.hitVec.distanceTo(pos) > Temphit.hitVec.distanceTo(pos) - EPSILON) {
                         boolean isHit = true;
                         if (tile.getCutoutInfo() != null) {
+                            // Resolved once. Asking a second time would be a different question: the tile can drop
+                            // its mesh in between, and the answer here decides whether the ray hit at all.
                             Mesh3d mesh = tile.getSimpleMesh();
-                            float distance = TriangleRayIntersect.intersects(mesh, xCoord, yCoord, zCoord, pos, look);
-                            if (mesh.getTriangles().isEmpty()) {
-                                // Workaround for buggy, empty meshes
-                                distance = 0;
+                            // A tile with no usable mesh is drawn as its plain box, so the ray has to hit it as one.
+                            // That is what the zero distance does - it is the nearest a cutout hit can be.
+                            float distance = 0;
+                            if (mesh != null && !mesh.getTriangles().isEmpty()) {
+                                distance = TriangleRayIntersect.intersects(mesh, xCoord, yCoord, zCoord, pos, look);
                             }
                             isHit = distance < lastCutoutDistance;
                             if (isHit) {
@@ -375,8 +414,13 @@ public class TileEntityLittleTiles extends TileEntity {
 
     @SideOnly(Side.CLIENT)
     public void updateRender() {
-        // Culling looks across block borders, so what the neighbours had cut away can be stale now as well.
         invalidateCutCaches();
+        recalculateMaxLightValue();
+        invalidateNeighbourRender();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void invalidateNeighbourRender() {
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             TileEntity neighbour = worldObj
                     .getTileEntity(xCoord + side.offsetX, yCoord + side.offsetY, zCoord + side.offsetZ);
@@ -385,6 +429,20 @@ public class TileEntityLittleTiles extends TileEntity {
             }
         }
         worldObj.markBlockRangeForRenderUpdate(xCoord - 1, yCoord - 1, zCoord - 1, xCoord + 1, yCoord + 1, zCoord + 1);
+    }
+
+    @Override
+    public void validate() {
+        super.validate();
+        recalculateMaxLightValue();
+    }
+
+    @Override
+    public void invalidate() {
+        super.invalidate();
+        if (worldObj != null && FMLCommonHandler.instance().getEffectiveSide().isClient()) {
+            invalidateNeighbourRender();
+        }
     }
 
     @SideOnly(Side.CLIENT)
@@ -471,24 +529,32 @@ public class TileEntityLittleTiles extends TileEntity {
         update();
     }
 
-    private boolean first = true;
-    private int lastMaxLightValue;
+    /**
+     * Cached maximum light value of all tiles. Only ever written while the tiles are modified (main thread), but read
+     * from other threads (rendering, lighting), therefore volatile.
+     */
+    private volatile int maxLightValue;
+
+    /**
+     * Recomputes the cached light value. Must only be called from the thread which owns the tiles.
+     * 
+     * @return whether the value changed
+     */
+    private boolean recalculateMaxLightValue() {
+        int light = 0;
+        synchronized (tiles) {
+            for (LittleTile tile : tiles) {
+                int tempLight = tile.getLightValue(worldObj, xCoord, yCoord, zCoord);
+                if (tempLight > light) light = tempLight;
+            }
+        }
+        if (light == maxLightValue) return false;
+        maxLightValue = light;
+        return true;
+    }
 
     public int getMaxLightValue() {
-        if (!needsLightUpdate) {
-            return lastMaxLightValue;
-        }
-        if (!first) return 0;
-        int light = 0;
-        for (LittleTile tile : getTiles()) {
-            first = false;
-            int tempLight = tile.getLightValue(worldObj, xCoord, yCoord, zCoord);
-            first = true;
-            if (tempLight > light) light = tempLight;
-        }
-        lastMaxLightValue = light;
-        needsLightUpdate = false;
-        return light;
+        return maxLightValue;
     }
 
     @Override

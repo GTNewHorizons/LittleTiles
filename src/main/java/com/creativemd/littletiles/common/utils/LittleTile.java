@@ -483,13 +483,16 @@ public abstract class LittleTile {
     }
 
     public Mesh3d getSimpleMesh() {
-        if (cutoutInfo == null || boundingBox == null) {
+        // read once: chunk builds run this off-thread while the main thread can reassign either field
+        LittleTileBox box = boundingBox;
+        LittleTileCutoutInfo cutout = cutoutInfo;
+        if (cutout == null || box == null) {
             return null;
         }
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) {
-            return geometryCache.getSimpleMesh();
+            return geometryCache.getOrCreateSimpleMesh();
         }
-        return Mesh3dUtil.meshFromTile(boundingBox, cutoutInfo);
+        return Mesh3dUtil.meshFromTile(box, cutout);
     }
 
     private void invalidateClientMeshCache() {

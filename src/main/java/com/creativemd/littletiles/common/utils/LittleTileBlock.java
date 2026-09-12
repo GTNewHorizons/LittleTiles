@@ -16,6 +16,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 public class LittleTileBlock extends LittleTile {
 
@@ -74,12 +75,19 @@ public class LittleTileBlock extends LittleTile {
     @Override
     public ArrayList<LittleTilesCubeObject> getRenderingCubes() {
         ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
-        if (boundingBox != null) {
-            LittleTilesCubeObject cube = boundingBox.getCube();
+        LittleTileGeometryCache cache = getGeometryCache();
+        // Captures this tile only. World rendering replaces this with the generation captured by the tile entity
+        // together with list membership, before any cube (including an occluder) reads its geometry.
+        long cutsGeneration = cache.captureCutsGeneration();
+        // read once: chunk builds run this off-thread while the main thread can reassign the box
+        LittleTileBox box = boundingBox;
+        if (box != null) {
+            LittleTilesCubeObject cube = box.getCube();
             cube.block = block;
             cube.meta = meta;
             cube.cutoutInfo = this.getCutoutInfo();
-            cube.geometryCache = getGeometryCache();
+            cube.geometryCache = cache;
+            cube.cutsGeneration = cutsGeneration;
             cubes.add(cube);
         }
         return cubes;

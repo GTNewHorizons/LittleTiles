@@ -6,6 +6,7 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [],
   "client": [
-    "MixinForgeHooks_PickBlock"
+    "MixinForgeHooks_PickBlock",
+    "MixinGuiContainer_PickBlock"
   ]
 }

@@ -101,7 +101,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             placeMode = handler.getPlaceMode();
         }
 
-        LittleTileBlockPos pos = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
+        LittleTileBlockPos clickedPos = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
+        LittleTileBlockPos pos = clickedPos;
 
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
 
@@ -119,7 +120,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
             // With a corner selected, right click warps it to where the player is looking instead of placing.
             if (LittleDeformedBoxHelper.hasMarkedCorner()) {
-                LittleDeformedBoxHelper.moveMarkedTo(pos);
+                LittleDeformedBoxHelper.moveMarkedTo(clickedPos);
                 return true;
             }
 

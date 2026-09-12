@@ -69,15 +69,21 @@ public abstract class MixinGuiContainer_PickBlock {
             e.printStackTrace();
         }
 
-        if (hoveredStack == null) {
+        if (hoveredStack == null || hoveredStack.getItem() == null)) {
             return;
         }
 
         Block block = Block.getBlockFromItem(hoveredStack.getItem());
-        if (!BlockValidator.isBlockValid(block)) {
+        int meta;
+        if (block == LittleTiles.blockTile && hoveredStack.hasTagCompound()) {
+            block = Block.getBlockFromName(hoveredStack.getTagCompound().getString("block"));
+            meta = hoveredStack.getTagCompound().getInteger("meta");
+        } else {
+            meta = hoveredStack.getItem().getMetadata(hoveredStack.getItemDamage());
+        }
+        if (block == null || !BlockValidator.isBlockValid(block)) {
             return;
         }
-        final int meta = hoveredStack.getItem().getMetadata(hoveredStack.getItemDamage());
         new LittleToolHandler(cursorStack).setBlock(block, meta);
 
         PacketHandler.sendPacketToServer(new LittleCursorBlockUpdatePacket(Block.getIdFromBlock(block), meta));

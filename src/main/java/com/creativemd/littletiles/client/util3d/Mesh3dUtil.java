@@ -177,8 +177,7 @@ public class Mesh3dUtil {
      * The 4 corners of every box face, in ring order, indexed as described by {@link #DEFORMED_BOX_CORNER_COUNT}. The
      * order of the faces themselves is the one {@link #nominalFaceNormal(int)} relies on.
      */
-    public static final int[][] DEFORMED_BOX_FACES = {
-            { 0, 2, 6, 4 }, // west (x = min)
+    public static final int[][] DEFORMED_BOX_FACES = { { 0, 2, 6, 4 }, // west (x = min)
             { 1, 5, 7, 3 }, // east (x = max)
             { 0, 4, 5, 1 }, // down (y = min)
             { 2, 3, 7, 6 }, // up (y = max)
@@ -211,12 +210,13 @@ public class Mesh3dUtil {
      * Builds the mesh of a box whose 8 corners have been dragged out of their axis-aligned positions. Each face is a
      * general quad which is split along its shorter diagonal - for a warped (non-planar) face the two possible splits
      * give visibly different silhouettes, and the shorter diagonal is the one that keeps the surface closest to flat.
-     * Windings are fixed up against the centroid so every face ends up pointing outwards, except where the box has
-     * been flattened - see {@link #nominalFaceNormal(int)}.
+     * Windings are fixed up against the centroid so every face ends up pointing outwards, except where the box has been
+     * flattened - see {@link #nominalFaceNormal(int)}.
      * <p>
      * Deformed-box corners always remain in orientation-zero space. This method reconstructs and normalizes that
-     * original space from the corners; {@link #createMesh} applies the saved orientation to the completed mesh afterward.
-     * The stored cutout size may therefore describe the rotated tile bounds and must not be used to normalize corners.
+     * original space from the corners; {@link #createMesh} applies the saved orientation to the completed mesh
+     * afterward. The stored cutout size may therefore describe the rotated tile bounds and must not be used to
+     * normalize corners.
      */
     private static Mesh3d createDeformedBoxMesh(LittleTileCutoutInfo cutoutInfo) {
         if (cutoutInfo.corners == null) {
@@ -298,16 +298,9 @@ public class Mesh3dUtil {
 
     /** A visibly warped full tile used to preview a deformed box, which has no fixed shape of its own. */
     public static Vector3i[] demoDeformedBoxCorners() {
-        return new Vector3i[] {
-                new Vector3i(2, 1, 2),
-                new Vector3i(15, 0, 3),
-                new Vector3i(0, 13, 1),
-                new Vector3i(13, 16, 0),
-                new Vector3i(1, 3, 14),
-                new Vector3i(16, 2, 16),
-                new Vector3i(3, 16, 15),
-                new Vector3i(14, 13, 13),
-        };
+        return new Vector3i[] { new Vector3i(2, 1, 2), new Vector3i(15, 0, 3), new Vector3i(0, 13, 1),
+                new Vector3i(13, 16, 0), new Vector3i(1, 3, 14), new Vector3i(16, 2, 16), new Vector3i(3, 16, 15),
+                new Vector3i(14, 13, 13), };
     }
 
     public static Mesh3d createBoxMesh() {

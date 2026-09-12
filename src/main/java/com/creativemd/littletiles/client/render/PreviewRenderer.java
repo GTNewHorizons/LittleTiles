@@ -19,8 +19,10 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
+import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
@@ -91,15 +93,14 @@ public class PreviewRenderer {
     }
 
     /** The 12 edges of the box, as pairs of corner indices - the two corners of an edge differ in exactly one axis. */
-    private static final int[][] BOX_EDGES = {
-            { 0, 1 }, { 2, 3 }, { 4, 5 }, { 6, 7 }, // along x
+    private static final int[][] BOX_EDGES = { { 0, 1 }, { 2, 3 }, { 4, 5 }, { 6, 7 }, // along x
             { 0, 2 }, { 1, 3 }, { 4, 6 }, { 5, 7 }, // along y
             { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }, // along z
     };
 
     /**
-     * Draws the deformed box being edited as a wireframe of its 12 edges. Faces are never filled, so the player can
-     * see the tiles behind the box while shaping it.
+     * Draws the deformed box being edited as a wireframe of its 12 edges. Faces are never filled, so the player can see
+     * the tiles behind the box while shaping it.
      */
     private static void renderBoxEdges() {
         boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
@@ -124,9 +125,9 @@ public class PreviewRenderer {
     }
 
     /**
-     * Draws the split diagonal of every face whose 4 corners are no longer coplanar, showing where the surface
-     * actually bends. The diagonal comes from {@link Mesh3dUtil#splitsAlongFirstDiagonal}, the same call the mesh
-     * itself is built from, so the line can never disagree with the geometry it is describing.
+     * Draws the split diagonal of every face whose 4 corners are no longer coplanar, showing where the surface actually
+     * bends. The diagonal comes from {@link Mesh3dUtil#splitsAlongFirstDiagonal}, the same call the mesh itself is
+     * built from, so the line can never disagree with the geometry it is describing.
      */
     private static void renderFaceDiagonals() {
         LittleTileCutoutInfo cutout = LittleDeformedBoxHelper.currentCutout();
@@ -175,8 +176,8 @@ public class PreviewRenderer {
     }
 
     /**
-     * Draws a small cube on each of the 8 corners of the deformed box being edited, so the player can see what there
-     * is to grab. The selected corner is drawn in a different colour. These are the very same cubes
+     * Draws a small cube on each of the 8 corners of the deformed box being edited, so the player can see what there is
+     * to grab. The selected corner is drawn in a different colour. These are the very same cubes
      * {@link LittleDeformedBoxHelper#pickCorner} raytraces against, so what is clicked is what is shown.
      */
     private static void renderCornerMarkers(int grid) {

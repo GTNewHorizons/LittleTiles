@@ -96,26 +96,21 @@ public class DumpMeshCommand extends CommandBase {
         meta.append("tile.nbt=").append(tileNbt).append('\n');
 
         if (tile.te != null) {
-            meta.append("tileEntity.blockPos=")
-                    .append(tile.te.xCoord).append(',').append(tile.te.yCoord).append(',').append(tile.te.zCoord)
-                    .append('\n');
+            meta.append("tileEntity.blockPos=").append(tile.te.xCoord).append(',').append(tile.te.yCoord).append(',')
+                    .append(tile.te.zCoord).append('\n');
         }
 
         if (box != null) {
-            meta.append("boundingBox.grid.min=")
-                    .append(box.minX).append(',').append(box.minY).append(',').append(box.minZ).append('\n');
-            meta.append("boundingBox.grid.max=")
-                    .append(box.maxX).append(',').append(box.maxY).append(',').append(box.maxZ).append('\n');
-            meta.append("boundingBox.grid.size=")
-                    .append(box.maxX - box.minX).append(',')
-                    .append(box.maxY - box.minY).append(',')
-                    .append(box.maxZ - box.minZ).append('\n');
-            meta.append("boundingBox.block.min=")
-                    .append(box.minX / 16.0).append(',').append(box.minY / 16.0).append(',').append(box.minZ / 16.0)
-                    .append('\n');
-            meta.append("boundingBox.block.max=")
-                    .append(box.maxX / 16.0).append(',').append(box.maxY / 16.0).append(',').append(box.maxZ / 16.0)
-                    .append('\n');
+            meta.append("boundingBox.grid.min=").append(box.minX).append(',').append(box.minY).append(',')
+                    .append(box.minZ).append('\n');
+            meta.append("boundingBox.grid.max=").append(box.maxX).append(',').append(box.maxY).append(',')
+                    .append(box.maxZ).append('\n');
+            meta.append("boundingBox.grid.size=").append(box.maxX - box.minX).append(',').append(box.maxY - box.minY)
+                    .append(',').append(box.maxZ - box.minZ).append('\n');
+            meta.append("boundingBox.block.min=").append(box.minX / 16.0).append(',').append(box.minY / 16.0)
+                    .append(',').append(box.minZ / 16.0).append('\n');
+            meta.append("boundingBox.block.max=").append(box.maxX / 16.0).append(',').append(box.maxY / 16.0)
+                    .append(',').append(box.maxZ / 16.0).append('\n');
         }
 
         if (cutout != null) {
@@ -126,18 +121,14 @@ public class DumpMeshCommand extends CommandBase {
             meta.append("cutout.thickness=").append(cutout.thickness).append('\n');
             meta.append("cutout.faceStart=").append(cutout.faceStart).append('\n');
             meta.append("cutout.faceEnd=").append(cutout.faceEnd).append('\n');
-            meta.append("cutout.negativeAxes=")
-                    .append(cutout.negX).append(',').append(cutout.negY).append(',').append(cutout.negZ).append('\n');
+            meta.append("cutout.negativeAxes=").append(cutout.negX).append(',').append(cutout.negY).append(',')
+                    .append(cutout.negZ).append('\n');
             if (cutout.corners != null) {
                 LittleTileBox cornerBounds = LittleTileBox.fromPoints(cutout.corners);
-                meta.append("cutout.cornerBounds.min=")
-                        .append(cornerBounds.minX).append(',')
-                        .append(cornerBounds.minY).append(',')
-                        .append(cornerBounds.minZ).append('\n');
-                meta.append("cutout.cornerBounds.max=")
-                        .append(cornerBounds.maxX).append(',')
-                        .append(cornerBounds.maxY).append(',')
-                        .append(cornerBounds.maxZ).append('\n');
+                meta.append("cutout.cornerBounds.min=").append(cornerBounds.minX).append(',').append(cornerBounds.minY)
+                        .append(',').append(cornerBounds.minZ).append('\n');
+                meta.append("cutout.cornerBounds.max=").append(cornerBounds.maxX).append(',').append(cornerBounds.maxY)
+                        .append(',').append(cornerBounds.maxZ).append('\n');
                 for (int i = 0; i < cutout.corners.length; i++) {
                     appendVector(meta, "cutout.corner." + i, cutout.corners[i]);
                 }
@@ -161,8 +152,8 @@ public class DumpMeshCommand extends CommandBase {
         if (vector == null) {
             output.append(name).append("=null\n");
         } else {
-            output.append(name).append('=')
-                    .append(vector.x).append(',').append(vector.y).append(',').append(vector.z).append('\n');
+            output.append(name).append('=').append(vector.x).append(',').append(vector.y).append(',').append(vector.z)
+                    .append('\n');
         }
     }
 }

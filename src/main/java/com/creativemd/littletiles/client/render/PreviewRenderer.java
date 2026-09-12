@@ -16,6 +16,7 @@ import net.minecraft.util.Vec3;
 import net.minecraftforge.client.event.RenderHandEvent;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;

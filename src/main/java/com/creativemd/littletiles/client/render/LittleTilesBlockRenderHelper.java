@@ -304,13 +304,16 @@ public class LittleTilesBlockRenderHelper {
                     LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
                 }
                 extraRenderer.field_152631_f = true;
-                extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
-                extraRenderer.field_152631_f = false;
-                if (LittleTiles.angelicaCompat != null) {
-                    LittleTiles.angelicaCompat.resetShaderMaterialOverride();
+                try {
+                    extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
+                } finally {
+                    extraRenderer.field_152631_f = false;
+                    if (LittleTiles.angelicaCompat != null) {
+                        LittleTiles.angelicaCompat.resetShaderMaterialOverride();
+                    }
+                    extraRenderer.lockBlockBounds = false;
+                    extraRenderer.color = ColorUtils.WHITE;
                 }
-                extraRenderer.lockBlockBounds = false;
-                extraRenderer.color = ColorUtils.WHITE;
                 if (!boxTriangles.isEmpty()) {
                     renderTriangles(x, y, z, cube, boxTriangles, fake);
                 }

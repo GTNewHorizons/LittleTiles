@@ -93,8 +93,6 @@ public class TileEntityLittleTiles extends TileEntity {
 
     public ArrayList<LittleTile> customRenderingTiles = new ArrayList<>();
 
-    public boolean needsLightUpdate = true;
-
     public boolean removeTile(LittleTile tile) {
         return removeTile(tile, true);
     }
@@ -122,10 +120,7 @@ public class TileEntityLittleTiles extends TileEntity {
 
     public void updateTiles(boolean cleanupTileEntityIfLast) {
         if (worldObj != null) {
-            needsLightUpdate = true;
-            final int lastLight = lastMaxLightValue;
-
-            if (lastLight != getMaxLightValue()) {
+            if (recalculateMaxLightValue()) {
                 worldObj.updateLightByType(EnumSkyBlock.Block, xCoord, yCoord, zCoord);
             }
 
@@ -420,7 +415,7 @@ public class TileEntityLittleTiles extends TileEntity {
     @SideOnly(Side.CLIENT)
     public void updateRender() {
         invalidateCutCaches();
-        needsLightUpdate = true;
+        recalculateMaxLightValue();
         invalidateNeighbourRender();
     }
 
@@ -434,6 +429,12 @@ public class TileEntityLittleTiles extends TileEntity {
             }
         }
         worldObj.markBlockRangeForRenderUpdate(xCoord - 1, yCoord - 1, zCoord - 1, xCoord + 1, yCoord + 1, zCoord + 1);
+    }
+
+    @Override
+    public void validate() {
+        super.validate();
+        recalculateMaxLightValue();
     }
 
     @Override
@@ -528,24 +529,28 @@ public class TileEntityLittleTiles extends TileEntity {
         update();
     }
 
-    private boolean first = true;
-    private int lastMaxLightValue;
+    /** Cached maximum light value of all tiles. Only ever written while the tiles are modified (main
+     * thread), but read from other threads (rendering, lighting), therefore volatile. */
+    private volatile int maxLightValue;
+
+    /** Recomputes the cached light value. Must only be called from the thread which owns the tiles.
+     * 
+     * @return whether the value changed */
+    private boolean recalculateMaxLightValue() {
+        int light = 0;
+        synchronized (tiles) {
+            for (LittleTile tile : tiles) {
+                int tempLight = tile.getLightValue(worldObj, xCoord, yCoord, zCoord);
+                if (tempLight > light) light = tempLight;
+            }
+        }
+        if (light == maxLightValue) return false;
+        maxLightValue = light;
+        return true;
+    }
 
     public int getMaxLightValue() {
-        if (!needsLightUpdate) {
-            return lastMaxLightValue;
-        }
-        if (!first) return 0;
-        int light = 0;
-        for (LittleTile tile : getTiles()) {
-            first = false;
-            int tempLight = tile.getLightValue(worldObj, xCoord, yCoord, zCoord);
-            first = true;
-            if (tempLight > light) light = tempLight;
-        }
-        lastMaxLightValue = light;
-        needsLightUpdate = false;
-        return light;
+        return maxLightValue;
     }
 
     @Override

@@ -69,7 +69,7 @@ public abstract class MixinGuiContainer_PickBlock {
             e.printStackTrace();
         }
 
-        if (hoveredStack == null || hoveredStack.getItem() == null)) {
+        if (hoveredStack == null || hoveredStack.getItem() == null) {
             return;
         }
 

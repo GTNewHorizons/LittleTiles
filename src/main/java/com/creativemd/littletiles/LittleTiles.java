@@ -18,6 +18,7 @@ import com.creativemd.littletiles.common.blocks.BlockLTColored;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ItemBlockColored;
 import com.creativemd.littletiles.common.events.LittleEvent;
+import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.items.ItemBlockTiles;
 import com.creativemd.littletiles.common.items.ItemCollisionTool;
 import com.creativemd.littletiles.common.items.ItemColorTube;
@@ -54,6 +55,7 @@ import cpw.mods.fml.common.Mod.Instance;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
+import cpw.mods.fml.common.event.FMLServerStoppedEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 @Mod(
@@ -175,6 +177,11 @@ public class LittleTiles {
         if (Loader.isModLoaded("Waila")) {
             Waila.init();
         }
+    }
+
+    @EventHandler
+    public void serverStopped(FMLServerStoppedEvent event) {
+        LittleTilesPlacementHistory.clear();
     }
 
     @EventHandler

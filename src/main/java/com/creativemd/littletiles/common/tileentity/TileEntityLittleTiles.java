@@ -28,6 +28,7 @@ import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 
@@ -41,15 +42,53 @@ public class TileEntityLittleTiles extends TileEntity {
         return Collections.synchronizedList(new ArrayList<LittleTile>());
     }
 
-    private List<LittleTile> tiles = createTileList();
+    // The monitor must survive list replacement: render snapshots and cut invalidation share it.
+    private final List<LittleTile> tiles = createTileList();
 
     public void setTiles(List<LittleTile> tiles) {
-        this.tiles = tiles;
+        replaceTiles(tiles);
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) updateCustomRenderer();
+    }
+
+    private void replaceTiles(List<LittleTile> replacement) {
+        // Copy before clearing, including when the caller supplies our own list.
+        List<LittleTile> snapshot = new ArrayList<>(replacement);
+        synchronized (tiles) {
+            tiles.clear();
+            tiles.addAll(snapshot);
+        }
     }
 
     public List<LittleTile> getTiles() {
         return tiles;
+    }
+
+    /**
+     * Captures membership and every cut generation before reading any render geometry. Invalidation uses the same
+     * list monitor, so an old list cannot acquire a new generation after a tile was added or removed. Geometry is read
+     * outside the monitor: stale renders are allowed, but the cache generation checks prevent retaining their cuts.
+     */
+    @SideOnly(Side.CLIENT)
+    public ArrayList<LittleTilesCubeObject> getRenderingCubes() {
+        List<LittleTile> snapshot;
+        long[] cutsGenerations;
+        synchronized (tiles) {
+            snapshot = new ArrayList<>(tiles);
+            cutsGenerations = new long[snapshot.size()];
+            for (int i = 0; i < snapshot.size(); i++) {
+                cutsGenerations[i] = snapshot.get(i).getGeometryCache().captureCutsGeneration();
+            }
+        }
+
+        ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
+        for (int i = 0; i < snapshot.size(); i++) {
+            for (LittleTilesCubeObject cube : snapshot.get(i).getRenderingCubes()) {
+                // Use the generation of the list snapshot, not one captured later during cube construction.
+                cube.cutsGeneration = cutsGenerations[i];
+                cubes.add(cube);
+            }
+        }
+        return cubes;
     }
 
     public ArrayList<LittleTile> customRenderingTiles = new ArrayList<>();
@@ -230,14 +269,14 @@ public class TileEntityLittleTiles extends TileEntity {
     @Override
     public void readFromNBT(NBTTagCompound nbt) {
         super.readFromNBT(nbt);
-        if (tiles != null) tiles.clear();
-        tiles = createTileList();
+        List<LittleTile> loadedTiles = new ArrayList<>();
         int count = nbt.getInteger("tilesCount");
         for (int i = 0; i < count; i++) {
             NBTTagCompound tileNBT = nbt.getCompoundTag("t" + i);
             LittleTile tile = LittleTile.CreateandLoadTile(this, worldObj, tileNBT);
-            if (tile != null) tiles.add(tile);
+            if (tile != null) loadedTiles.add(tile);
         }
+        replaceTiles(loadedTiles);
         updateTiles();
     }
 
@@ -281,13 +320,14 @@ public class TileEntityLittleTiles extends TileEntity {
     @Override
     @SideOnly(Side.CLIENT)
     public void onDataPacket(NetworkManager net, S35PacketUpdateTileEntity pkt) {
-        tiles.clear();
+        List<LittleTile> loadedTiles = new ArrayList<>();
         int count = pkt.func_148857_g().getInteger("tilesCount");
         for (int i = 0; i < count; i++) {
             NBTTagCompound tileNBT = pkt.func_148857_g().getCompoundTag("t" + i);
             LittleTile tile = LittleTile.CreateandLoadTile(this, worldObj, tileNBT);
-            if (tile != null) tiles.add(tile);
+            if (tile != null) loadedTiles.add(tile);
         }
+        replaceTiles(loadedTiles);
         updateTiles();
     }
 

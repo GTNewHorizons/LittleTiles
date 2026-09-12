@@ -20,7 +20,6 @@ import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
-import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileGeometryCache;
 import com.creativemd.littletiles.common.utils.LittleTileGeometryCache.CullingResult;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
@@ -133,18 +132,10 @@ public final class LittleTilesFaceCuller {
             return Collections.emptyList();
         }
 
-        List<LittleTile> tiles = little.getTiles();
-        List<LittleTile> snapshot;
-        synchronized (tiles) {
-            snapshot = new ArrayList<>(tiles);
-        }
-
         ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
-        for (LittleTile tile : snapshot) {
-            for (LittleTilesCubeObject cube : tile.getRenderingCubes()) {
-                if (!ignoreForCulling(cube) && touchesBorder(cube, border)) {
-                    cubes.add(cube);
-                }
+        for (LittleTilesCubeObject cube : little.getRenderingCubes()) {
+            if (!ignoreForCulling(cube) && touchesBorder(cube, border)) {
+                cubes.add(cube);
             }
         }
         return cubes;

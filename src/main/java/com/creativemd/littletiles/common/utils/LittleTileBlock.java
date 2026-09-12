@@ -76,7 +76,8 @@ public class LittleTileBlock extends LittleTile {
     public ArrayList<LittleTilesCubeObject> getRenderingCubes() {
         ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
         LittleTileGeometryCache cache = getGeometryCache();
-        // Capture before every input retained by the cube, so an older snapshot cannot populate a newer cut cache.
+        // Captures this tile only. World rendering replaces this with the generation captured by the tile entity
+        // together with list membership, before any cube (including an occluder) reads its geometry.
         long cutsGeneration = cache.captureCutsGeneration();
         // read once: chunk builds run this off-thread while the main thread can reassign the box
         LittleTileBox box = boundingBox;

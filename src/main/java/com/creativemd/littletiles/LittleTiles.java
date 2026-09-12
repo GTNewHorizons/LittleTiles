@@ -138,6 +138,7 @@ public class LittleTiles {
         CreativeCorePacket.registerPacket(LittleCursorBlockUpdatePacket.class, "LittleCursorItemUpdate");
         FMLCommonHandler.instance().bus().register(new LittleEvent());
         MinecraftForge.EVENT_BUS.register(new LittleEvent());
+        if (Loader.isModLoaded("bogosorter")) MinecraftForge.EVENT_BUS.register(new BogoCompat());
 
         LittleStructure.initStructures();
         Mesh3dUtil.initializeMeshes();

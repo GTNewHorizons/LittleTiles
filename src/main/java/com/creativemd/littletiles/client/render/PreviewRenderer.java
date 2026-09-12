@@ -15,13 +15,10 @@ import net.minecraft.util.Vec3;
 import net.minecraftforge.client.event.RenderHandEvent;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
-import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
-import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
@@ -29,9 +26,7 @@ import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
-import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
-import com.creativemd.littletiles.common.utils.LittleToolHandler.CutoutRenderData;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.utils.PreviewTile;
@@ -263,63 +258,17 @@ public class PreviewRenderer {
                         } else {
                             toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
                         }
-                        LittleTileBox originalPreviewBox = previewTile.preview != null
-                                && previewTile.preview.box != null ? previewTile.preview.box : previewBox;
-                        CutoutRenderData cutoutRenderData = toolHandler.getCutoutRenderDataForPreview(
-                                originalPreviewBox,
-                                previewBox,
-                                previewTile.preview != null ? new LittleToolHandler(mc.thePlayer.getHeldItem()) : null,
-                                new Vector3d(size.xCoord, size.yCoord, size.zCoord));
-
-                        LittleTileShapeMode shape = cutoutRenderData.shape;
-                        Vector3d cutoutSize = cutoutRenderData.cutoutSize;
-                        int cutoutOrientation = cutoutRenderData.orientation;
-                        Vector3i cutoutOriginCurrent = cutoutRenderData.cutoutOrigin;
-
-                        if (!(shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR)) {
-                            cubeX -= size.xCoord / 2;
-                            cubeY -= size.yCoord / 2;
-                            cubeZ -= size.zCoord / 2;
-                        }
-
-                        if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
-                            RenderHelper3D.renderBlock(
-                                    cubeX,
-                                    cubeY,
-                                    cubeZ,
-                                    size.xCoord,
-                                    size.yCoord,
-                                    size.zCoord,
-                                    0,
-                                    0,
-                                    0,
-                                    color.xCoord,
-                                    color.yCoord,
-                                    color.zCoord,
-                                    Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5);
-                        } else {
-                            Vector3i subMin = new Vector3i(previewBox.minX, previewBox.minY, previewBox.minZ);
-                            Vector3i subMax = new Vector3i(previewBox.maxX, previewBox.maxY, previewBox.maxZ);
-                            // Mesh vertices are shifted by subMin in renderMesh/createMesh.
-                            // Use block-space origin here so translation is applied exactly once.
-                            double meshX = cubeX - cube.minX;
-                            double meshY = cubeY - cube.minY;
-                            double meshZ = cubeZ - cube.minZ;
-                            LittleTilesBlockRenderHelper.renderMesh(
-                                    meshX,
-                                    meshY,
-                                    meshZ,
-                                    cutoutSize,
-                                    cutoutOrientation,
-                                    color.xCoord,
-                                    color.yCoord,
-                                    color.zCoord,
-                                    Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5,
-                                    cutoutOriginCurrent,
-                                    subMin,
-                                    subMax,
-                                    shape);
-                        }
+                        LittleTilesBlockRenderHelper.renderShape(
+                                toolHandler.getShape(),
+                                cubeX,
+                                cubeY,
+                                cubeZ,
+                                size,
+                                toolHandler.getTileSize(), // Needed for block picked cutouts
+                                toolHandler.getOrientation(),
+                                toolHandler.getTileOriginal(), // Needed for block picked cutouts
+                                color,
+                                Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5);
 
                         GL11.glPopMatrix();
                     }

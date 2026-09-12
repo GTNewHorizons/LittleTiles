@@ -5,15 +5,11 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.init.Blocks;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
@@ -34,7 +30,6 @@ import com.cleanroommc.modularui.widgets.TextWidget;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
-import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 
@@ -181,48 +176,12 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
         }
 
         GL11.glPushMatrix();
-        boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
-        boolean rescaleWasEnabled = GL11.glIsEnabled(GL12.GL_RESCALE_NORMAL);
         float inventoryScale = size * 0.625F;
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glEnable(GL12.GL_RESCALE_NORMAL);
-        RenderHelper.enableGUIStandardItemLighting();
-        GL11.glEnable(GL11.GL_LIGHTING);
-        Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
         GL11.glTranslatef(x - size * 0.125F, y + size * 0.1875F, 0.0F);
         GL11.glScalef(inventoryScale, inventoryScale, inventoryScale);
-        GL11.glTranslatef(1.0F, 0.5F, 1.0F);
-        GL11.glScalef(1.0F, 1.0F, -1.0F);
-        GL11.glRotatef(210.0F, 1.0F, 0.0F, 0.0F);
-        GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
-        GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
         GL11.glColor4d(1, 1, 1, 1);
-        for (Triangle3d triangle : mesh.getTriangles()) {
-            Vector3d normal = triangle.getNormal();
-            GL11.glBegin(GL11.GL_TRIANGLES);
-            GL11.glNormal3d(normal.x, normal.y, normal.z);
-            GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);
-            vertex(triangle.getP1());
-            GL11.glTexCoord2d(triangle.getTex2().x, triangle.getTex2().y);
-            vertex(triangle.getP2());
-            GL11.glTexCoord2d(triangle.getTex3().x, triangle.getTex3().y);
-            vertex(triangle.getP3());
-            GL11.glEnd();
-        }
-        GL11.glDisable(GL11.GL_BLEND);
-        if (!rescaleWasEnabled) {
-            GL11.glDisable(GL12.GL_RESCALE_NORMAL);
-        }
-        if (!lightingWasEnabled) {
-            GL11.glDisable(GL11.GL_LIGHTING);
-        } else {
-            GL11.glEnable(GL11.GL_LIGHTING);
-        }
+        mesh.renderIcon();
         GL11.glPopMatrix();
-    }
-
-    private static void vertex(Vector3d point) {
-        GL11.glVertex3d(point.x, point.y, point.z);
     }
 
     private static class ShapePreviewWidget extends TextWidget<ShapePreviewWidget> {

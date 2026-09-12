@@ -16,26 +16,9 @@ import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.OrientationMapper;
 import com.creativemd.littletiles.client.util3d.Plane3d;
-import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
 public class LittleToolHandler {
-
-    public static class CutoutRenderData {
-
-        public final LittleTileShapeMode shape;
-        public final Vector3d cutoutSize;
-        public final int orientation;
-        public final Vector3i cutoutOrigin;
-
-        public CutoutRenderData(LittleTileShapeMode shape, Vector3d cutoutSize, int orientation,
-                Vector3i cutoutOrigin) {
-            this.shape = shape;
-            this.cutoutSize = cutoutSize;
-            this.orientation = orientation;
-            this.cutoutOrigin = cutoutOrigin;
-        }
-    }
 
     private final ItemStack stack;
     private final NBTTagCompound rawNbt;
@@ -58,63 +41,10 @@ public class LittleToolHandler {
         if (tag == null) {
             tag = new NBTTagCompound();
             if (set) {
-                if (stack != null) {
-                    stack.setTagCompound(tag);
-                }
+                stack.setTagCompound(tag);
             }
         }
         return tag;
-    }
-
-    public LittleTileCutoutInfo getCutoutInfo() {
-        return LittleTileCutoutInfo.loadFromNBT(getTag(false));
-    }
-
-    private static Vector3i getCutoutOriginForPreviewFragment(Vector3i baseCutoutOrigin, LittleTileBox originalBox,
-            LittleTileBox currentBox) {
-        if (baseCutoutOrigin == null) {
-            baseCutoutOrigin = new Vector3i();
-        }
-        if (currentBox == null) {
-            return new Vector3i(baseCutoutOrigin);
-        }
-        if (originalBox == null) {
-            originalBox = currentBox;
-        }
-        return new Vector3i(
-                baseCutoutOrigin.x + currentBox.minX - originalBox.minX,
-                baseCutoutOrigin.y + currentBox.minY - originalBox.minY,
-                baseCutoutOrigin.z + currentBox.minZ - originalBox.minZ);
-    }
-
-    public CutoutRenderData getCutoutRenderDataForPreview(LittleTileBox originalBox, LittleTileBox currentBox,
-            LittleToolHandler fallbackHandler, Vector3d defaultSize) {
-        LittleTileCutoutInfo cutoutInfo = getCutoutInfo();
-        LittleToolHandler source = cutoutInfo != null ? this : (fallbackHandler != null ? fallbackHandler : this);
-
-        LittleTileShapeMode shape;
-        Vector3d cutoutSize;
-        int orientation;
-        Vector3i cutoutOrigin;
-
-        if (cutoutInfo != null) {
-            shape = cutoutInfo.type;
-            cutoutSize = new Vector3d(cutoutInfo.size.x / 16.0, cutoutInfo.size.y / 16.0, cutoutInfo.size.z / 16.0);
-            orientation = cutoutInfo.orientation;
-            cutoutOrigin = new Vector3i(cutoutInfo.pos);
-        } else {
-            shape = source.getShape();
-            cutoutSize = source.getTileSize();
-            orientation = source.getOrientation();
-            cutoutOrigin = source.getTileOriginal();
-        }
-
-        if (cutoutSize == null && defaultSize != null) {
-            cutoutSize = new Vector3d(defaultSize);
-        }
-
-        cutoutOrigin = getCutoutOriginForPreviewFragment(cutoutOrigin, originalBox, currentBox);
-        return new CutoutRenderData(shape, cutoutSize, orientation, cutoutOrigin);
     }
 
     public void setBlock(Block block, int meta) {
@@ -169,7 +99,11 @@ public class LittleToolHandler {
         if (tag.hasKey("shape")) {
             shape = tag.getByte("shape");
         }
-        return LittleTileShapeMode.values()[shape];
+        LittleTileShapeMode[] modes = LittleTileShapeMode.values();
+        if (shape < 0 || shape >= modes.length) {
+            shape = 0;
+        }
+        return modes[shape];
     }
 
     public void setShape(int shape) {

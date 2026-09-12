@@ -71,7 +71,7 @@ public class SubGuiHammer extends SubGui {
         }
         if (block instanceof BlockAir || block == null) block = Blocks.stone;
         GuiColorPlate plate = (GuiColorPlate) getControl("plate");
-        new LittleTileBlockColored(block, meta, plate.color).saveTile(dropstack.stackTagCompound);
+        new LittleTileBlockColored(block, meta, plate.color).saveTileForItem(dropstack.stackTagCompound);
 
         label.avatar = new AvatarItemStack(dropstack);
     }

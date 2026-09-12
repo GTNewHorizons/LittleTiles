@@ -73,6 +73,14 @@ public class Triangle3d {
         p3.add(x, y, z);
     }
 
+    public void inflate(double epsilon) {
+        Vector3d n = getNormal();
+        n.x *= epsilon;
+        n.y *= epsilon;
+        n.z *= epsilon;
+        translate(n);
+    }
+
     public Vector3d getNormal() {
         Vector3d normal = unnormalizedNormal();
         normal.normalize();

@@ -6,6 +6,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -43,7 +44,8 @@ public class LittleBlockPacket extends CreativeCorePacket {
         DESTROY,
         SAW,
         COLOR,
-        SPLIT;
+        SPLIT,
+        TOGGLE_COLLISION;
 
         public static Action get(int ordinal) {
             if (ordinal >= 0 && ordinal < values().length) return values()[ordinal];
@@ -239,6 +241,21 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                 player.addChatComponentMessage(
                                         new ChatComponentText("Too much new tiles! Limit=" + LittleTiles.maxNewTiles));
                             }
+                        }
+                        break;
+                    case TOGGLE_COLLISION:
+                        if (player.getCurrentEquippedItem() == null
+                                || player.getCurrentEquippedItem().getItem() != LittleTiles.collisionTool)
+                            break;
+                        TileEntityLittleTiles collisionTE = (TileEntityLittleTiles) tileEntity;
+                        if (collisionTE.updateLoadedTileServer(pos, look)) {
+                            collisionTE.loadedTile.disableCollision = !collisionTE.loadedTile.disableCollision;
+                            collisionTE.update();
+                            player.addChatComponentMessage(
+                                    new ChatComponentTranslation(
+                                            collisionTE.loadedTile.disableCollision
+                                                    ? "message.littletiles.tile_collision.disabled"
+                                                    : "message.littletiles.tile_collision.enabled"));
                         }
                         break;
                 }

@@ -9,6 +9,7 @@ import net.minecraft.block.BlockAir;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -20,6 +21,7 @@ import org.lwjgl.opengl.GL11;
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.creativecore.client.rendering.ExtendedRenderBlocks;
 import com.creativemd.creativecore.client.rendering.IFaceClipper;
+import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.lib.Vector3d;
@@ -40,6 +42,48 @@ public class LittleTilesBlockRenderHelper {
 
     private static final ThreadLocal<ExtendedRenderBlocks> extraRendererThreadLocal = ThreadLocal
             .withInitial(ExtendedRenderBlocks::new);
+
+    public static void renderShape(LittleTileShapeMode shape, double centerX, double centerY, double centerZ, Vec3 size,
+            Vector3d cutoutScale, int orientation, Vector3i posCutout, Vec3 color, double alpha) {
+        if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
+            RenderHelper3D.renderBlock(
+                    centerX,
+                    centerY,
+                    centerZ,
+                    size.xCoord,
+                    size.yCoord,
+                    size.zCoord,
+                    0,
+                    0,
+                    0,
+                    color.xCoord,
+                    color.yCoord,
+                    color.zCoord,
+                    alpha);
+        } else {
+            if (cutoutScale == null) {
+                cutoutScale = new Vector3d(size.xCoord, size.yCoord, size.zCoord);
+            }
+            Vector3i posSubMax = new Vector3i(
+                    (int) Math.round(size.xCoord * 16),
+                    (int) Math.round(size.yCoord * 16),
+                    (int) Math.round(size.zCoord * 16));
+            renderMesh(
+                    centerX - size.xCoord / 2D,
+                    centerY - size.yCoord / 2D,
+                    centerZ - size.zCoord / 2D,
+                    cutoutScale,
+                    orientation,
+                    color.xCoord,
+                    color.yCoord,
+                    color.zCoord,
+                    alpha,
+                    posCutout,
+                    new Vector3i(),
+                    posSubMax,
+                    shape);
+        }
+    }
 
     public static void renderMesh(double x, double y, double z, Vector3d cutoutScale, int orientation, double red,
             double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax,
@@ -65,13 +109,13 @@ public class LittleTilesBlockRenderHelper {
         GL11.glTranslated(x, y, z);
         GL11.glColor4d(red, green, blue, alpha);
 
+        GL11.glBegin(GL11.GL_TRIANGLES);
         for (Triangle3d triangle : mesh.getTriangles()) {
-            GL11.glBegin(GL11.GL_TRIANGLES);
             GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
             GL11.glVertex3d(triangle.getP2().x, triangle.getP2().y, triangle.getP2().z);
             GL11.glVertex3d(triangle.getP3().x, triangle.getP3().y, triangle.getP3().z);
-            GL11.glEnd();
         }
+        GL11.glEnd();
 
         GL11.glPopMatrix();
     }
@@ -84,6 +128,11 @@ public class LittleTilesBlockRenderHelper {
         HIDDEN,
         /** It has no usable mesh, so it falls back to being drawn as a plain cube. */
         FAILED
+    }
+
+    public static int resolveRenderColor(int cubeColor, Block block, int meta) {
+        if (cubeColor != ColorUtils.WHITE) return cubeColor;
+        return block.getRenderColor(meta);
     }
 
     private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
@@ -109,7 +158,16 @@ public class LittleTilesBlockRenderHelper {
         Tessellator tess = Tessellator.instance;
 
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
+        // Force brightness to 15 for blocks that emits.
+        // This is a workaround to support blocks like Caelestis Lapis from extraUtils.
+        // TODO: Investigate a better way to handle this (POC:
+        // https://github.com/GTNewHorizons/LittleTiles/commits/refactor-brightness/)
+        int emitted = cube.block.getLightValue(world, x, y, z);
+        if (emitted > 0) brightness |= (15 << 4);
         tess.setBrightness(brightness);
+
+        int color = resolveRenderColor(cube.color, cube.block, cube.meta);
+
         for (Triangle3d triangle : mesh.getTriangles()) {
             Vector3d p1 = triangle.getP1();
             Vector3d p2 = triangle.getP2();
@@ -117,7 +175,7 @@ public class LittleTilesBlockRenderHelper {
             Vector2d tex1 = triangle.getTex1();
             Vector2d tex2 = triangle.getTex2();
             Vector2d tex3 = triangle.getTex3();
-            tess.setColorOpaque_I(cube.color);
+            tess.setColorOpaque_I(color);
             tess.addVertexWithUV(p1.x, p1.y, p1.z, tex1.x, tex1.y);
             tess.addVertexWithUV(p2.x, p2.y, p2.z, tex2.x, tex2.y);
             tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
@@ -154,7 +212,7 @@ public class LittleTilesBlockRenderHelper {
         extraRenderer.updateRenderer(renderer);
 
         final IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
-        fake.world = renderer.blockAccess;
+        fake.setWorld(renderer.blockAccess, x, y, z);
 
         int pass = ForgeHooksClient.getWorldRenderPass();
         boolean rendered = false;
@@ -167,11 +225,18 @@ public class LittleTilesBlockRenderHelper {
         try {
             for (int i = 0; i < cubes.size(); i++) {
                 final LittleTilesCubeObject cube = cubes.get(i);
+
+                if (cube.block == null || cube.meta == -1) {
+                    continue;
+                }
                 if (!cube.block.canRenderInPass(pass)) {
                     continue;
                 }
+
+                fake.setBlock(cube.block, cube.meta);
+
                 if (cube.cutoutInfo != null) {
-                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, world);
+                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, fake);
                     if (result == CutoutResult.DRAWN) {
                         rendered = true;
                         continue;
@@ -182,40 +247,37 @@ public class LittleTilesBlockRenderHelper {
                     // For buggy meshes, render the default cube
                 }
 
-                if (cube.block != null && cube.meta != -1) {
-                    // sides a mesh cuts into cannot be drawn as rectangles, the culler hands them back as triangles
-                    List<Triangle3d> boxTriangles = Collections.emptyList();
-                    if (cube.cutoutInfo == null && coverage[i] instanceof FaceClipper) {
-                        FaceClipper clipper = (FaceClipper) coverage[i];
-                        boxTriangles = LittleTilesFaceCuller.visibleBoxTriangles(cullingContext, cube, clipper);
-                    }
-                    rendered = true;
-                    extraRenderer.clearOverrideBlockTexture();
-                    extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
-                    extraRenderer.meta = cube.meta;
-                    fake.overrideMeta = cube.meta;
-                    extraRenderer.color = cube.color;
-                    extraRenderer.faceClipper = coverage[i];
-                    extraRenderer.lockBlockBounds = true;
-                    if (LittleTiles.angelicaCompat != null) {
-                        LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
-                    }
-                    extraRenderer.field_152631_f = true;
-                    extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
-                    extraRenderer.field_152631_f = false;
-                    if (LittleTiles.angelicaCompat != null) {
-                        LittleTiles.angelicaCompat.resetShaderMaterialOverride();
-                    }
-                    extraRenderer.lockBlockBounds = false;
-                    extraRenderer.color = ColorUtils.WHITE;
-                    if (!boxTriangles.isEmpty()) {
-                        renderTriangles(x, y, z, cube, boxTriangles, world);
-                    }
+                // sides a mesh cuts into cannot be drawn as rectangles, the culler hands them back as triangles
+                List<Triangle3d> boxTriangles = Collections.emptyList();
+                if (cube.cutoutInfo == null && coverage[i] instanceof FaceClipper) {
+                    FaceClipper clipper = (FaceClipper) coverage[i];
+                    boxTriangles = LittleTilesFaceCuller.visibleBoxTriangles(cullingContext, cube, clipper);
+                }
+                rendered = true;
+                extraRenderer.clearOverrideBlockTexture();
+                extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
+                extraRenderer.meta = cube.meta;
+                extraRenderer.color = cube.color;
+                extraRenderer.faceClipper = coverage[i];
+                extraRenderer.lockBlockBounds = true;
+                if (LittleTiles.angelicaCompat != null) {
+                    LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
+                }
+                extraRenderer.field_152631_f = true;
+                extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
+                extraRenderer.field_152631_f = false;
+                if (LittleTiles.angelicaCompat != null) {
+                    LittleTiles.angelicaCompat.resetShaderMaterialOverride();
+                }
+                extraRenderer.lockBlockBounds = false;
+                extraRenderer.color = ColorUtils.WHITE;
+                if (!boxTriangles.isEmpty()) {
+                    renderTriangles(x, y, z, cube, boxTriangles, fake);
                 }
             }
         } finally {
             extraRenderer.faceClipper = null;
-            fake.world = null;
+            fake.reset();
         }
         return rendered;
     }
@@ -235,9 +297,7 @@ public class LittleTilesBlockRenderHelper {
                 block = cube.block;
                 meta = 0;
             }
-
-            int j = block.getRenderColor(metadata);
-            if (cube.color != ColorUtils.WHITE) j = cube.color;
+            int j = resolveRenderColor(cube.color, block, metadata);
 
             float f1 = (float) (j >> 16 & 255) / 255.0F;
             float f2 = (float) (j >> 8 & 255) / 255.0F;
@@ -263,16 +323,16 @@ public class LittleTilesBlockRenderHelper {
                     boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
                     GL11.glDisable(GL11.GL_LIGHTING);
                     GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
+                    GL11.glBegin(GL11.GL_TRIANGLES);
                     for (Triangle3d triangle : mesh.getTriangles()) {
-                        GL11.glBegin(GL11.GL_TRIANGLES);
                         GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);
                         GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
                         GL11.glTexCoord2d(triangle.getTex2().x, triangle.getTex2().y);
                         GL11.glVertex3d(triangle.getP2().x, triangle.getP2().y, triangle.getP2().z);
                         GL11.glTexCoord2d(triangle.getTex3().x, triangle.getTex3().y);
                         GL11.glVertex3d(triangle.getP3().x, triangle.getP3().y, triangle.getP3().z);
-                        GL11.glEnd();
                     }
+                    GL11.glEnd();
                     GL11.glTranslatef(0.5F, 0.5F, 0.5F);
                     if (lightingWasEnabled) {
                         GL11.glEnable(GL11.GL_LIGHTING);

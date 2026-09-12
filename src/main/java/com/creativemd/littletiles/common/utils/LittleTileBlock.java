@@ -14,12 +14,15 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.littletiles.LittleTiles;
 
 public class LittleTileBlock extends LittleTile {
 
     public Block block;
     public int meta;
+    private static final ThreadLocal<IBlockAccessFake> blockAccessFakeThreadLocal = ThreadLocal
+            .withInitial(IBlockAccessFake::new);
 
     public LittleTileBlock(Block block, int meta) {
         super();
@@ -63,7 +66,7 @@ public class LittleTileBlock extends LittleTile {
     public ItemStack getDrop() {
         ItemStack stack = new ItemStack(LittleTiles.blockTile);
         stack.stackTagCompound = new NBTTagCompound();
-        saveTile(stack.stackTagCompound);
+        saveTileForItem(stack.stackTagCompound);
         boundingBox.getSize().writeToNBT("size", stack.stackTagCompound);
         return stack;
     }
@@ -123,6 +126,19 @@ public class LittleTileBlock extends LittleTile {
 
     @Override
     public int getLightValue(IBlockAccess world, int x, int y, int z) {
+        if (world != null) {
+            // Pass the tile's own block and meta through so metadata/context-aware light
+            // values are computed correctly.
+            IBlockAccessFake blockAccessFake = blockAccessFakeThreadLocal.get();
+
+            try {
+                blockAccessFake.setWorld(world, x, y, z);
+                blockAccessFake.setBlock(block, meta);
+                return block.getLightValue(blockAccessFake, x, y, z);
+            } finally {
+                blockAccessFake.reset();
+            }
+        }
         return block.getLightValue();
     }
 

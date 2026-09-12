@@ -78,7 +78,11 @@ public class LittleTileCutoutInfo {
         }
         LittleTileCutoutInfo cutoutInfo = new LittleTileCutoutInfo();
         int type = nbt.getByte("cutoutType");
-        cutoutInfo.type = LittleTileShapeMode.values()[type];
+
+        LittleTileShapeMode[] mode = LittleTileShapeMode.values();
+        if (type < 0 || type >= mode.length) return null;
+
+        cutoutInfo.type = mode[type];
         cutoutInfo.size.x = nbt.getInteger("cutoutSizeX");
         cutoutInfo.size.y = nbt.getInteger("cutoutSizeY");
         cutoutInfo.size.z = nbt.getInteger("cutoutSizeZ");

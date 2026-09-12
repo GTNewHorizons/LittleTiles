@@ -64,8 +64,8 @@ public class TileEntityLittleTiles extends TileEntity {
     }
 
     /**
-     * Captures membership and every cut generation before reading any render geometry. Invalidation uses the same
-     * list monitor, so an old list cannot acquire a new generation after a tile was added or removed. Geometry is read
+     * Captures membership and every cut generation before reading any render geometry. Invalidation uses the same list
+     * monitor, so an old list cannot acquire a new generation after a tile was added or removed. Geometry is read
      * outside the monitor: stale renders are allowed, but the cache generation checks prevent retaining their cuts.
      */
     @SideOnly(Side.CLIENT)
@@ -529,13 +529,17 @@ public class TileEntityLittleTiles extends TileEntity {
         update();
     }
 
-    /** Cached maximum light value of all tiles. Only ever written while the tiles are modified (main
-     * thread), but read from other threads (rendering, lighting), therefore volatile. */
+    /**
+     * Cached maximum light value of all tiles. Only ever written while the tiles are modified (main thread), but read
+     * from other threads (rendering, lighting), therefore volatile.
+     */
     private volatile int maxLightValue;
 
-    /** Recomputes the cached light value. Must only be called from the thread which owns the tiles.
+    /**
+     * Recomputes the cached light value. Must only be called from the thread which owns the tiles.
      * 
-     * @return whether the value changed */
+     * @return whether the value changed
+     */
     private boolean recalculateMaxLightValue() {
         int light = 0;
         synchronized (tiles) {

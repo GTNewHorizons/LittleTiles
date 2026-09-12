@@ -127,8 +127,8 @@ public class LittleTileGeometryCache {
     }
 
     /**
-     * Captures the cut generation without taking the cache monitor. World rendering captures all generations under
-     * the tile entity's list monitor along with membership, before reading any cube or occluder geometry.
+     * Captures the cut generation without taking the cache monitor. World rendering captures all generations under the
+     * tile entity's list monitor along with membership, before reading any cube or occluder geometry.
      */
     public long captureCutsGeneration() {
         return cutsGeneration;

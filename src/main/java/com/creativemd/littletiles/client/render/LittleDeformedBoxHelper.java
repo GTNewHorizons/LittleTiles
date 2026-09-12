@@ -25,8 +25,10 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public final class LittleDeformedBoxHelper {
 
-    /** The 8 absolute corner positions of the box being edited, or null while no box is being edited. */
+    /** The 8 absolute grid cells containing the corner handles, or null while no box is being edited. */
     private static LittleTileBlockPos[] corners = null;
+    /** Size of the grid cells represented by {@link #corners}. */
+    private static int grid = 0;
     /** Index into {@link #corners} of the corner the player selected, or -1 if none is selected. */
     private static int markedCorner = -1;
 
@@ -38,6 +40,7 @@ public final class LittleDeformedBoxHelper {
 
     public static void reset() {
         corners = null;
+        grid = 0;
         markedCorner = -1;
     }
 
@@ -69,23 +72,24 @@ public final class LittleDeformedBoxHelper {
      */
     public static boolean hasValidGeometry() {
         for (int i = 0; i < corners.length; i++) {
-            if ((i & 1) == 0 && corners[i | 1].subtract(corners[i]).x < 0) return false;
-            if ((i & 2) == 0 && corners[i | 2].subtract(corners[i]).y < 0) return false;
-            if ((i & 4) == 0 && corners[i | 4].subtract(corners[i]).z < 0) return false;
+            LittleTileBlockPos corner = geometryCorner(i);
+            if ((i & 1) == 0 && geometryCorner(i | 1).subtract(corner).x < 0) return false;
+            if ((i & 2) == 0 && geometryCorner(i | 2).subtract(corner).y < 0) return false;
+            if ((i & 4) == 0 && geometryCorner(i | 4).subtract(corner).z < 0) return false;
         }
         return true;
     }
 
     /**
      * Materializes the 8 corners of the axis-aligned box the player just closed with two clicks. The two clicks name
-     * two grid cells and the box covers both of them, so it spans from the lower cell's min corner to one grid step
-     * past the upper cell - the corners are box <em>points</em>, not cells.
+     * two grid cells and the box covers both of them. The stored positions identify those cells; positive-side cells
+     * are expanded by one grid step only when the actual mesh vertices are derived.
      */
     public static void beginBox(LittleTileBlockPos first, LittleTileBlockPos second, int align) {
         LittleTileBlockPos.Subtraction delta = second.subtract(first);
-        int lowX = Math.min(0, delta.x), highX = Math.max(0, delta.x) + align;
-        int lowY = Math.min(0, delta.y), highY = Math.max(0, delta.y) + align;
-        int lowZ = Math.min(0, delta.z), highZ = Math.max(0, delta.z) + align;
+        int lowX = Math.min(0, delta.x), highX = Math.max(0, delta.x);
+        int lowY = Math.min(0, delta.y), highY = Math.max(0, delta.y);
+        int lowZ = Math.min(0, delta.z), highZ = Math.max(0, delta.z);
 
         LittleTileBlockPos[] box = new LittleTileBlockPos[Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT];
         for (int i = 0; i < box.length; i++) {
@@ -96,6 +100,16 @@ public final class LittleDeformedBoxHelper {
             box[i] = corner;
         }
         corners = box;
+        grid = align;
+    }
+
+    /** The actual mesh vertex represented by a corner handle cell. */
+    private static LittleTileBlockPos geometryCorner(int index) {
+        LittleTileBlockPos corner = corners[index].copy();
+        if ((index & 1) != 0) corner.moveSubX(grid);
+        if ((index & 2) != 0) corner.moveSubY(grid);
+        if ((index & 4) != 0) corner.moveSubZ(grid);
+        return corner;
     }
 
     /**
@@ -106,8 +120,9 @@ public final class LittleDeformedBoxHelper {
      */
     private static Vector3i[] offsetsFromFirst() {
         Vector3i[] offsets = new Vector3i[corners.length];
+        LittleTileBlockPos first = geometryCorner(0);
         for (int i = 0; i < corners.length; i++) {
-            LittleTileBlockPos.Subtraction sub = corners[i].subtract(corners[0]);
+            LittleTileBlockPos.Subtraction sub = geometryCorner(i).subtract(first);
             offsets[i] = new Vector3i(sub.x, sub.y, sub.z);
         }
         return offsets;
@@ -138,7 +153,7 @@ public final class LittleDeformedBoxHelper {
 
     /** The world position of a corner, for drawing it. */
     public static Vec3 cornerHitVec(int index) {
-        return corners[index].toHitVec();
+        return geometryCorner(index).toHitVec();
     }
 
     /**
@@ -147,10 +162,13 @@ public final class LittleDeformedBoxHelper {
     public static AxisAlignedBB getCornerBoxAABB(int index, int grid) {
         double size = grid / 16.0;
         Vec3 vec = corners[index].toHitVec();
-        double minX = vec.xCoord - ((index & 1) != 0 ? size : 0);
-        double minY = vec.yCoord - ((index & 2) != 0 ? size : 0);
-        double minZ = vec.zCoord - ((index & 4) != 0 ? size : 0);
-        return AxisAlignedBB.getBoundingBox(minX, minY, minZ, minX + size, minY + size, minZ + size);
+        return AxisAlignedBB.getBoundingBox(
+                vec.xCoord,
+                vec.yCoord,
+                vec.zCoord,
+                vec.xCoord + size,
+                vec.yCoord + size,
+                vec.zCoord + size);
     }
 
     /** Raytraces the corner cubes and returns the index of the nearest one hit, or -1 if the ray misses all of them. */

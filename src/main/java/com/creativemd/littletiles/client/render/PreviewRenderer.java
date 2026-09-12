@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
@@ -15,16 +16,21 @@ import net.minecraft.util.Vec3;
 import net.minecraftforge.client.event.RenderHandEvent;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
+import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -49,20 +55,17 @@ public class PreviewRenderer {
     private static ItemStack lastItem = null;
 
     private static ForgeDirection rotateDirection(ForgeDirection direction) {
-        switch (direction) {
-            case NORTH:
-                return ForgeDirection.EAST;
-            case EAST:
-                return ForgeDirection.SOUTH;
-            case SOUTH:
-                return ForgeDirection.WEST;
-            case WEST:
-                return ForgeDirection.NORTH;
-        }
-        return ForgeDirection.UNKNOWN;
+        return switch (direction) {
+            case NORTH -> ForgeDirection.EAST;
+            case EAST -> ForgeDirection.SOUTH;
+            case SOUTH -> ForgeDirection.WEST;
+            case WEST -> ForgeDirection.NORTH;
+            default -> ForgeDirection.UNKNOWN;
+        };
     }
 
-    public static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look, int amount) {
+    /** Turns a screen-relative arrow direction into a world direction, based on which way the player is facing. */
+    private static ForgeDirection relativeToLook(ForgeDirection direction, ForgeDirection direction_look) {
         if (direction != ForgeDirection.UP && direction != ForgeDirection.DOWN) {
             if (direction_look == ForgeDirection.EAST) {
                 direction = rotateDirection(direction);
@@ -77,9 +80,140 @@ public class PreviewRenderer {
                 direction = rotateDirection(direction);
             }
         }
+        return direction;
+    }
 
-        if (GuiScreen.isCtrlKeyDown()) amount = 16;
-        markedHit.moveInDirection(direction, amount);
+    /** How far one arrow key press moves something: a single grid step, or a whole block while ctrl is held. */
+    private static int stepAmount(int amount) {
+        return GuiScreen.isCtrlKeyDown() ? 16 : amount;
+    }
+
+    private static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look, int amount) {
+        markedHit.moveInDirection(relativeToLook(direction, direction_look), stepAmount(amount));
+    }
+
+    /** The 12 edges of the box, as pairs of corner indices - the two corners of an edge differ in exactly one axis. */
+    private static final int[][] BOX_EDGES = { { 0, 1 }, { 2, 3 }, { 4, 5 }, { 6, 7 }, // along x
+            { 0, 2 }, { 1, 3 }, { 4, 6 }, { 5, 7 }, // along y
+            { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }, // along z
+    };
+
+    /**
+     * Draws the deformed box being edited as a wireframe of its 12 edges. Faces are never filled, so the player can see
+     * the tiles behind the box while shaping it.
+     */
+    private static void renderBoxEdges() {
+        boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
+        GL11.glColor4d(valid ? 0.2 : 1, valid ? 0.8 : 0.1, valid ? 1 : 0.1, 0.9);
+        GL11.glBegin(GL11.GL_LINES);
+        for (int[] edge : BOX_EDGES) {
+            for (int index : edge) {
+                vertexAtCorner(index);
+            }
+        }
+        GL11.glEnd();
+
+        renderFaceDiagonals();
+    }
+
+    private static void vertexAtCorner(int index) {
+        Vec3 vec = LittleDeformedBoxHelper.cornerHitVec(index);
+        GL11.glVertex3d(
+                vec.xCoord - TileEntityRendererDispatcher.staticPlayerX,
+                vec.yCoord - TileEntityRendererDispatcher.staticPlayerY,
+                vec.zCoord - TileEntityRendererDispatcher.staticPlayerZ);
+    }
+
+    /**
+     * Draws the split diagonal of every face whose 4 corners are no longer coplanar, showing where the surface actually
+     * bends. The diagonal comes from {@link Mesh3dUtil#splitsAlongFirstDiagonal}, the same call the mesh itself is
+     * built from, so the line can never disagree with the geometry it is describing.
+     */
+    private static void renderFaceDiagonals() {
+        LittleTileCutoutInfo cutout = LittleDeformedBoxHelper.currentCutout();
+        Vector3d[] local = new Vector3d[cutout.corners.length];
+        for (int i = 0; i < local.length; i++) {
+            local[i] = Mesh3dUtil.toLocal(cutout.corners[i], cutout.size);
+        }
+
+        boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
+        GL11.glColor4d(valid ? 0.2 : 1, valid ? 0.8 : 0.1, valid ? 1 : 0.1, 0.45);
+        GL11.glBegin(GL11.GL_LINES);
+        for (int[] face : Mesh3dUtil.DEFORMED_BOX_FACES) {
+            if (isFacePlanar(face, cutout.corners)) {
+                continue;
+            }
+            boolean first = Mesh3dUtil
+                    .splitsAlongFirstDiagonal(local[face[0]], local[face[1]], local[face[2]], local[face[3]]);
+            vertexAtCorner(first ? face[0] : face[1]);
+            vertexAtCorner(first ? face[2] : face[3]);
+        }
+        GL11.glEnd();
+    }
+
+    /**
+     * Whether a face's 4 corners still lie in one plane - that is, whether the face is merely tilted or has actually
+     * been folded. A flat face is drawn by two coplanar triangles, so its diagonal is invisible on the surface and
+     * drawing it would suggest a bend that is not there; only a folded face has a fold worth showing.
+     * <p>
+     * Worked out as a scalar triple product in whole grid units, which makes the test exact: corner offsets are
+     * integers, so the product either is zero or it is not, and there is no epsilon to tune. Longs because a corner
+     * dragged a long way makes the intermediate cross product outgrow an int.
+     * <p>
+     * A face with three collinear corners counts as planar, correctly: some plane always contains that line and the
+     * fourth corner, and the mesh gets nothing but a degenerate triangle out of it.
+     */
+    private static boolean isFacePlanar(int[] face, Vector3i[] corners) {
+        Vector3i a = corners[face[0]];
+        long abx = corners[face[1]].x - a.x, aby = corners[face[1]].y - a.y, abz = corners[face[1]].z - a.z;
+        long acx = corners[face[2]].x - a.x, acy = corners[face[2]].y - a.y, acz = corners[face[2]].z - a.z;
+        long adx = corners[face[3]].x - a.x, ady = corners[face[3]].y - a.y, adz = corners[face[3]].z - a.z;
+
+        long nx = aby * acz - abz * acy;
+        long ny = abz * acx - abx * acz;
+        long nz = abx * acy - aby * acx;
+        return nx * adx + ny * ady + nz * adz == 0;
+    }
+
+    /**
+     * Draws a small cube on each of the 8 corners of the deformed box being edited, so the player can see what there is
+     * to grab. The selected corner is drawn in a different colour. These are the very same cubes
+     * {@link LittleDeformedBoxHelper#pickCorner} raytraces against, so what is clicked is what is shown.
+     */
+    private static void renderCornerMarkers(int grid) {
+        boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
+        for (int i = 0; i < Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT; i++) {
+            AxisAlignedBB box = LittleDeformedBoxHelper.getCornerBoxAABB(i, grid);
+            boolean selected = LittleDeformedBoxHelper.isMarkedCorner(i);
+            RenderHelper3D.renderBlock(
+                    (box.minX + box.maxX) / 2 - TileEntityRendererDispatcher.staticPlayerX,
+                    (box.minY + box.maxY) / 2 - TileEntityRendererDispatcher.staticPlayerY,
+                    (box.minZ + box.maxZ) / 2 - TileEntityRendererDispatcher.staticPlayerZ,
+                    box.maxX - box.minX,
+                    box.maxY - box.minY,
+                    box.maxZ - box.minZ,
+                    0,
+                    0,
+                    0,
+                    valid ? (selected ? 1 : 0.2) : 1,
+                    valid ? 0.6 : 0.1,
+                    valid ? (selected ? 0 : 1) : 0.1,
+                    selected ? 0.9 : 0.5);
+        }
+    }
+
+    private static void moveMarkedCorner(ForgeDirection direction, ForgeDirection direction_look, int amount) {
+        LittleDeformedBoxHelper.nudgeMarked(relativeToLook(direction, direction_look), stepAmount(amount));
+    }
+
+    /**
+     * The arrow keys mean one of three things depending on what is currently selected: nudge the selected corner of a
+     * deformed box, move the marked preview, or - with nothing marked at all - rotate the preview.
+     */
+    private void handleArrow(ForgeDirection move, ForgeDirection rotate, ForgeDirection direction_look, int align) {
+        if (LittleDeformedBoxHelper.hasMarkedCorner()) moveMarkedCorner(move, direction_look, align);
+        else if (markedHit != null) moveMarkedHit(move, direction_look, align);
+        else processKey(rotate);
     }
 
     @SubscribeEvent
@@ -90,6 +224,7 @@ public class PreviewRenderer {
             if (!ItemStack.areItemStackTagsEqual(lastItem, mc.thePlayer.getHeldItem())) {
                 markedHit = null;
                 firstHit = null;
+                LittleDeformedBoxHelper.reset();
             }
             lastItem = mc.thePlayer.getHeldItem();
 
@@ -143,6 +278,13 @@ public class PreviewRenderer {
 
                 if (markedHit != null) pos = markedHit;
 
+                // A box being deformed is anchored by its own corners, not by what the player is looking at - so it
+                // stays on screen even while looking at nothing.
+                boolean editingDeformedBox = mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel
+                        && LittleDeformedBoxHelper.isEditing()
+                        && new LittleToolHandler(mc.thePlayer.getHeldItem()).isDeformedBoxShape();
+                if (editingDeformedBox) pos = LittleDeformedBoxHelper.placementAnchor();
+
                 if (pos != null && mc.thePlayer.getHeldItem() != null) {
                     if (GameSettings.isKeyDown(LittleTilesClient.mark) && !LittleTilesClient.pressedMark) {
                         LittleTilesClient.pressedMark = true;
@@ -157,32 +299,30 @@ public class PreviewRenderer {
                     // Rotate Block
                     if (GameSettings.isKeyDown(LittleTilesClient.up) && !LittleTilesClient.pressedUp) {
                         LittleTilesClient.pressedUp = true;
-                        if (markedHit != null) moveMarkedHit(
+                        handleArrow(
                                 mc.thePlayer.isSneaking() ? ForgeDirection.UP : ForgeDirection.NORTH,
+                                ForgeDirection.UP,
                                 direction_look,
                                 align);
-                        else processKey(ForgeDirection.UP);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.up)) LittleTilesClient.pressedUp = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.down) && !LittleTilesClient.pressedDown) {
                         LittleTilesClient.pressedDown = true;
-                        if (markedHit != null) moveMarkedHit(
+                        handleArrow(
                                 mc.thePlayer.isSneaking() ? ForgeDirection.DOWN : ForgeDirection.SOUTH,
+                                ForgeDirection.DOWN,
                                 direction_look,
                                 align);
-                        else processKey(ForgeDirection.DOWN);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.down)) LittleTilesClient.pressedDown = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.right) && !LittleTilesClient.pressedRight) {
                         LittleTilesClient.pressedRight = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.EAST, direction_look, align);
-                        else processKey(ForgeDirection.SOUTH);
+                        handleArrow(ForgeDirection.EAST, ForgeDirection.SOUTH, direction_look, align);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.right)) LittleTilesClient.pressedRight = false;
 
                     if (GameSettings.isKeyDown(LittleTilesClient.left) && !LittleTilesClient.pressedLeft) {
                         LittleTilesClient.pressedLeft = true;
-                        if (markedHit != null) moveMarkedHit(ForgeDirection.WEST, direction_look, align);
-                        else processKey(ForgeDirection.NORTH);
+                        handleArrow(ForgeDirection.WEST, ForgeDirection.NORTH, direction_look, align);
                     } else if (!GameSettings.isKeyDown(LittleTilesClient.left)) LittleTilesClient.pressedLeft = false;
 
                     GL11.glEnable(GL11.GL_BLEND);
@@ -191,6 +331,11 @@ public class PreviewRenderer {
                     GL11.glLineWidth(2.0F);
                     GL11.glDisable(GL11.GL_TEXTURE_2D);
                     GL11.glDepthMask(false);
+
+                    if (editingDeformedBox) {
+                        renderBoxEdges();
+                        renderCornerMarkers(align);
+                    }
 
                     ArrayList<PreviewTile> previews;
 
@@ -201,6 +346,10 @@ public class PreviewRenderer {
                     double y = (double) pos.getPosY() - TileEntityRendererDispatcher.staticPlayerY;
                     double z = (double) pos.getPosZ() - TileEntityRendererDispatcher.staticPlayerZ;
                     for (PreviewTile previewTile : previews) {
+                        // A deformed box being edited was already drawn above, as a wireframe of its own corners -
+                        // filling its faces here would hide whatever the player is trying to line the box up against.
+                        if (editingDeformedBox) break;
+
                         GL11.glPushMatrix();
                         LittleTileBox previewBox = previewTile.getPreviewBox();
                         CubeObject cube = previewBox.getCube();
@@ -237,8 +386,11 @@ public class PreviewRenderer {
                         Vec3 color = previewTile.getPreviewColor();
 
                         LittleToolHandler toolHandler;
+
+                        LittleTileCutoutInfo cutoutInfo = null;
                         if (previewTile.preview != null) {
                             toolHandler = new LittleToolHandler(previewTile.preview.nbt);
+                            cutoutInfo = LittleTileCutoutInfo.loadFromNBT(previewTile.preview.nbt);
                         } else {
                             toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
                         }
@@ -252,12 +404,15 @@ public class PreviewRenderer {
                                 toolHandler.getOrientation(),
                                 toolHandler.getTileOriginal(), // Needed for block picked cutouts
                                 color,
-                                Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5);
+                                Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5,
+                                cutoutInfo);
 
                         GL11.glPopMatrix();
                     }
 
-                    if (markedHit == null && mc.thePlayer.isSneaking()) {
+                    // Sneaking is how corners are nudged up/down, so the shift handler overlay would otherwise be on
+                    // screen for most of the time a box is being shaped.
+                    if (!editingDeformedBox && markedHit == null && mc.thePlayer.isSneaking()) {
                         ArrayList<ShiftHandler> shifthandlers = new ArrayList<>();
 
                         for (PreviewTile preview : previews)

@@ -46,6 +46,10 @@ public class LittleTileBlockPos {
         moveSubZ(subZ);
     }
 
+    public LittleTileBlockPos copy() {
+        return new LittleTileBlockPos(posX, posY, posZ, subX, subY, subZ, side);
+    }
+
     public static LittleTileBlockPos fromMovingObjectPosition(MovingObjectPosition pos, int align) {
         ForgeDirection side = ForgeDirection.getOrientation(pos.sideHit);
         double x = pos.hitVec.xCoord;

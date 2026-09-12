@@ -57,6 +57,7 @@ public class LittleTilesClient extends LittleTilesServer {
         CollisionHighlightRenderer collisionHighlight = new CollisionHighlightRenderer();
         FMLCommonHandler.instance().bus().register(collisionHighlight);
         MinecraftForge.EVENT_BUS.register(collisionHighlight);
+        MinecraftForge.EVENT_BUS.register(new DeformCornerMouseHandler());
         ClientRegistry.registerKeyBinding(up);
         ClientRegistry.registerKeyBinding(down);
         ClientRegistry.registerKeyBinding(right);

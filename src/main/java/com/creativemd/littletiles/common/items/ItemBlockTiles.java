@@ -22,6 +22,7 @@ import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.common.utils.WorldUtils;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
+import com.creativemd.littletiles.client.render.LittleDeformedBoxHelper;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
@@ -79,10 +80,16 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         return stack.getItem() == LittleTiles.chisel;
     }
 
+    private boolean isDeformedBoxShape(ItemStack stack) {
+        return stack.getItem() == LittleTiles.chisel && new LittleToolHandler(stack).isDeformedBoxShape();
+    }
+
     @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
             float offsetX, float offsetY, float offsetZ) {
         if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) return false;
+
+        boolean placingDeformedBox = false;
 
         MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
 
@@ -94,11 +101,43 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             placeMode = handler.getPlaceMode();
         }
 
-        LittleTileBlockPos pos = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
+        LittleTileBlockPos clickedPos = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
+        LittleTileBlockPos pos = clickedPos;
 
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;
 
-        if (needsTwoHits(stack)) {
+        if (isDeformedBoxShape(stack)) {
+            // Two clicks to close the initial axis-aligned box, and a third to place it.
+            if (!LittleDeformedBoxHelper.isEditing()) {
+                if (PreviewRenderer.firstHit == null) {
+                    PreviewRenderer.firstHit = pos;
+                    return true;
+                }
+                LittleDeformedBoxHelper.beginBox(PreviewRenderer.firstHit, pos, align);
+                PreviewRenderer.firstHit = null;
+                return true;
+            }
+
+            // With a corner selected, right click warps it to where the player is looking instead of placing.
+            if (LittleDeformedBoxHelper.hasMarkedCorner()) {
+                LittleDeformedBoxHelper.moveMarkedTo(clickedPos);
+                return true;
+            }
+
+            // Invalid intermediate shapes remain editable and are rendered red, but must not become placed tiles.
+            if (!LittleDeformedBoxHelper.hasValidGeometry()) {
+                return true;
+            }
+
+            // The preview carries the cutout in its nbt, so the placed stack keeps it as well. Both it and the
+            // placement anchor have to be read before the corner state is dropped.
+            ILittleTile littleTile = (ILittleTile) stack.getItem();
+            NBTTagCompound tag = (NBTTagCompound) littleTile.getLittlePreview(stack).get(0).nbt.copy();
+            stack = new ItemStack(Item.getItemFromBlock(LittleTiles.blockTile));
+            stack.stackTagCompound = tag;
+            pos = LittleDeformedBoxHelper.placementAnchor();
+            placingDeformedBox = true;
+        } else if (needsTwoHits(stack)) {
             if (PreviewRenderer.firstHit == null && PreviewRenderer.markedHit == null) {
                 PreviewRenderer.firstHit = pos;
                 return true;
@@ -126,7 +165,11 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) PacketHandler.sendPacketToServer(
                     new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null, placeMode));
 
-            placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, placeMode);
+            boolean placed = placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, placeMode);
+
+            if (placed && placingDeformedBox) {
+                LittleDeformedBoxHelper.reset();
+            }
 
             PreviewRenderer.markedHit = null;
 

@@ -315,10 +315,15 @@ public class LittleTilesBlockRenderHelper {
                 extraRenderer.faceClipper = coverage[i];
                 extraRenderer.lockBlockBounds = true;
                 extraRenderer.field_152631_f = true;
-                extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
-                extraRenderer.field_152631_f = false;
-                extraRenderer.lockBlockBounds = false;
-                extraRenderer.color = ColorUtils.WHITE;
+
+                try {
+                    extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
+                } finally {
+                    extraRenderer.field_152631_f = false;
+                    extraRenderer.lockBlockBounds = false;
+                    extraRenderer.color = ColorUtils.WHITE;
+                }
+
                 if (!boxTriangles.isEmpty()) {
                     renderTriangles(x, y, z, cube, boxTriangles, fake);
                 }

@@ -137,7 +137,7 @@ public class LittleTilesBlockRenderHelper {
         return block.getRenderColor(meta);
     }
 
-    private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
+    private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube,
             Supplier<CullingContext> culling, IBlockAccess world) {
         // Resolved once and handed to the culler. Asking again inside would be a different question: the tile can
         // drop its mesh in between, and an empty cut result reads as HIDDEN, which would skip the cube entirely

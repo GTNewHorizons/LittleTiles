@@ -89,6 +89,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             float offsetX, float offsetY, float offsetZ) {
         if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) return false;
 
+        boolean placingDeformedBox = false;
+
         MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
 
         int align = 1;
@@ -133,7 +135,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             stack = new ItemStack(Item.getItemFromBlock(LittleTiles.blockTile));
             stack.stackTagCompound = tag;
             pos = LittleDeformedBoxHelper.placementAnchor();
-            LittleDeformedBoxHelper.reset();
+            placingDeformedBox = true;
         } else if (needsTwoHits(stack)) {
             if (PreviewRenderer.firstHit == null && PreviewRenderer.markedHit == null) {
                 PreviewRenderer.firstHit = pos;
@@ -162,7 +164,11 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) PacketHandler.sendPacketToServer(
                     new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null, placeMode));
 
-            placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, placeMode);
+            boolean placed = placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, placeMode);
+
+            if (placed && placingDeformedBox) {
+                LittleDeformedBoxHelper.reset();
+            }
 
             PreviewRenderer.markedHit = null;
 

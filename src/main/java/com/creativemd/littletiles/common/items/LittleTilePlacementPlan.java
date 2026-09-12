@@ -15,6 +15,8 @@ import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.blocks.BlockTile;
+import com.creativemd.littletiles.common.history.LittleTileChangeRecorder;
+import com.creativemd.littletiles.common.history.LittleTilePlacementPlanResult;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -72,25 +74,29 @@ public class LittleTilePlacementPlan {
         return canApplyPlan;
     }
 
-    public boolean applyPlan(World world, EntityPlayer player, ItemStack stack, LittleStructure structure,
-            ArrayList<LittleTile> unplaceableTiles) {
+    public LittleTilePlacementPlanResult applyPlan(World world, EntityPlayer player, ItemStack stack,
+            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
         structureMainPosition = null;
         soundsToBePlayed.clear();
-        boolean didPlace = false;
+        // Freeze every coordinate before any placement can change shared structure data.
+        LittleTileChangeRecorder recorder = new LittleTileChangeRecorder(world);
+        for (PlacementEntry entry : entries) {
+            recorder.watch(entry.coord);
+        }
         for (PlacementEntry entry : entries) {
             TileEntityLittleTiles tile = getOrCreateTileEntity(world, entry);
             if (tile == null) {
                 continue;
             }
             for (PreviewTile placeTile : entry.placeTiles) {
-                didPlace |= applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles);
+                applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles);
             }
             if (structure != null) tile.combineTiles(structure);
         }
         for (SoundType soundType : soundsToBePlayed) {
             playTileSound(world, player, soundType);
         }
-        return didPlace;
+        return recorder.finish();
     }
 
     private boolean tryFillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews,
@@ -160,25 +166,23 @@ public class LittleTilePlacementPlan {
         return null;
     }
 
-    private boolean applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile,
-            EntityPlayer player, ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
+    private void applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile, EntityPlayer player,
+            ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
         LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile);
         LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile);
         // Mesh-backed fragments can clip to empty space when split across blocks.
         // In that case we skip placement for this fragment instead of placing a full box tile.
         if (baseCutoutInfo != null && cutoutInfoCurrent == null) {
-            return false;
+            return;
         }
 
         List<LittleTile> tiles = placeTile
                 .placeTile(player, stack, tile, structure, unplaceableTiles, placeMode, cutoutInfoCurrent);
         if (tiles == null) {
-            return false;
+            return;
         }
 
-        boolean didPlace = false;
         for (LittleTile littleTile : tiles) {
-            didPlace = true;
             if (structure != null) {
                 if (structureMainPosition == null) {
                     structure.mainTile = littleTile;
@@ -194,7 +198,6 @@ public class LittleTilePlacementPlan {
             }
             if (!soundsToBePlayed.contains(littleTile.getSound())) soundsToBePlayed.add(littleTile.getSound());
         }
-        return didPlace;
     }
 
     private static LittleTileCutoutInfo getBaseCutoutInfo(PreviewTile placeTile) {

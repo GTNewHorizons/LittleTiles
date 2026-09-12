@@ -13,7 +13,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -25,6 +24,8 @@ import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
+import com.creativemd.littletiles.common.history.LittleTilePlacementPlanResult;
+import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -32,7 +33,6 @@ import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
-import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
@@ -165,18 +165,6 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         return block.isReplaceable(world, x, y, z) || PlacementHelper.canBePlacedInsideBlock(player, x, y, z);
     }
 
-    public static boolean placeTiles(World world, EntityPlayer player, ArrayList<PreviewTile> previews,
-            LittleStructure structure, int x, int y, int z, ItemStack stack, ArrayList<LittleTile> unplaceableTiles,
-            LittleTilePlaceMode placeMode) {
-        LittleTilePlacementPlan plan = new LittleTilePlacementPlan();
-        plan.fillPlan(world, x, y, z, previews, structure, placeMode);
-        if (!plan.canApplyPlan()) {
-            return false;
-        }
-
-        return plan.applyPlan(world, player, stack, structure, unplaceableTiles);
-    }
-
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
             boolean customPlacement, LittleTilePlaceMode placeMode) {
         ArrayList<PreviewTile> previews = PlacementHelper.getPreviewTiles(player, stack, pos, customPlacement);
@@ -204,18 +192,10 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         }
 
         ArrayList<LittleTile> unplaceableTiles = new ArrayList<>();
-        ArrayList<ChunkCoordinates> plannedCoords = collectPlannedCoords(previews, x, y, z);
-        ItemStack heldBeforePlace = player.inventory.mainInventory[player.inventory.currentItem];
-        boolean isStencilChiselNonCreative = !player.capabilities.isCreativeMode && heldBeforePlace != null
-                && heldBeforePlace.getItem() == LittleTiles.chisel
-                && placeMode == LittleTilePlaceMode.STENCIL;
-        boolean shouldRecordHistory = !world.isRemote && !isStencilChiselNonCreative;
-        ArrayList<LittleTilesPlacementHistory.BlockSnapshot> beforeStates = null;
-        if (shouldRecordHistory) {
-            beforeStates = LittleTilesPlacementHistory.captureSnapshots(world, plannedCoords);
-        }
-
-        if (plan.applyPlan(world, player, stack, structure, unplaceableTiles)) {
+        boolean shouldRecordHistory = !world.isRemote && player.capabilities.isCreativeMode;
+        LittleTilePlacementPlanResult placementResult = plan
+                .applyPlan(world, player, stack, structure, unplaceableTiles);
+        if (placementResult.hasChanges()) {
             ItemStack currentStack = player.inventory.mainInventory[player.inventory.currentItem];
             boolean isChisel = currentStack != null && currentStack.getItem() == LittleTiles.chisel;
             if (!player.capabilities.isCreativeMode && !isChisel) {
@@ -224,14 +204,11 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             }
 
             if (shouldRecordHistory) {
-                ArrayList<LittleTilesPlacementHistory.BlockSnapshot> afterStates = LittleTilesPlacementHistory
-                        .captureSnapshots(world, plannedCoords);
-                LittleTilesPlacementHistory.recordPlacement(
+                LittleTilesPlacementHistory.recordAction(
                         player,
                         new LittleTilesPlacementHistory.PlacementAction(
                                 world.provider.dimensionId,
-                                beforeStates,
-                                afterStates));
+                                placementResult.createPlan()));
             }
 
             if (!world.isRemote) {
@@ -247,21 +224,6 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             return true;
         }
         return false;
-    }
-
-    private static ArrayList<ChunkCoordinates> collectPlannedCoords(ArrayList<PreviewTile> previews, int x, int y,
-            int z) {
-        ArrayList<ChunkCoordinates> coords = new ArrayList<>();
-        LittleTilePlacementPlan.SplitPreviewMap splitMap = new LittleTilePlacementPlan.SplitPreviewMap();
-        for (PreviewTile preview : previews) {
-            if (!preview.split(splitMap, x, y, z)) {
-                return coords;
-            }
-        }
-        for (ChunkCoordinates coord : splitMap.keySet()) {
-            coords.add(new ChunkCoordinates(coord.posX, coord.posY, coord.posZ));
-        }
-        return coords;
     }
 
     @Override

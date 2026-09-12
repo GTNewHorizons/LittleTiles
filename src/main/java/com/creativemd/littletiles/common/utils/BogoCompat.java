@@ -3,7 +3,6 @@ package com.creativemd.littletiles.common.utils;
 import net.minecraft.item.ItemStack;
 
 import com.cleanroommc.bogosorter.api.BeforeSortEvent;
-import com.cleanroommc.bogosorter.client.keybinds.control.BSKeybinds;
 import com.creativemd.littletiles.common.items.ItemLittleChisel;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -16,14 +15,20 @@ public class BogoCompat {
 
     @SubscribeEvent
     @SideOnly(Side.CLIENT)
-    public void onBeforeSortInGui(BeforeSortEvent.BeforeSortInGuiEvent event) {
-        // Cancel Bogo inGUI inventory sort if Little Chisel is picked up.
+    public void onBeforeSortInGui(final BeforeSortEvent event) {
+        // Cancel Bogo inventory sort if Little Chisel is picked-up/held.
         // Bogo sort is usually bound to middle-click.
-        // This is just to ease default player experience.
+        // This is just to avoid annoying player experience.
         if (!event.isFromKeybind()) return;
-        if (BSKeybinds.sortKeyInGUI.getKeyCode() != MOUSE_MIDDLE) return;
 
-        ItemStack item = event.getPlayer().inventory.getItemStack();
+        final boolean isSortInGUI = BeforeSortEvent.isSortInGUI();
+        if (BeforeSortEvent.getSortKeyCode(isSortInGUI) != MOUSE_MIDDLE) return;
+
+        ItemStack item = null;
+
+        if (isSortInGUI) item = event.getPlayer().inventory.getItemStack();
+        else item = event.getPlayer().getHeldItem();
+
         if (item == null || !(item.getItem() instanceof ItemLittleChisel)) return;
 
         // Cancel sort

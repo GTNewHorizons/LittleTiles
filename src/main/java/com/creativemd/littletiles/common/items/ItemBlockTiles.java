@@ -13,6 +13,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -31,6 +32,7 @@ import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
+import com.creativemd.littletiles.common.utils.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
@@ -195,13 +197,41 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         int y = pos.getPosY();
         int z = pos.getPosZ();
 
+        LittleTilePlacementPlan plan = new LittleTilePlacementPlan();
+        plan.fillPlan(world, x, y, z, previews, structure, placeMode);
+        if (!plan.canApplyPlan()) {
+            return false;
+        }
+
         ArrayList<LittleTile> unplaceableTiles = new ArrayList<>();
-        if (placeTiles(world, player, previews, structure, x, y, z, stack, unplaceableTiles, placeMode)) {
+        ArrayList<ChunkCoordinates> plannedCoords = collectPlannedCoords(previews, x, y, z);
+        ItemStack heldBeforePlace = player.inventory.mainInventory[player.inventory.currentItem];
+        boolean isStencilChiselNonCreative = !player.capabilities.isCreativeMode && heldBeforePlace != null
+                && heldBeforePlace.getItem() == LittleTiles.chisel
+                && placeMode == LittleTilePlaceMode.STENCIL;
+        boolean shouldRecordHistory = !world.isRemote && !isStencilChiselNonCreative;
+        ArrayList<LittleTilesPlacementHistory.BlockSnapshot> beforeStates = null;
+        if (shouldRecordHistory) {
+            beforeStates = LittleTilesPlacementHistory.captureSnapshots(world, plannedCoords);
+        }
+
+        if (plan.applyPlan(world, player, stack, structure, unplaceableTiles)) {
             ItemStack currentStack = player.inventory.mainInventory[player.inventory.currentItem];
             boolean isChisel = currentStack != null && currentStack.getItem() == LittleTiles.chisel;
             if (!player.capabilities.isCreativeMode && !isChisel) {
                 currentStack.stackSize--;
                 if (currentStack.stackSize == 0) player.inventory.mainInventory[player.inventory.currentItem] = null;
+            }
+
+            if (shouldRecordHistory) {
+                ArrayList<LittleTilesPlacementHistory.BlockSnapshot> afterStates = LittleTilesPlacementHistory
+                        .captureSnapshots(world, plannedCoords);
+                LittleTilesPlacementHistory.recordPlacement(
+                        player,
+                        new LittleTilesPlacementHistory.PlacementAction(
+                                world.provider.dimensionId,
+                                beforeStates,
+                                afterStates));
             }
 
             if (!world.isRemote) {
@@ -217,6 +247,21 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             return true;
         }
         return false;
+    }
+
+    private static ArrayList<ChunkCoordinates> collectPlannedCoords(ArrayList<PreviewTile> previews, int x, int y,
+            int z) {
+        ArrayList<ChunkCoordinates> coords = new ArrayList<>();
+        LittleTilePlacementPlan.SplitPreviewMap splitMap = new LittleTilePlacementPlan.SplitPreviewMap();
+        for (PreviewTile preview : previews) {
+            if (!preview.split(splitMap, x, y, z)) {
+                return coords;
+            }
+        }
+        for (ChunkCoordinates coord : splitMap.keySet()) {
+            coords.add(new ChunkCoordinates(coord.posX, coord.posY, coord.posZ));
+        }
+        return coords;
     }
 
     @Override

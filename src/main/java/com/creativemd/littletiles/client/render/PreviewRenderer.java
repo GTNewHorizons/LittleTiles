@@ -24,6 +24,7 @@ import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
+import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
@@ -101,6 +102,21 @@ public class PreviewRenderer {
                     LittleTilesClient.pressedToolConfig = false;
                 }
             }
+
+            if (GameSettings.isKeyDown(LittleTilesClient.undoPlacement) && !LittleTilesClient.pressedUndoPlacement) {
+                LittleTilesClient.pressedUndoPlacement = true;
+                PacketHandler.sendPacketToServer(new LittleUndoRedoPacket(true));
+            } else if (!GameSettings.isKeyDown(LittleTilesClient.undoPlacement)) {
+                LittleTilesClient.pressedUndoPlacement = false;
+            }
+
+            if (GameSettings.isKeyDown(LittleTilesClient.redoPlacement) && !LittleTilesClient.pressedRedoPlacement) {
+                LittleTilesClient.pressedRedoPlacement = true;
+                PacketHandler.sendPacketToServer(new LittleUndoRedoPacket(false));
+            } else if (!GameSettings.isKeyDown(LittleTilesClient.redoPlacement)) {
+                LittleTilesClient.pressedRedoPlacement = false;
+            }
+
             if (PlacementHelper.isLittleBlock(mc.thePlayer.getHeldItem())) {
                 int i4 = MathHelper.floor_double((double) (mc.thePlayer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
                 ForgeDirection direction_look = null;

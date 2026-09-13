@@ -33,6 +33,9 @@ public class SubContainerHammer extends SubContainer {
                     value.getByte("sizeX"),
                     value.getByte("sizeY"),
                     value.getByte("sizeZ"));
+            if (size.sizeX < 1 || size.sizeX > LittleTile.maxPos || size.sizeY < 1 || size.sizeY > LittleTile.maxPos
+                    || size.sizeZ < 1 || size.sizeZ > LittleTile.maxPos)
+                return;
             ItemStack stack = basic.getStackInSlot(0);
             if (stack != null && stack.getItem() instanceof ItemBlock) {
                 Block block = Block.getBlockFromItem(stack.getItem());

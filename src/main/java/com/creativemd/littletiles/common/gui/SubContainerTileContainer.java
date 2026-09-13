@@ -100,7 +100,9 @@ public class SubContainerTileContainer extends SubContainer {
     @Override
     public void onGuiPacket(int controlID, NBTTagCompound nbt, EntityPlayer player) {
         if (controlID == 0) {
+            if (nbt == null) return;
             ItemStack dropStack = ItemStack.loadItemStackFromNBT(nbt);
+            if (dropStack == null || dropStack.stackSize <= 0) return;
             Block block = Block.getBlockFromItem(dropStack.getItem());
             int meta = dropStack.getItemDamage();
             ArrayList<BlockEntry> entries = ItemTileContainer.loadMap(stack);

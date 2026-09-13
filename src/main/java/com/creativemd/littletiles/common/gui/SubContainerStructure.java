@@ -25,7 +25,12 @@ public class SubContainerStructure extends SubContainer {
     @Override
     public void onGuiPacket(int controlID, NBTTagCompound nbt, EntityPlayer player) {
         if (controlID == 0) {
-            stack.stackTagCompound = nbt;
+            if (stack.stackTagCompound == null) stack.stackTagCompound = new NBTTagCompound();
+            if (nbt != null && nbt.hasKey("structure")) {
+                NBTTagCompound structure = nbt.getCompoundTag("structure");
+                structure.removeTag("stack");
+                stack.stackTagCompound.setTag("structure", structure);
+            } else stack.stackTagCompound.removeTag("structure");
             player.inventory.mainInventory[index] = stack;
             // player.inventory.
             /*

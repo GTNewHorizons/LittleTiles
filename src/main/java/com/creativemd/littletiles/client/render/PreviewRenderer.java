@@ -1,13 +1,16 @@
 package com.creativemd.littletiles.client.render;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.settings.GameSettings;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
@@ -52,7 +55,8 @@ public class PreviewRenderer {
 
     public static LittleTileBlockPos markedHit = null;
     public static LittleTileBlockPos firstHit = null;
-    private static ItemStack lastItem = null;
+    private static Item lastItem = null;
+    private static NBTTagCompound lastNbt = null;
 
     private static ForgeDirection rotateDirection(ForgeDirection direction) {
         return switch (direction) {
@@ -221,12 +225,18 @@ public class PreviewRenderer {
         final Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != null && mc.inGameHasFocus) {
 
-            if (!ItemStack.areItemStackTagsEqual(lastItem, mc.thePlayer.getHeldItem())) {
+            ItemStack held = mc.thePlayer.getHeldItem();
+            Item item = held != null ? held.getItem() : null;
+            NBTTagCompound nbt = held != null ? held.getTagCompound() : null;
+
+            if (item != lastItem || !Objects.equals(lastNbt, nbt)) {
                 markedHit = null;
                 firstHit = null;
                 LittleDeformedBoxHelper.reset();
+                lastItem = item;
+                // Copy the tags so in-place tool setting changes are detected on the next tick.
+                lastNbt = nbt != null ? (NBTTagCompound) nbt.copy() : null;
             }
-            lastItem = mc.thePlayer.getHeldItem();
 
             if (mc.thePlayer.getHeldItem() != null) {
                 if (GameSettings.isKeyDown(LittleTilesClient.toolConfig) && !LittleTilesClient.pressedToolConfig) {

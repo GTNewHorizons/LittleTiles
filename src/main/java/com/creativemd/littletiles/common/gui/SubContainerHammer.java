@@ -29,6 +29,7 @@ public class SubContainerHammer extends SubContainer {
     @Override
     public void onGuiPacket(int control, NBTTagCompound value, EntityPlayer player) {
         if (control == 6) {
+            if (value == null) return;
             LittleTileSize size = new LittleTileSize(
                     value.getByte("sizeX"),
                     value.getByte("sizeY"),

@@ -25,6 +25,9 @@ public class SubContainerStructure extends SubContainer {
 
     @Override
     public void onGuiPacket(int controlID, NBTTagCompound nbt, EntityPlayer player) {
+        // Cursed nullpointer fix
+        player.inventory.mainInventory[index] = stack;
+
         if (controlID != 0 || nbt == null) return;
         if (stack.stackTagCompound == null) stack.stackTagCompound = new NBTTagCompound();
         NBTTagCompound stackTag = stack.stackTagCompound;

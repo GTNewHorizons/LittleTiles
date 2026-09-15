@@ -156,7 +156,8 @@ public class GuiContainerSub extends GuiContainer {
         if (Mouse.isCreated()) {
             handleScrolling();
             Vector2d mouse = GuiControl.getMousePos(width, height);
-            getTopLayer().mouseMove((int) mouse.x, (int) mouse.y, 0);
+            SubGui layer = getTopLayer();
+            if (layer != null) layer.mouseMove((int) mouse.x, (int) mouse.y, 0);
         }
         super.handleInput();
     }
@@ -165,7 +166,8 @@ public class GuiContainerSub extends GuiContainer {
         int j = Mouse.getDWheel();
         if (j != 0) {
             Vector2d mouse = GuiControl.getMousePos(width, height);
-            getTopLayer().mouseScrolled((int) mouse.x, (int) mouse.y, j);
+            SubGui layer = getTopLayer();
+            if (layer != null) layer.mouseScrolled((int) mouse.x, (int) mouse.y, j);
             // Mouse.setGrabbed(true);
         }
     }
@@ -173,13 +175,15 @@ public class GuiContainerSub extends GuiContainer {
     @Override
     public void mouseClicked(int x, int y, int button) {
         super.mouseClicked(x, y, button);
-        getTopLayer().mousePressed(x, y, button);
+        SubGui layer = getTopLayer();
+        if (layer != null) layer.mousePressed(x, y, button);
     }
 
     @Override
     public void mouseClickMove(int x, int y, int button, long time) {
         super.mouseClickMove(x, y, button, time);
-        getTopLayer().mouseDragged(x, y, button, time);
+        SubGui layer = getTopLayer();
+        if (layer != null) layer.mouseDragged(x, y, button, time);
     }
 
     @Override
@@ -192,11 +196,13 @@ public class GuiContainerSub extends GuiContainer {
     }
 
     public void onMouseMove(int x, int y, int button) {
-        getTopLayer().mouseMove(x, y, button);
+        SubGui layer = getTopLayer();
+        if (layer != null) layer.mouseMove(x, y, button);
     }
 
     public void onMouseReleased(int x, int y, int button) {
-        getTopLayer().mouseReleased(x, y, button);
+        SubGui layer = getTopLayer();
+        if (layer != null) layer.mouseReleased(x, y, button);
     }
 
     @Override

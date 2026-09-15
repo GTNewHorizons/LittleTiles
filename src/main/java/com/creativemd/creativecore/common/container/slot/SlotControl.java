@@ -57,6 +57,7 @@ public class SlotControl extends ContainerControl {
 
     @Override
     public void readFromNBT(NBTTagCompound nbt) {
+        if (nbt == null) return;
         boolean isServer = FMLCommonHandler.instance().getEffectiveSide().isServer();
         switch (nbt.getInteger("type")) {
             /** Update */

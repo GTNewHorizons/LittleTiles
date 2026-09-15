@@ -10,6 +10,8 @@ public class LittleTilesCubeObject extends CubeObject {
 
     public LittleTileCutoutInfo cutoutInfo;
     public LittleTileGeometryCache geometryCache;
+    /** Generation captured before this cube's render geometry was read. */
+    public long cutsGeneration;
 
     /**
      * Bounds on the 1/16 grid. Kept alongside the double bounds so face occlusion can be computed with exact integer

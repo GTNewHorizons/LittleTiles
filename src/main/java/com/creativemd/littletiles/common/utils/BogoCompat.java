@@ -21,12 +21,12 @@ public class BogoCompat {
         // This is just to avoid annoying player experience.
         if (!event.isFromKeybind()) return;
 
-        final boolean isSortInGUI = BeforeSortEvent.isSortInGUI();
-        if (BeforeSortEvent.getSortKeyCode(isSortInGUI) != MOUSE_MIDDLE) return;
+        final boolean isInGui = event.isInGui();
+        if (event.getSortKeyCode() != MOUSE_MIDDLE) return;
 
         ItemStack item = null;
 
-        if (isSortInGUI) item = event.getPlayer().inventory.getItemStack();
+        if (isInGui) item = event.getPlayer().inventory.getItemStack();
         else item = event.getPlayer().getHeldItem();
 
         if (item == null || !(item.getItem() instanceof ItemLittleChisel)) return;

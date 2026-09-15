@@ -63,15 +63,20 @@ public class SubContainerStructure extends SubContainer {
         original.removeTag("ndirection");
 
         if ("door".equals(id)) {
-            if (!edited.hasKey("avx", 3) || !edited.hasKey("avy", 3) || !edited.hasKey("avz", 3)
-                    || !edited.hasKey("axis", 3) || !edited.hasKey("ndirection", 3)) return;
+            if (!edited.hasKey("avx", 3) || !edited.hasKey("avy", 3)
+                    || !edited.hasKey("avz", 3)
+                    || !edited.hasKey("axis", 3)
+                    || !edited.hasKey("ndirection", 3))
+                return;
             int axis = edited.getInteger("axis");
             int direction = edited.getInteger("ndirection");
             // Axis IDs are X=0, Y=1, Z=2. The GUI stores the normal axis as the
             // positive ForgeDirection: UP=1, SOUTH=3, EAST=5.
             // Reject a normal parallel to the door's rotation axis.
-            if (axis < 0 || axis > 2 || (direction != 1 && direction != 3 && direction != 5)
-                    || direction == (axis == 0 ? 5 : axis == 1 ? 1 : 3)) return;
+            if (axis < 0 || axis > 2
+                    || (direction != 1 && direction != 3 && direction != 5)
+                    || direction == (axis == 0 ? 5 : axis == 1 ? 1 : 3))
+                return;
             int x = edited.getInteger("avx");
             int y = edited.getInteger("avy");
             int z = edited.getInteger("avz");

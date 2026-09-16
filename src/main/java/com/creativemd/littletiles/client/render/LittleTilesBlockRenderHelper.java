@@ -158,6 +158,12 @@ public class LittleTilesBlockRenderHelper {
         Tessellator tess = Tessellator.instance;
 
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
+        // Force brightness to 15 for blocks that emits.
+        // This is a workaround to support blocks like Caelestis Lapis from extraUtils.
+        // TODO: Investigate a better way to handle this (POC:
+        // https://github.com/GTNewHorizons/LittleTiles/commits/refactor-brightness/)
+        int emitted = cube.block.getLightValue(world, x, y, z);
+        if (emitted > 0) brightness |= (15 << 4);
         tess.setBrightness(brightness);
 
         int color = resolveRenderColor(cube.color, cube.block, cube.meta);
@@ -206,7 +212,7 @@ public class LittleTilesBlockRenderHelper {
         extraRenderer.updateRenderer(renderer);
 
         final IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
-        fake.world = renderer.blockAccess;
+        fake.setWorld(renderer.blockAccess, x, y, z);
 
         int pass = ForgeHooksClient.getWorldRenderPass();
         boolean rendered = false;
@@ -219,11 +225,18 @@ public class LittleTilesBlockRenderHelper {
         try {
             for (int i = 0; i < cubes.size(); i++) {
                 final LittleTilesCubeObject cube = cubes.get(i);
+
+                if (cube.block == null || cube.meta == -1) {
+                    continue;
+                }
                 if (!cube.block.canRenderInPass(pass)) {
                     continue;
                 }
+
+                fake.setBlock(cube.block, cube.meta);
+
                 if (cube.cutoutInfo != null) {
-                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, world);
+                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, fake);
                     if (result == CutoutResult.DRAWN) {
                         rendered = true;
                         continue;
@@ -234,40 +247,37 @@ public class LittleTilesBlockRenderHelper {
                     // For buggy meshes, render the default cube
                 }
 
-                if (cube.block != null && cube.meta != -1) {
-                    // sides a mesh cuts into cannot be drawn as rectangles, the culler hands them back as triangles
-                    List<Triangle3d> boxTriangles = Collections.emptyList();
-                    if (cube.cutoutInfo == null && coverage[i] instanceof FaceClipper) {
-                        FaceClipper clipper = (FaceClipper) coverage[i];
-                        boxTriangles = LittleTilesFaceCuller.visibleBoxTriangles(cullingContext, cube, clipper);
-                    }
-                    rendered = true;
-                    extraRenderer.clearOverrideBlockTexture();
-                    extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
-                    extraRenderer.meta = cube.meta;
-                    fake.overrideMeta = cube.meta;
-                    extraRenderer.color = cube.color;
-                    extraRenderer.faceClipper = coverage[i];
-                    extraRenderer.lockBlockBounds = true;
-                    if (LittleTiles.angelicaCompat != null) {
-                        LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
-                    }
-                    extraRenderer.field_152631_f = true;
-                    extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
-                    extraRenderer.field_152631_f = false;
-                    if (LittleTiles.angelicaCompat != null) {
-                        LittleTiles.angelicaCompat.resetShaderMaterialOverride();
-                    }
-                    extraRenderer.lockBlockBounds = false;
-                    extraRenderer.color = ColorUtils.WHITE;
-                    if (!boxTriangles.isEmpty()) {
-                        renderTriangles(x, y, z, cube, boxTriangles, world);
-                    }
+                // sides a mesh cuts into cannot be drawn as rectangles, the culler hands them back as triangles
+                List<Triangle3d> boxTriangles = Collections.emptyList();
+                if (cube.cutoutInfo == null && coverage[i] instanceof FaceClipper) {
+                    FaceClipper clipper = (FaceClipper) coverage[i];
+                    boxTriangles = LittleTilesFaceCuller.visibleBoxTriangles(cullingContext, cube, clipper);
+                }
+                rendered = true;
+                extraRenderer.clearOverrideBlockTexture();
+                extraRenderer.setRenderBounds(cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ);
+                extraRenderer.meta = cube.meta;
+                extraRenderer.color = cube.color;
+                extraRenderer.faceClipper = coverage[i];
+                extraRenderer.lockBlockBounds = true;
+                if (LittleTiles.angelicaCompat != null) {
+                    LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
+                }
+                extraRenderer.field_152631_f = true;
+                extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
+                extraRenderer.field_152631_f = false;
+                if (LittleTiles.angelicaCompat != null) {
+                    LittleTiles.angelicaCompat.resetShaderMaterialOverride();
+                }
+                extraRenderer.lockBlockBounds = false;
+                extraRenderer.color = ColorUtils.WHITE;
+                if (!boxTriangles.isEmpty()) {
+                    renderTriangles(x, y, z, cube, boxTriangles, fake);
                 }
             }
         } finally {
             extraRenderer.faceClipper = null;
-            fake.world = null;
+            fake.reset();
         }
         return rendered;
     }

@@ -1,7 +1,6 @@
 package com.creativemd.littletiles.client.render;
 
 import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -165,23 +164,7 @@ public final class LittleDeformedBoxHelper {
 
     /** Raytraces the corner cubes and returns the index of the nearest one hit, or -1 if the ray misses all of them. */
     public static int pickCorner(Vec3 start, Vec3 end, int grid) {
-        if (!isEditing()) {
-            return -1;
-        }
-        int best = -1;
-        double bestDistance = Double.MAX_VALUE;
-        for (int i = 0; i < corners.length; i++) {
-            MovingObjectPosition hit = getCornerBoxAABB(i, grid).calculateIntercept(start, end);
-            if (hit == null) {
-                continue;
-            }
-            double distance = start.squareDistanceTo(hit.hitVec);
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                best = i;
-            }
-        }
-        return best;
+        return isEditing() ? LittleTileBlockPos.pickHitBox(start, end, grid, corners) : -1;
     }
 
     /** The cutout describing the box as it currently stands. */

@@ -189,6 +189,23 @@ public class LittleTileBlockPos {
                 vec.zCoord + size);
     }
 
+    /** Returns the index of the nearest position whose grid-cell box the ray hits, or -1 if it misses all of them. */
+    public static int pickHitBox(Vec3 start, Vec3 end, int grid, LittleTileBlockPos... positions) {
+        int best = -1;
+        double bestDistance = Double.MAX_VALUE;
+        for (int i = 0; i < positions.length; i++) {
+            MovingObjectPosition hit = positions[i].getHitBox(grid).calculateIntercept(start, end);
+            if (hit == null) continue;
+
+            double distance = start.squareDistanceTo(hit.hitVec);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        return best;
+    }
+
     public Comparison compareTo(LittleTileBlockPos other) {
         Comparison ret = new Comparison();
         if (posX != other.posX) {

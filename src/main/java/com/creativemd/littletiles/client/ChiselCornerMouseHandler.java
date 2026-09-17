@@ -22,7 +22,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * exactly when swinging at the world would be unwanted anyway.
  */
 @SideOnly(Side.CLIENT)
-public class DeformCornerMouseHandler {
+public class ChiselCornerMouseHandler {
 
     @SubscribeEvent
     public void onMouse(MouseEvent event) {

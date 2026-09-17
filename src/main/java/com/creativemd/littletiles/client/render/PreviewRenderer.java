@@ -27,7 +27,6 @@ import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
-import com.creativemd.littletiles.client.ChiselCornerMouseHandler;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;

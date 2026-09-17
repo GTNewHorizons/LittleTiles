@@ -48,6 +48,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class PreviewRenderer {
 
+    /** Physical width of selectable-corner edges, in blocks. */
+    private static final double CORNER_MARKER_EDGE_WIDTH = 1D / 64D;
+
     public void processKey(ForgeDirection direction) {
         LittleRotatePacket packet = new LittleRotatePacket(direction);
         packet.executeClient(Minecraft.getMinecraft().thePlayer);
@@ -181,25 +184,44 @@ public class PreviewRenderer {
     }
 
     public static void renderCornerMarker(AxisAlignedBB box, boolean selected, boolean valid) {
-        RenderHelper3D.renderBlock(
-            (box.minX + box.maxX) / 2 - TileEntityRendererDispatcher.staticPlayerX,
-            (box.minY + box.maxY) / 2 - TileEntityRendererDispatcher.staticPlayerY,
-            (box.minZ + box.maxZ) / 2 - TileEntityRendererDispatcher.staticPlayerZ,
-            box.maxX - box.minX,
-            box.maxY - box.minY,
-            box.maxZ - box.minZ,
-            0,
-            0,
-            0,
-            valid ? (selected ? 1 : 0.2) : 1,
-            valid ? 0.6 : 0.1,
-            valid ? (selected ? 0 : 1) : 0.1,
-            selected ? 0.9 : 0.5);
+        double minX = box.minX - TileEntityRendererDispatcher.staticPlayerX;
+        double minY = box.minY - TileEntityRendererDispatcher.staticPlayerY;
+        double minZ = box.minZ - TileEntityRendererDispatcher.staticPlayerZ;
+        double maxX = box.maxX - TileEntityRendererDispatcher.staticPlayerX;
+        double maxY = box.maxY - TileEntityRendererDispatcher.staticPlayerY;
+        double maxZ = box.maxZ - TileEntityRendererDispatcher.staticPlayerZ;
+
+        double red = valid ? (selected ? 1 : 0.2) : 1;
+        double green = valid ? 0.6 : 0.1;
+        double blue = valid ? (selected ? 0 : 1) : 0.1;
+        double alpha = selected ? 0.9 : 0.5;
+        double width = CORNER_MARKER_EDGE_WIDTH;
+
+        // These are real world-space cuboids rather than GL lines. Their thickness therefore stays uniform on every
+        // face and does not depend on the display's pixel scale or the driver's supported line widths.
+        for (int sideA = 0; sideA < 2; sideA++) {
+            for (int sideB = 0; sideB < 2; sideB++) {
+                double x = sideA == 0 ? minX : maxX;
+                double y = sideA == 0 ? minY : maxY;
+                double z = sideB == 0 ? minZ : maxZ;
+
+                renderMarkerEdge((minX + maxX) / 2, y, z, maxX - minX + width, width, width, red, green, blue, alpha);
+                renderMarkerEdge(x, (minY + maxY) / 2, z, width, maxY - minY + width, width, red, green, blue, alpha);
+
+                y = sideB == 0 ? minY : maxY;
+                renderMarkerEdge(x, y, (minZ + maxZ) / 2, width, width, maxZ - minZ + width, red, green, blue, alpha);
+            }
+        }
+    }
+
+    private static void renderMarkerEdge(double x, double y, double z, double sizeX, double sizeY, double sizeZ,
+            double red, double green, double blue, double alpha) {
+        RenderHelper3D.renderBlock(x, y, z, sizeX, sizeY, sizeZ, 0, 0, 0, red, green, blue, alpha);
     }
 
     /**
-     * Draws a small cube on each of the 8 corners of the deformed box being edited, so the player can see what there is
-     * to grab. The selected corner is drawn in a different colour. These are the very same cubes
+     * Draws a small wireframe cube on each of the 8 corners of the deformed box being edited, so the player can see
+     * what there is to grab. The selected corner is drawn in a different colour. These are the very same cubes
      * {@link LittleDeformedBoxHelper#pickCorner} raytraces against, so what is clicked is what is shown.
      */
     private static void renderCornerMarkers(int grid) {

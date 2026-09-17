@@ -244,6 +244,9 @@ public class LittleTilesBlockRenderHelper {
                 }
 
                 fake.setBlock(cube.block, cube.meta);
+                if (LittleTiles.angelicaCompat != null) {
+                    LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
+                }
 
                 if (cube.cutoutInfo != null) {
                     CutoutResult result = renderCutout(x, y, z, cube, cullingContext, fake);
@@ -270,15 +273,9 @@ public class LittleTilesBlockRenderHelper {
                 extraRenderer.color = cube.color;
                 extraRenderer.faceClipper = coverage[i];
                 extraRenderer.lockBlockBounds = true;
-                if (LittleTiles.angelicaCompat != null) {
-                    LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
-                }
                 extraRenderer.field_152631_f = true;
                 extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
                 extraRenderer.field_152631_f = false;
-                if (LittleTiles.angelicaCompat != null) {
-                    LittleTiles.angelicaCompat.resetShaderMaterialOverride();
-                }
                 extraRenderer.lockBlockBounds = false;
                 extraRenderer.color = ColorUtils.WHITE;
                 if (!boxTriangles.isEmpty()) {
@@ -288,6 +285,9 @@ public class LittleTilesBlockRenderHelper {
         } finally {
             extraRenderer.faceClipper = null;
             fake.reset();
+            if (LittleTiles.angelicaCompat != null) {
+                LittleTiles.angelicaCompat.resetShaderMaterialOverride();
+            }
         }
         return rendered;
     }

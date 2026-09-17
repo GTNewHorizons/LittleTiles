@@ -420,23 +420,15 @@ public abstract class LittleTile {
         return false;
     }
 
-    /** Whether this tile can sustain the given plant. Only asked when the tile covers the whole top face. */
+    /** Whether this tile can sustain the given plant. Only asked when the tile contributes to the top face. */
     public boolean canSustainPlant(IBlockAccess world, int x, int y, int z, ForgeDirection direction,
             IPlantable plantable) {
         return false;
     }
 
-    /**
-     * Whether this tile covers the entire top face of its block, meaning it spans the full x/z range, reaches the top
-     * and has no cutouts. Its thickness does not matter.
-     */
-    public boolean coversWholeTopFace() {
-        return boundingBox != null && getCutoutInfo() == null
-                && boundingBox.minX == minPos
-                && boundingBox.minZ == minPos
-                && boundingBox.maxX == maxPos
-                && boundingBox.maxZ == maxPos
-                && boundingBox.maxY == maxPos;
+    /** Whether this tile provides collision geometry at the top face. Its thickness does not matter. */
+    public boolean contributesToTopFace() {
+        return !disableCollision && boundingBox != null && getCutoutInfo() == null && boundingBox.maxY == maxPos;
     }
 
     // ================Structure================

@@ -489,10 +489,18 @@ public class BlockTile extends BlockContainer {
         try { // Why try? because the number of tiles can change while this method is called
             final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
             if (littleTile != null) {
+                int coveredArea = 0;
+
                 for (LittleTile tile : littleTile.getTiles()) {
-                    if (tile.coversWholeTopFace() && tile.canSustainPlant(world, x, y, z, direction, plantable))
-                        return true;
+                    if (!tile.contributesToTopFace()) continue;
+                    if (!tile.canSustainPlant(world, x, y, z, direction, plantable)) return false;
+
+                    // tiles never overlap, so their areas simply add up to the full face
+                    coveredArea += (tile.boundingBox.maxX - tile.boundingBox.minX)
+                            * (tile.boundingBox.maxZ - tile.boundingBox.minZ);
                 }
+
+                return coveredArea == LittleTile.maxPos * LittleTile.maxPos;
             }
             return false;
         } catch (Exception e) {

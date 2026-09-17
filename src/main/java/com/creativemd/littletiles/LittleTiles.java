@@ -48,9 +48,9 @@ import com.creativemd.littletiles.waila.Waila;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
-import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
+import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
@@ -77,8 +77,8 @@ public class LittleTiles {
     public static final Logger logger = LogManager.getLogger(modid);
 
     private static final String MINIMUM_ANGELICA_VERSION = "2.1.0";
-    private static final DefaultArtifactVersion MINIMUM_ANGELICA_ARTIFACT_VERSION =
-            new DefaultArtifactVersion(MINIMUM_ANGELICA_VERSION);
+    private static final DefaultArtifactVersion MINIMUM_ANGELICA_ARTIFACT_VERSION = new DefaultArtifactVersion(
+            MINIMUM_ANGELICA_VERSION);
 
     public static int maxNewTiles = 512;
 

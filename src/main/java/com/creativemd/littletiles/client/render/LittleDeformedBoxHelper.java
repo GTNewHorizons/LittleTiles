@@ -160,15 +160,7 @@ public final class LittleDeformedBoxHelper {
      * The pickable cube of a corner, in world coordinates: exactly the one grid cell the corner sits in
      */
     public static AxisAlignedBB getCornerBoxAABB(int index, int grid) {
-        double size = grid / 16.0;
-        Vec3 vec = corners[index].toHitVec();
-        return AxisAlignedBB.getBoundingBox(
-                vec.xCoord,
-                vec.yCoord,
-                vec.zCoord,
-                vec.xCoord + size,
-                vec.yCoord + size,
-                vec.zCoord + size);
+        return corners[index].getHitBox(grid);
     }
 
     /** Raytraces the corner cubes and returns the index of the nearest one hit, or -1 if the ray misses all of them. */

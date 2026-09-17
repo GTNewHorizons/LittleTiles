@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.utils;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -173,6 +174,19 @@ public class LittleTileBlockPos {
 
     public Vec3 toHitVec() {
         return Vec3.createVectorHelper(posX + subX / 16.0, posY + subY / 16.0, posZ + subZ / 16.0);
+    }
+
+    /** The world-space box of the grid cell beginning at this position. */
+    public AxisAlignedBB getHitBox(int grid) {
+        double size = grid / 16.0;
+        Vec3 vec = toHitVec();
+        return AxisAlignedBB.getBoundingBox(
+                vec.xCoord,
+                vec.yCoord,
+                vec.zCoord,
+                vec.xCoord + size,
+                vec.yCoord + size,
+                vec.zCoord + size);
     }
 
     public Comparison compareTo(LittleTileBlockPos other) {

@@ -27,6 +27,7 @@ import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.client.ChiselCornerMouseHandler;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
@@ -179,6 +180,23 @@ public class PreviewRenderer {
         return nx * adx + ny * ady + nz * adz == 0;
     }
 
+    public static void renderCornerMarker(AxisAlignedBB box, boolean selected, boolean valid) {
+        RenderHelper3D.renderBlock(
+            (box.minX + box.maxX) / 2 - TileEntityRendererDispatcher.staticPlayerX,
+            (box.minY + box.maxY) / 2 - TileEntityRendererDispatcher.staticPlayerY,
+            (box.minZ + box.maxZ) / 2 - TileEntityRendererDispatcher.staticPlayerZ,
+            box.maxX - box.minX,
+            box.maxY - box.minY,
+            box.maxZ - box.minZ,
+            0,
+            0,
+            0,
+            valid ? (selected ? 1 : 0.2) : 1,
+            valid ? 0.6 : 0.1,
+            valid ? (selected ? 0 : 1) : 0.1,
+            selected ? 0.9 : 0.5);
+    }
+
     /**
      * Draws a small cube on each of the 8 corners of the deformed box being edited, so the player can see what there is
      * to grab. The selected corner is drawn in a different colour. These are the very same cubes
@@ -189,20 +207,7 @@ public class PreviewRenderer {
         for (int i = 0; i < Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT; i++) {
             AxisAlignedBB box = LittleDeformedBoxHelper.getCornerBoxAABB(i, grid);
             boolean selected = LittleDeformedBoxHelper.isMarkedCorner(i);
-            RenderHelper3D.renderBlock(
-                    (box.minX + box.maxX) / 2 - TileEntityRendererDispatcher.staticPlayerX,
-                    (box.minY + box.maxY) / 2 - TileEntityRendererDispatcher.staticPlayerY,
-                    (box.minZ + box.maxZ) / 2 - TileEntityRendererDispatcher.staticPlayerZ,
-                    box.maxX - box.minX,
-                    box.maxY - box.minY,
-                    box.maxZ - box.minZ,
-                    0,
-                    0,
-                    0,
-                    valid ? (selected ? 1 : 0.2) : 1,
-                    valid ? 0.6 : 0.1,
-                    valid ? (selected ? 0 : 1) : 0.1,
-                    selected ? 0.9 : 0.5);
+            renderCornerMarker(box, selected, valid);
         }
     }
 

@@ -8,6 +8,7 @@ import net.minecraftforge.client.event.MouseEvent;
 
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.LittleDeformedBoxHelper;
+import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -15,18 +16,17 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Selects the corners of a deformed box with left click, the way the glove does in modern LittleTiles.
+ * Selects chisel corners with left click.
  * <p>
  * 1.7.10 has no hook for "left clicked while holding this item" - left click is attack/break - so the raw mouse event
- * is intercepted and cancelled instead. This only happens while a deformed box is actually being edited, which is
- * exactly when swinging at the world would be unwanted anyway.
+ * is intercepted and cancelled instead.
  */
 @SideOnly(Side.CLIENT)
 public class ChiselCornerMouseHandler {
 
     @SubscribeEvent
     public void onMouse(MouseEvent event) {
-        if (event.button != 0 || !event.buttonstate || !LittleDeformedBoxHelper.isEditing()) {
+        if (event.button != 0 || !event.buttonstate) {
             return;
         }
 
@@ -41,7 +41,8 @@ public class ChiselCornerMouseHandler {
             return;
         }
         LittleToolHandler handler = new LittleToolHandler(held);
-        if (!handler.isDeformedBoxShape()) {
+        boolean editingDeformedBox = handler.isDeformedBoxShape() && LittleDeformedBoxHelper.isEditing();
+        if (!editingDeformedBox && !PreviewRenderer.hasTwoHitCorners()) {
             return;
         }
 
@@ -51,7 +52,13 @@ public class ChiselCornerMouseHandler {
         Vec3 look = player.getLook(1.0F);
         Vec3 end = start.addVector(look.xCoord * reach, look.yCoord * reach, look.zCoord * reach);
 
-        LittleDeformedBoxHelper.toggleMarkedCorner(LittleDeformedBoxHelper.pickCorner(start, end, handler.getGrid()));
+        if (editingDeformedBox) {
+            LittleDeformedBoxHelper
+                    .toggleMarkedCorner(LittleDeformedBoxHelper.pickCorner(start, end, handler.getGrid()));
+        } else {
+            PreviewRenderer.selectTwoHitCorner(start, end, handler.getGrid());
+        }
+        // Swinging at the world is unwanted for the whole time corners are being edited, so a miss is consumed too.
         event.setCanceled(true);
     }
 }

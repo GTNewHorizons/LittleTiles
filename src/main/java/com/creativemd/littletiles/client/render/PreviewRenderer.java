@@ -27,7 +27,6 @@ import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
-import com.creativemd.littletiles.client.ChiselCornerMouseHandler;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
@@ -98,6 +97,29 @@ public class PreviewRenderer {
 
     private static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look, int amount) {
         markedHit.moveInDirection(relativeToLook(direction, direction_look), stepAmount(amount));
+    }
+
+    /** Whether both corners of an ordinary two-hit chisel preview are fixed and can be selected. */
+    public static boolean hasTwoHitCorners() {
+        return firstHit != null && markedHit != null;
+    }
+
+    /**
+     * Selects the nearest of the two fixed chisel corners hit by the ray. {@link #markedHit} remains the selected and
+     * movable corner, so selecting {@link #firstHit} only has to swap the two endpoints.
+     */
+    public static boolean selectTwoHitCorner(Vec3 start, Vec3 end, int grid) {
+        if (!hasTwoHitCorners()) return false;
+
+        int selectedCorner = LittleTileBlockPos.pickHitBox(start, end, grid, firstHit, markedHit);
+        if (selectedCorner < 0) return false;
+
+        if (selectedCorner == 0) {
+            LittleTileBlockPos previousFirst = firstHit;
+            firstHit = markedHit;
+            markedHit = previousFirst;
+        }
+        return true;
     }
 
     /** The 12 edges of the box, as pairs of corner indices - the two corners of an edge differ in exactly one axis. */
@@ -231,6 +253,12 @@ public class PreviewRenderer {
             boolean selected = LittleDeformedBoxHelper.isMarkedCorner(i);
             renderCornerMarker(box, selected, valid);
         }
+    }
+
+    /** Draws the two fixed corners of an ordinary chisel preview, highlighting the movable one. */
+    private static void renderTwoHitCorners(int grid) {
+        renderCornerMarker(firstHit.getHitBox(grid), false, true);
+        renderCornerMarker(markedHit.getHitBox(grid), true, true);
     }
 
     private static void moveMarkedCorner(ForgeDirection direction, ForgeDirection direction_look, int amount) {
@@ -445,6 +473,11 @@ public class PreviewRenderer {
                                 cutoutInfo);
 
                         GL11.glPopMatrix();
+                    }
+
+                    // Draw these after the filled preview so the handles remain visible where their cubes overlap it.
+                    if (!editingDeformedBox && hasTwoHitCorners()) {
+                        renderTwoHitCorners(align);
                     }
 
                     // Sneaking is how corners are nudged up/down, so the shift handler overlay would otherwise be on

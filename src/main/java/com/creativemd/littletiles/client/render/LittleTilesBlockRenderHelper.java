@@ -297,13 +297,8 @@ public class LittleTilesBlockRenderHelper {
                 block = cube.block;
                 meta = 0;
             }
-            int j = resolveRenderColor(cube.color, block, metadata);
-
-            float f1 = (float) (j >> 16 & 255) / 255.0F;
-            float f2 = (float) (j >> 8 & 255) / 255.0F;
-            float f3 = (float) (j & 255) / 255.0F;
-            float brightness = 1.0F;
-            GL11.glColor4f(f1 * brightness, f2 * brightness, f3 * brightness, 1.0F);
+            int color = resolveRenderColor(cube.color, block, metadata);
+            setGlColor(color);
 
             if (cube instanceof LittleTilesCubeObject) {
                 LittleTilesCubeObject littleCube = (LittleTilesCubeObject) cube;
@@ -368,6 +363,10 @@ public class LittleTilesBlockRenderHelper {
             tesselator.draw();
             GL11.glTranslatef(0.5F, 0.5F, 0.5F);
         }
+    }
+
+    public static void setGlColor(int color) {
+        GL11.glColor4ub((byte) (color >> 16 & 255), (byte) (color >> 8 & 255), (byte) (color & 255), (byte) 255);
     }
 
 }

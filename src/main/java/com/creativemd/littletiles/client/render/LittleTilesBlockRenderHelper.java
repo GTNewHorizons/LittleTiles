@@ -332,8 +332,7 @@ public class LittleTilesBlockRenderHelper {
                     GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
                     GL11.glBegin(GL11.GL_TRIANGLES);
                     for (Triangle3d triangle : mesh.getTriangles()) {
-                        if (topTintOnly)
-                            setGlColor(color, triangle.getFaceDirection() != ForgeDirection.UP);
+                        if (topTintOnly) setGlColor(color, triangle.getFaceDirection() != ForgeDirection.UP);
                         GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);
                         GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
                         GL11.glTexCoord2d(triangle.getTex2().x, triangle.getTex2().y);

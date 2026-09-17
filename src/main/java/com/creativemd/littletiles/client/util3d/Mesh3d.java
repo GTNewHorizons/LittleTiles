@@ -292,8 +292,8 @@ public class Mesh3d {
 
         GL11.glBegin(GL11.GL_TRIANGLES);
         for (Triangle3d triangle : triangles) {
-            if (topTintOnly) LittleTilesBlockRenderHelper
-                    .setGlColor(color, triangle.getFaceDirection() != ForgeDirection.UP);
+            if (topTintOnly)
+                LittleTilesBlockRenderHelper.setGlColor(color, triangle.getFaceDirection() != ForgeDirection.UP);
             Vector3d normal = triangle.getNormal();
             GL11.glNormal3d(normal.x, normal.y, normal.z);
             GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);

@@ -113,8 +113,7 @@ public class BlockOverlayRenderer implements IItemRenderer {
         GL11.glTranslatef(16F * (1F - scale), 16F * (1F - scale), 0F);
         GL11.glTranslatef(-2.0F, 3.0F, -3.0F);
         GL11.glScalef(10.0F, 10.0F, 10.0F);
-        LittleTilesBlockRenderHelper.setGlColor(color);
-        mesh.renderIcon();
+        mesh.renderIcon(color, LittleTilesBlockRenderHelper.tintsTopFaceOnly(block));
         if (!alphaTestWasEnabled) {
             GL11.glDisable(GL11.GL_ALPHA_TEST);
         }

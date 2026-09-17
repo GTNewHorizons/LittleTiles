@@ -135,6 +135,15 @@ public class LittleTilesBlockRenderHelper {
         return block.getRenderColor(meta);
     }
 
+    /**
+     * Whether only the block's top face takes its render color. Vanilla leaves the dirt base of grass sides and its
+     * bottom untinted; every other block tints all of its faces alike, so its color can be resolved once for a whole
+     * mesh.
+     */
+    public static boolean tintsTopFaceOnly(Block block) {
+        return block == Blocks.grass;
+    }
+
     private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
             IBlockAccess world) {
         if (!cube.geometryCache.hasValidMesh()) {
@@ -167,6 +176,7 @@ public class LittleTilesBlockRenderHelper {
         tess.setBrightness(brightness);
 
         int color = resolveRenderColor(cube.color, cube.block, cube.meta);
+        boolean topTintOnly = tintsTopFaceOnly(cube.block);
 
         for (Triangle3d triangle : mesh.getTriangles()) {
             Vector3d p1 = triangle.getP1();
@@ -175,7 +185,8 @@ public class LittleTilesBlockRenderHelper {
             Vector2d tex1 = triangle.getTex1();
             Vector2d tex2 = triangle.getTex2();
             Vector2d tex3 = triangle.getTex3();
-            tess.setColorOpaque_I(color);
+            tess.setColorOpaque_I(
+                    topTintOnly && triangle.getFaceDirection() != ForgeDirection.UP ? ColorUtils.WHITE : color);
             tess.addVertexWithUV(p1.x, p1.y, p1.z, tex1.x, tex1.y);
             tess.addVertexWithUV(p2.x, p2.y, p2.z, tex2.x, tex2.y);
             tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
@@ -298,7 +309,8 @@ public class LittleTilesBlockRenderHelper {
                 meta = 0;
             }
             int color = resolveRenderColor(cube.color, block, metadata);
-            setGlColor(color);
+            boolean topTintOnly = tintsTopFaceOnly(block);
+            setGlColor(color, false);
 
             if (cube instanceof LittleTilesCubeObject) {
                 LittleTilesCubeObject littleCube = (LittleTilesCubeObject) cube;
@@ -320,6 +332,8 @@ public class LittleTilesBlockRenderHelper {
                     GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
                     GL11.glBegin(GL11.GL_TRIANGLES);
                     for (Triangle3d triangle : mesh.getTriangles()) {
+                        if (topTintOnly)
+                            setGlColor(color, triangle.getFaceDirection() != ForgeDirection.UP);
                         GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);
                         GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
                         GL11.glTexCoord2d(triangle.getTex2().x, triangle.getTex2().y);
@@ -337,14 +351,17 @@ public class LittleTilesBlockRenderHelper {
             }
 
             GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
+            if (topTintOnly) setGlColor(color, true);
             tesselator.startDrawingQuads();
             tesselator.setNormal(0.0F, -1.0F, 0.0F);
             renderer.renderFaceYNeg(block, 0.0D, 0.0D, 0.0D, block.getIcon(0, metadata));
             tesselator.draw();
+            if (topTintOnly) setGlColor(color, false);
             tesselator.startDrawingQuads();
             tesselator.setNormal(0.0F, 1.0F, 0.0F);
             renderer.renderFaceYPos(block, 0.0D, 0.0D, 0.0D, block.getIcon(1, metadata));
             tesselator.draw();
+            if (topTintOnly) setGlColor(color, true);
             tesselator.startDrawingQuads();
             tesselator.setNormal(0.0F, 0.0F, -1.0F);
             renderer.renderFaceZNeg(block, 0.0D, 0.0D, 0.0D, block.getIcon(2, metadata));
@@ -365,7 +382,9 @@ public class LittleTilesBlockRenderHelper {
         }
     }
 
-    public static void setGlColor(int color) {
+    /** Sets {@code color}, or white instead when the face being drawn does not take the tint. */
+    public static void setGlColor(int color, boolean untinted) {
+        if (untinted) color = ColorUtils.WHITE;
         GL11.glColor4ub((byte) (color >> 16 & 255), (byte) (color >> 8 & 255), (byte) (color & 255), (byte) 255);
     }
 

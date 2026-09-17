@@ -17,7 +17,9 @@ import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.lib.Vector3d;
+import com.creativemd.littletiles.client.render.LittleTilesBlockRenderHelper;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.FMLLog;
@@ -263,6 +265,15 @@ public class Mesh3d {
      * </p>
      */
     public void renderIcon() {
+        renderIcon(ColorUtils.WHITE, false);
+    }
+
+    /**
+     * Draws this mesh as an icon, tinted with {@code color}. With {@code topTintOnly} the tint is limited to the top
+     * face and the remaining faces stay white, as grass needs - see
+     * {@code LittleTilesBlockRenderHelper.tintsTopFaceOnly}.
+     */
+    public void renderIcon(int color, boolean topTintOnly) {
         boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
         boolean rescaleWasEnabled = GL11.glIsEnabled(GL12.GL_RESCALE_NORMAL);
         boolean blendWasEnabled = GL11.glIsEnabled(GL11.GL_BLEND);
@@ -277,8 +288,12 @@ public class Mesh3d {
         GL11.glRotatef(210.0F, 1.0F, 0.0F, 0.0F);
         GL11.glRotatef(-45.0F, 0.0F, 1.0F, 0.0F);
 
+        LittleTilesBlockRenderHelper.setGlColor(color, topTintOnly);
+
         GL11.glBegin(GL11.GL_TRIANGLES);
         for (Triangle3d triangle : triangles) {
+            if (topTintOnly) LittleTilesBlockRenderHelper
+                    .setGlColor(color, triangle.getFaceDirection() != ForgeDirection.UP);
             Vector3d normal = triangle.getNormal();
             GL11.glNormal3d(normal.x, normal.y, normal.z);
             GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);

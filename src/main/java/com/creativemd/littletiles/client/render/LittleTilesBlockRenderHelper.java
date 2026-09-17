@@ -168,18 +168,28 @@ public class LittleTilesBlockRenderHelper {
 
         int color = resolveRenderColor(cube.color, cube.block, cube.meta);
 
-        for (Triangle3d triangle : mesh.getTriangles()) {
-            Vector3d p1 = triangle.getP1();
-            Vector3d p2 = triangle.getP2();
-            Vector3d p3 = triangle.getP3();
-            Vector2d tex1 = triangle.getTex1();
-            Vector2d tex2 = triangle.getTex2();
-            Vector2d tex3 = triangle.getTex3();
-            tess.setColorOpaque_I(color);
-            tess.addVertexWithUV(p1.x, p1.y, p1.z, tex1.x, tex1.y);
-            tess.addVertexWithUV(p2.x, p2.y, p2.z, tex2.x, tex2.y);
-            tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
-            tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
+        boolean useAngelicaAmbientOcclusion = LittleTiles.angelicaCompat != null && emitted == 0;
+        try {
+            if (useAngelicaAmbientOcclusion) {
+                LittleTiles.angelicaCompat.beginAmbientOcclusion(tess);
+            }
+            for (Triangle3d triangle : mesh.getTriangles()) {
+                Vector3d p1 = triangle.getP1();
+                Vector3d p2 = triangle.getP2();
+                Vector3d p3 = triangle.getP3();
+                Vector2d tex1 = triangle.getTex1();
+                Vector2d tex2 = triangle.getTex2();
+                Vector2d tex3 = triangle.getTex3();
+                tess.setColorOpaque_I(color);
+                tess.addVertexWithUV(p1.x, p1.y, p1.z, tex1.x, tex1.y);
+                tess.addVertexWithUV(p2.x, p2.y, p2.z, tex2.x, tex2.y);
+                tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
+                tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
+            }
+        } finally {
+            if (useAngelicaAmbientOcclusion) {
+                LittleTiles.angelicaCompat.endAmbientOcclusion(tess);
+            }
         }
     }
 

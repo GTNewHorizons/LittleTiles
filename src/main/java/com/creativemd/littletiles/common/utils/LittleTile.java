@@ -20,6 +20,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.EmptyChunk;
+import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.littletiles.client.util3d.Mesh3d;
@@ -417,6 +418,25 @@ public abstract class LittleTile {
     public boolean isBed(IBlockAccess world, int x, int y, int z, EntityLivingBase player) {
         if (isLoaded()) return structure.isBed(world, x, y, z, player);
         return false;
+    }
+
+    /** Whether this tile can sustain the given plant. Only asked when the tile covers the whole top face. */
+    public boolean canSustainPlant(IBlockAccess world, int x, int y, int z, ForgeDirection direction,
+            IPlantable plantable) {
+        return false;
+    }
+
+    /**
+     * Whether this tile covers the entire top face of its block, meaning it spans the full x/z range, reaches the top
+     * and has no cutouts. Its thickness does not matter.
+     */
+    public boolean coversWholeTopFace() {
+        return boundingBox != null && getCutoutInfo() == null
+                && boundingBox.minX == minPos
+                && boundingBox.minZ == minPos
+                && boundingBox.maxX == maxPos
+                && boundingBox.maxZ == maxPos
+                && boundingBox.maxY == maxPos;
     }
 
     // ================Structure================

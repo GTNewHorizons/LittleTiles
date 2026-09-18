@@ -20,6 +20,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.EmptyChunk;
+import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.littletiles.client.util3d.Mesh3d;
@@ -417,6 +418,17 @@ public abstract class LittleTile {
     public boolean isBed(IBlockAccess world, int x, int y, int z, EntityLivingBase player) {
         if (isLoaded()) return structure.isBed(world, x, y, z, player);
         return false;
+    }
+
+    /** Whether this tile can sustain the given plant. Only asked when the tile contributes to the top face. */
+    public boolean canSustainPlant(IBlockAccess world, int x, int y, int z, ForgeDirection direction,
+            IPlantable plantable) {
+        return false;
+    }
+
+    /** Whether this tile provides collision geometry at the top face. Its thickness does not matter. */
+    public boolean contributesToTopFace() {
+        return !disableCollision && boundingBox != null && getCutoutInfo() == null && boundingBox.maxY == maxPos;
     }
 
     // ================Structure================

@@ -156,6 +156,10 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
         cutoutInfo.pos = ZERO;
         cutoutInfo.orientation = 0;
 
+        if (shape == LittleTileShapeMode.DEFORMED_BOX) {
+            cutoutInfo.corners = Mesh3dUtil.demoDeformedBoxCorners();
+        }
+
         if (shape == LittleTileShapeMode.PILLAR) {
             cutoutInfo.thickness = 5;
             cutoutInfo.faceStart = ForgeDirection.SOUTH;

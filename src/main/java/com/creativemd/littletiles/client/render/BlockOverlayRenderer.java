@@ -102,11 +102,6 @@ public class BlockOverlayRenderer implements IItemRenderer {
         }
 
         int color = LittleTilesBlockRenderHelper.resolveRenderColor(ColorUtils.WHITE, block, meta);
-        // The icon's UVs already carry the block's per-meta texture, so this is purely the per-vertex multiplier on
-        // top.
-        float r = (float) (color >> 16 & 255) / 255.0F;
-        float g = (float) (color >> 8 & 255) / 255.0F;
-        float b = (float) (color & 255) / 255.0F;
 
         boolean alphaTestWasEnabled = GL11.glIsEnabled(GL11.GL_ALPHA_TEST);
         GL11.glEnable(GL11.GL_ALPHA_TEST);
@@ -118,8 +113,7 @@ public class BlockOverlayRenderer implements IItemRenderer {
         GL11.glTranslatef(16F * (1F - scale), 16F * (1F - scale), 0F);
         GL11.glTranslatef(-2.0F, 3.0F, -3.0F);
         GL11.glScalef(10.0F, 10.0F, 10.0F);
-        GL11.glColor4f(r, g, b, 1F);
-        mesh.renderIcon();
+        mesh.renderIcon(color, LittleTilesBlockRenderHelper.tintsTopFaceOnly(block));
         if (!alphaTestWasEnabled) {
             GL11.glDisable(GL11.GL_ALPHA_TEST);
         }

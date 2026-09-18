@@ -27,6 +27,7 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
@@ -482,10 +483,30 @@ public class BlockTile extends BlockContainer {
         } else return Blocks.stone.getBlockTextureFromSide(0); // mc.getTextureMapBlocks().getAtlasSprite("MISSING");
     }
 
-    /*
-     * TODO Add once it's important public boolean canSustainPlant(IBlockAccess world, int x, int y, int z,
-     * ForgeDirection direction, IPlantable plantable) { }
-     */
+    @Override
+    public boolean canSustainPlant(IBlockAccess world, int x, int y, int z, ForgeDirection direction,
+            IPlantable plantable) {
+        try { // Why try? because the number of tiles can change while this method is called
+            final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+            if (littleTile != null) {
+                int coveredArea = 0;
+
+                for (LittleTile tile : littleTile.getTiles()) {
+                    if (!tile.contributesToTopFace()) continue;
+                    if (!tile.canSustainPlant(world, x, y, z, direction, plantable)) return false;
+
+                    // tiles never overlap, so their areas simply add up to the full face
+                    coveredArea += (tile.boundingBox.maxX - tile.boundingBox.minX)
+                            * (tile.boundingBox.maxZ - tile.boundingBox.minZ);
+                }
+
+                return coveredArea == LittleTile.maxPos * LittleTile.maxPos;
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     /*
      * public int getLightOpacity(IBlockAccess world, int x, int y, int z) { }

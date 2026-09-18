@@ -106,6 +106,10 @@ public class LittleToolHandler {
         return modes[shape];
     }
 
+    public boolean isDeformedBoxShape() {
+        return getShape() == LittleTileShapeMode.DEFORMED_BOX;
+    }
+
     public void setShape(int shape) {
         NBTTagCompound tag = getTag(true);
         tag.setByte("shape", (byte) shape);

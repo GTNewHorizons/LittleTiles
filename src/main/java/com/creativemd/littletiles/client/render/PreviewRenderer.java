@@ -47,8 +47,6 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class PreviewRenderer {
 
-    /** Physical width of selectable-corner edges, in blocks. */
-    private static final double CORNER_MARKER_EDGE_WIDTH = 1D / 64D;
     /** Opacity of the fill of the corner the player is aiming at. */
     private static final double CORNER_MARKER_HOVER_FILL_ALPHA = 0.25;
 
@@ -184,7 +182,8 @@ public class PreviewRenderer {
         return nx * adx + ny * ady + nz * adz == 0;
     }
 
-    public static void renderCornerMarker(AxisAlignedBB box, boolean selected, boolean hovered, boolean valid) {
+    public static void renderCornerMarker(AxisAlignedBB box, double width, boolean selected, boolean hovered,
+            boolean valid) {
         double minX = box.minX - TileEntityRendererDispatcher.staticPlayerX;
         double minY = box.minY - TileEntityRendererDispatcher.staticPlayerY;
         double minZ = box.minZ - TileEntityRendererDispatcher.staticPlayerZ;
@@ -196,7 +195,6 @@ public class PreviewRenderer {
         double green = valid ? 0.6 : 0.1;
         double blue = valid ? (selected ? 0 : 1) : 0.1;
         double alpha = selected ? 0.9 : 0.5;
-        double width = CORNER_MARKER_EDGE_WIDTH;
 
         // The corner a left click would select is filled in faintly, like vanilla highlights the block under the
         // cursor. A fill rather than a different colour, since colour already tells selected and invalid apart.
@@ -234,6 +232,18 @@ public class PreviewRenderer {
         }
     }
 
+    /**
+     * Physical width of the corner edges on a grid, in blocks. The corner cubes halve with every grid step, but edges
+     * shrinking just as fast get lost on the small ones - so they only halve every second step.
+     */
+    private static double cornerMarkerEdgeWidth(int grid) {
+        return switch (grid) {
+            case 16, 8 -> 1D / 64D;
+            case 4, 2 -> 1D / 128D;
+            default -> 1D / 256D;
+        };
+    }
+
     private static void renderMarkerEdge(double x, double y, double z, double sizeX, double sizeY, double sizeZ,
             double red, double green, double blue, double alpha) {
         RenderHelper3D.renderBlock(x, y, z, sizeX, sizeY, sizeZ, 0, 0, 0, red, green, blue, alpha);
@@ -248,10 +258,11 @@ public class PreviewRenderer {
     private static void renderCornerMarkers(int grid) {
         boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
         int hovered = LittleDeformedBoxHelper.pickLookedAtCorner(Minecraft.getMinecraft().thePlayer, grid);
+        double width = cornerMarkerEdgeWidth(grid);
         for (int i = 0; i < Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT; i++) {
             AxisAlignedBB box = LittleDeformedBoxHelper.getCornerBoxAABB(i, grid);
             boolean selected = LittleDeformedBoxHelper.isMarkedCorner(i);
-            renderCornerMarker(box, selected, i == hovered, valid);
+            renderCornerMarker(box, width, selected, i == hovered, valid);
         }
     }
 

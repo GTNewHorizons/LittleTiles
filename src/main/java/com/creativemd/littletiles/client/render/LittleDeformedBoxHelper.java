@@ -1,5 +1,7 @@
 package com.creativemd.littletiles.client.render;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -162,9 +164,19 @@ public final class LittleDeformedBoxHelper {
         return corners[index].getHitBox(grid);
     }
 
-    /** Raytraces the corner cubes and returns the index of the nearest one hit, or -1 if the ray misses all of them. */
-    public static int pickCorner(Vec3 start, Vec3 end, int grid) {
-        return isEditing() ? LittleTileBlockPos.pickHitBox(start, end, grid, corners) : -1;
+    /**
+     * Raytraces the corner cubes along the player's line of sight and returns the index of the nearest one hit, or -1
+     * if the ray misses all of them. This is the corner a left click selects.
+     */
+    public static int pickLookedAtCorner(EntityPlayer player, int grid) {
+        if (!isEditing()) return -1;
+
+        // Same ray the tile raytrace in TileEntityLittleTiles uses - getPosition already accounts for eye height.
+        double reach = Minecraft.getMinecraft().playerController.getBlockReachDistance();
+        Vec3 start = player.getPosition(1);
+        Vec3 look = player.getLook(1.0F);
+        Vec3 end = start.addVector(look.xCoord * reach, look.yCoord * reach, look.zCoord * reach);
+        return LittleTileBlockPos.pickHitBox(start, end, grid, corners);
     }
 
     /** The cutout describing the box as it currently stands. */

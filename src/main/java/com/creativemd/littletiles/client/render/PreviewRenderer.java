@@ -221,7 +221,7 @@ public class PreviewRenderer {
     /**
      * Draws a small wireframe cube on each of the 8 corners of the deformed box being edited, so the player can see
      * what there is to grab. The selected corner is drawn in a different colour. These are the very same cubes
-     * {@link LittleDeformedBoxHelper#pickCorner} raytraces against, so what is clicked is what is shown.
+     * {@link LittleDeformedBoxHelper#pickLookedAtCorner} raytraces against, so what is clicked is what is shown.
      */
     private static void renderCornerMarkers(int grid) {
         boolean valid = LittleDeformedBoxHelper.hasValidGeometry();

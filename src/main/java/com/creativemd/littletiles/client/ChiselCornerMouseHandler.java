@@ -3,7 +3,6 @@ package com.creativemd.littletiles.client;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.Vec3;
 import net.minecraftforge.client.event.MouseEvent;
 
 import com.creativemd.littletiles.LittleTiles;
@@ -45,13 +44,8 @@ public class ChiselCornerMouseHandler {
             return;
         }
 
-        // Same ray the tile raytrace in TileEntityLittleTiles uses - getPosition already accounts for eye height.
-        double reach = mc.playerController.getBlockReachDistance();
-        Vec3 start = player.getPosition(1);
-        Vec3 look = player.getLook(1.0F);
-        Vec3 end = start.addVector(look.xCoord * reach, look.yCoord * reach, look.zCoord * reach);
-
-        LittleDeformedBoxHelper.toggleMarkedCorner(LittleDeformedBoxHelper.pickCorner(start, end, handler.getGrid()));
+        int corner = LittleDeformedBoxHelper.pickLookedAtCorner(player, handler.getGrid());
+        LittleDeformedBoxHelper.toggleMarkedCorner(corner);
         event.setCanceled(true);
     }
 }

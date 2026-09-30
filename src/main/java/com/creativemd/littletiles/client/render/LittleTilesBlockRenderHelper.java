@@ -44,7 +44,8 @@ public class LittleTilesBlockRenderHelper {
             .withInitial(ExtendedRenderBlocks::new);
 
     public static void renderShape(LittleTileShapeMode shape, double centerX, double centerY, double centerZ, Vec3 size,
-            Vector3d cutoutScale, int orientation, Vector3i posCutout, Vec3 color, double alpha) {
+            Vector3d cutoutScale, int orientation, Vector3i posCutout, Vec3 color, double alpha,
+            LittleTileCutoutInfo cutoutInfo) {
         if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
             RenderHelper3D.renderBlock(
                     centerX,
@@ -81,19 +82,13 @@ public class LittleTilesBlockRenderHelper {
                     posCutout,
                     new Vector3i(),
                     posSubMax,
-                    shape);
+                    cutoutInfo);
         }
     }
 
     public static void renderMesh(double x, double y, double z, Vector3d cutoutScale, int orientation, double red,
             double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax,
-            LittleTileShapeMode shapeMode) {
-        LittleTileCutoutInfo cutoutInfo = new LittleTileCutoutInfo();
-        cutoutInfo.type = shapeMode;
-        cutoutInfo.size = new Vector3i(
-                (int) Math.round(cutoutScale.x * 16),
-                (int) Math.round(cutoutScale.y * 16),
-                (int) Math.round(cutoutScale.z * 16));
+            LittleTileCutoutInfo cutoutInfo) {
         Mesh3d mesh = Mesh3dUtil.createMesh(
                 cutoutInfo,
                 cutoutScale,

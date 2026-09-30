@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.utils;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -44,6 +45,10 @@ public class LittleTileBlockPos {
         moveSubX(subX);
         moveSubY(subY);
         moveSubZ(subZ);
+    }
+
+    public LittleTileBlockPos copy() {
+        return new LittleTileBlockPos(posX, posY, posZ, subX, subY, subZ, side);
     }
 
     public static LittleTileBlockPos fromMovingObjectPosition(MovingObjectPosition pos, int align) {
@@ -169,6 +174,36 @@ public class LittleTileBlockPos {
 
     public Vec3 toHitVec() {
         return Vec3.createVectorHelper(posX + subX / 16.0, posY + subY / 16.0, posZ + subZ / 16.0);
+    }
+
+    /** The world-space box of the grid cell beginning at this position. */
+    public AxisAlignedBB getHitBox(int grid) {
+        double size = grid / 16.0;
+        Vec3 vec = toHitVec();
+        return AxisAlignedBB.getBoundingBox(
+                vec.xCoord,
+                vec.yCoord,
+                vec.zCoord,
+                vec.xCoord + size,
+                vec.yCoord + size,
+                vec.zCoord + size);
+    }
+
+    /** Returns the index of the nearest position whose grid-cell box the ray hits, or -1 if it misses all of them. */
+    public static int pickHitBox(Vec3 start, Vec3 end, int grid, LittleTileBlockPos... positions) {
+        int best = -1;
+        double bestDistance = Double.MAX_VALUE;
+        for (int i = 0; i < positions.length; i++) {
+            MovingObjectPosition hit = positions[i].getHitBox(grid).calculateIntercept(start, end);
+            if (hit == null) continue;
+
+            double distance = start.squareDistanceTo(hit.hitVec);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        return best;
     }
 
     public Comparison compareTo(LittleTileBlockPos other) {

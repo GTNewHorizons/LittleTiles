@@ -174,6 +174,12 @@ public class Mesh3dUtil {
     private static final double OUTWARD_EPSILON_SQUARED = 1.0E-12;
 
     /**
+     * Overlap, in square grid units, below which two coplanar triangles only touch. Well above the slivers
+     * {@link Triangle3d#split} drops, well below anything the grid can actually produce.
+     */
+    private static final double OVERLAP_AREA_EPSILON = 1.0E-3;
+
+    /**
      * The 4 corners of every box face, in ring order, indexed as described by {@link #DEFORMED_BOX_CORNER_COUNT}. The
      * order of the faces themselves is the one {@link #nominalFaceNormal(int)} relies on.
      */
@@ -222,17 +228,28 @@ public class Mesh3dUtil {
         if (cutoutInfo.corners == null) {
             return new Mesh3d(new ArrayList<>());
         }
-        LittleTileBox cornerBounds = LittleTileBox.fromPoints(cutoutInfo.corners);
-        Vector3i originalSize = new Vector3i(
+        return new Mesh3d(createDeformedBoxTriangles(cutoutInfo.corners));
+    }
+
+    /** Size of the space the corners of a deformed box span, with orientation zero. */
+    private static Vector3i originalSize(Vector3i[] cornerOffsets) {
+        LittleTileBox cornerBounds = LittleTileBox.fromPoints(cornerOffsets);
+        return new Vector3i(
                 cornerBounds.maxX - cornerBounds.minX,
                 cornerBounds.maxY - cornerBounds.minY,
                 cornerBounds.maxZ - cornerBounds.minZ);
+    }
+
+    /** The triangles of {@link #createDeformedBoxMesh}, in the cutout's local unit space. */
+    private static List<Triangle3d> createDeformedBoxTriangles(Vector3i[] cornerOffsets) {
+        LittleTileBox cornerBounds = LittleTileBox.fromPoints(cornerOffsets);
+        Vector3i originalSize = originalSize(cornerOffsets);
         Vector3d[] corners = new Vector3d[DEFORMED_BOX_CORNER_COUNT];
         Vector3d centroid = new Vector3d();
         for (int i = 0; i < corners.length; i++) {
             // cutoutInfo.size follows the rotated tile bounds, while the corners remain in orientation-zero space.
             // Recover that space from the corners themselves so a non-cubic box is normalized before mesh rotation.
-            Vector3i corner = new Vector3i(cutoutInfo.corners[i]);
+            Vector3i corner = new Vector3i(cornerOffsets[i]);
             corner.sub(cornerBounds.minX, cornerBounds.minY, cornerBounds.minZ);
             corners[i] = toLocal(corner, originalSize);
             centroid.add(corners[i]);
@@ -270,7 +287,45 @@ public class Mesh3dUtil {
                 addDeformedFaceTriangle(triangles, b, d, a, outward);
             }
         }
-        return new Mesh3d(triangles);
+        return triangles;
+    }
+
+    /**
+     * Whether the mesh of a deformed box encloses volume everywhere. A box squashed completely flat, or only partly -
+     * like dragging 3 of the 4 upper corners down, which leaves one triangle of the top face lying on the bottom face -
+     * has surface triangles covering each other, so any two triangles overlapping in more than an edge rule it out.
+     * Collapsed edges and faces, as in a wedge or pyramid, stay valid.
+     *
+     * @param cornerOffsets the corners as grid offsets, indexed as described by {@link #DEFORMED_BOX_CORNER_COUNT}
+     */
+    public static boolean enclosesVolume(Vector3i[] cornerOffsets) {
+        Vector3i originalSize = originalSize(cornerOffsets);
+        List<Triangle3d> triangles = createDeformedBoxTriangles(cornerOffsets);
+        if (triangles.isEmpty()) {
+            return false;
+        }
+        // Back to grid units, so the overlap tolerance does not shrink with the size of the box
+        Vector3d scale = new Vector3d(originalSize.x, originalSize.y, originalSize.z);
+        for (Triangle3d triangle : triangles) {
+            triangle.scale(scale);
+        }
+
+        for (int i = 0; i < triangles.size(); i++) {
+            Triangle3d triangle = triangles.get(i);
+            for (int j = i + 1; j < triangles.size(); j++) {
+                Triangle3d other = triangles.get(j);
+                if (!triangle.boundsOverlap(other) || !triangle.isCoplanar(other)) continue;
+
+                double uncovered = 0;
+                for (Triangle3d piece : triangle.split(other)) {
+                    uncovered += piece.getArea();
+                }
+                if (triangle.getArea() - uncovered > OVERLAP_AREA_EPSILON) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**

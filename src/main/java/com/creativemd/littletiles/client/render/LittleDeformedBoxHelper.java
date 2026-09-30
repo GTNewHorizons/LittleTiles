@@ -75,8 +75,9 @@ public final class LittleDeformedBoxHelper {
     }
 
     /**
-     * Whether no logical minimum corner has crossed its matching maximum corner. Collapsed edges are valid. Invalid
-     * boxes may exist temporarily while editing so they can be shown in red, but they cannot be placed.
+     * Whether no logical minimum corner has crossed its matching maximum corner, and no part of the box has been
+     * squashed flat - see {@link Mesh3dUtil#enclosesVolume}. Collapsed edges are valid. Invalid boxes may exist
+     * temporarily while editing so they can be shown in red, but they cannot be placed.
      */
     public static boolean hasValidGeometry() {
         for (int i = 0; i < corners.length; i++) {
@@ -85,7 +86,7 @@ public final class LittleDeformedBoxHelper {
             if ((i & 2) == 0 && geometryCorner(i | 2).subtract(corner).y < 0) return false;
             if ((i & 4) == 0 && geometryCorner(i | 4).subtract(corner).z < 0) return false;
         }
-        return true;
+        return Mesh3dUtil.enclosesVolume(offsetsFromFirst());
     }
 
     /**

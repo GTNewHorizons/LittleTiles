@@ -44,8 +44,11 @@ public class ChiselCornerMouseHandler {
             return;
         }
 
-        int corner = LittleDeformedBoxHelper.pickLookedAtCorner(player, handler.getGrid());
-        LittleDeformedBoxHelper.toggleMarkedCorner(corner);
+        // A hidden corner cannot be clicked, but the click still must not reach the world
+        if (LittleDeformedBoxHelper.areCornersShown(player)) {
+            int corner = LittleDeformedBoxHelper.pickLookedAtCorner(player, handler.getGrid());
+            LittleDeformedBoxHelper.toggleMarkedCorner(corner);
+        }
         event.setCanceled(true);
     }
 }

@@ -191,12 +191,17 @@ public final class LittleDeformedBoxHelper {
         return AxisAlignedBB.getBoundingBox(minX, minY, minZ, minX + half, minY + half, minZ + half);
     }
 
+    /** Sneaking hides the corner markers only when no corner is selected. Hidden corners cannot be picked. */
+    public static boolean areCornersShown(EntityPlayer player) {
+        return !player.isSneaking() || hasMarkedCorner();
+    }
+
     /**
      * Raytraces the corner cubes along the player's line of sight and returns the index of the nearest one hit, or -1
      * if the ray misses all of them. This is the corner a left click selects, and the one highlighted while aimed at.
      */
     public static int pickLookedAtCorner(EntityPlayer player, int grid) {
-        if (!isEditing()) return -1;
+        if (!isEditing() || !areCornersShown(player)) return -1;
 
         // Same ray the tile raytrace in TileEntityLittleTiles uses - getPosition already accounts for eye height.
         double reach = Minecraft.getMinecraft().playerController.getBlockReachDistance();

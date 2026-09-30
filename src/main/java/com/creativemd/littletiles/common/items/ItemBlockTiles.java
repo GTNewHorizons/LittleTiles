@@ -119,6 +119,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             }
 
             // With a corner selected, right click warps it to where the player is looking instead of placing.
+            // All corner markers remain visible while a corner is selected, including when sneaking.
             if (LittleDeformedBoxHelper.hasMarkedCorner()) {
                 LittleDeformedBoxHelper.moveMarkedTo(clickedPos);
                 return true;

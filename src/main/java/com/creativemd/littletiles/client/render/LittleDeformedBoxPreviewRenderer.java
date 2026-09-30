@@ -245,9 +245,12 @@ public class LittleDeformedBoxPreviewRenderer {
      * Draws a small wireframe cube on each of the 8 corners of the deformed box being edited, so the player can see
      * what there is to grab. The selected corner is drawn in a different colour, the one aimed at is filled in. These
      * are the very same cubes {@link LittleDeformedBoxHelper#pickLookedAtCorner} raytraces against, so what is clicked
-     * is what is shown.
+     * is what is shown. Sneaking hides the markers only when no corner is selected.
      */
     public static void renderCornerMarkers(int grid) {
+        if (!LittleDeformedBoxHelper.areCornersShown(Minecraft.getMinecraft().thePlayer)) {
+            return;
+        }
         boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
         int hovered = LittleDeformedBoxHelper.pickLookedAtCorner(Minecraft.getMinecraft().thePlayer, grid);
         double width = cornerMarkerEdgeWidth(grid);

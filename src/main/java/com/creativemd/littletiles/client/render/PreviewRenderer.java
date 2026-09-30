@@ -8,9 +8,11 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.settings.GameSettings;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
@@ -90,6 +92,34 @@ public class PreviewRenderer {
 
     private static void moveMarkedHit(ForgeDirection direction, ForgeDirection direction_look, int amount) {
         markedHit.moveInDirection(relativeToLook(direction, direction_look), stepAmount(amount));
+    }
+
+    /** Whether both corners of an ordinary two-hit chisel preview are fixed and can be selected. */
+    public static boolean hasTwoHitCorners() {
+        return firstHit != null && markedHit != null;
+    }
+
+    /** The pickable cubes of the two fixed chisel corners, {@link #firstHit} first: the grid cell each one names. */
+    static AxisAlignedBB[] twoHitCornerBoxes(int grid) {
+        return new AxisAlignedBB[] { firstHit.getHitBox(grid), markedHit.getHitBox(grid) };
+    }
+
+    /** Index into {@link #twoHitCornerBoxes} of the corner the player looks at, or -1 if none. */
+    static int pickTwoHitCorner(EntityPlayer player, int grid) {
+        if (!hasTwoHitCorners()) return -1;
+        return LittleDeformedBoxHelper.pickLookedAtBox(player, twoHitCornerBoxes(grid));
+    }
+
+    /**
+     * Selects the looked at one of the two fixed chisel corners. {@link #markedHit} remains the selected and movable
+     * corner, so selecting {@link #firstHit} only has to swap the two - the preview spans the same box either way.
+     */
+    public static void selectTwoHitCorner(EntityPlayer player, int grid) {
+        if (pickTwoHitCorner(player, grid) != 0) return;
+
+        LittleTileBlockPos previousFirst = firstHit;
+        firstHit = markedHit;
+        markedHit = previousFirst;
     }
 
     /** Whether the held chisel is currently shaping a deformed box, rather than showing a regular preview. */
@@ -328,6 +358,11 @@ public class PreviewRenderer {
                                 cutoutInfo);
 
                         GL11.glPopMatrix();
+                    }
+
+                    // Drawn after the filled preview so the markers remain visible where their cubes overlap it.
+                    if (!editingDeformedBox && hasTwoHitCorners()) {
+                        LittleDeformedBoxPreviewRenderer.renderTwoHitCornerMarkers(align);
                     }
 
                     // Sneaking is how corners are nudged up/down, so the shift handler overlay would otherwise be on

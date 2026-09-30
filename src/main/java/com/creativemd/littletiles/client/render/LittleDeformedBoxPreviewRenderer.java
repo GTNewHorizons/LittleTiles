@@ -13,6 +13,10 @@ import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+
+@SideOnly(Side.CLIENT)
 public class LittleDeformedBoxPreviewRenderer {
 
     /** Opacity of the fill of the corner the player is aiming at. */

@@ -3,6 +3,7 @@ package com.creativemd.littletiles.client.render;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -158,10 +159,16 @@ public final class LittleDeformedBoxHelper {
     }
 
     /**
-     * The pickable cube of a corner, in world coordinates: exactly the one grid cell the corner sits in
+     * The pickable cube of a corner, in world coordinates: the eighth of the corner's grid cell that touches the actual
+     * mesh vertex. Two corners sharing a cell, as they do along a collapsed edge, thereby never overlap.
      */
     public static AxisAlignedBB getCornerBoxAABB(int index, int grid) {
-        return corners[index].getHitBox(grid);
+        AxisAlignedBB cell = corners[index].getHitBox(grid);
+        double half = grid / 32.0;
+        double minX = (index & 1) != 0 ? cell.minX + half : cell.minX;
+        double minY = (index & 2) != 0 ? cell.minY + half : cell.minY;
+        double minZ = (index & 4) != 0 ? cell.minZ + half : cell.minZ;
+        return AxisAlignedBB.getBoundingBox(minX, minY, minZ, minX + half, minY + half, minZ + half);
     }
 
     /**
@@ -176,7 +183,20 @@ public final class LittleDeformedBoxHelper {
         Vec3 start = player.getPosition(1);
         Vec3 look = player.getLook(1.0F);
         Vec3 end = start.addVector(look.xCoord * reach, look.yCoord * reach, look.zCoord * reach);
-        return LittleTileBlockPos.pickHitBox(start, end, grid, corners);
+
+        int best = -1;
+        double bestDistance = Double.MAX_VALUE;
+        for (int i = 0; i < corners.length; i++) {
+            MovingObjectPosition hit = getCornerBoxAABB(i, grid).calculateIntercept(start, end);
+            if (hit == null) continue;
+
+            double distance = start.squareDistanceTo(hit.hitVec);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        return best;
     }
 
     /** The cutout describing the box as it currently stands. */

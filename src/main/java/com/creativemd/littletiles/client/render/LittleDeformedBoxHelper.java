@@ -27,6 +27,12 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public final class LittleDeformedBoxHelper {
 
+    /**
+     * How far past the first block in the way a corner can still be picked, in blocks. It lets a corner resting
+     * exactly on that block's face win over the block, rather than tying with it.
+     */
+    private static final double PICK_BEHIND_BLOCK_EPSILON = 0.002;
+
     /** The 8 absolute grid cells containing the corner handles, or null while no box is being edited. */
     private static LittleTileBlockPos[] corners = null;
     /** Size of the grid cells represented by {@link #corners}. */
@@ -183,6 +189,14 @@ public final class LittleDeformedBoxHelper {
         Vec3 start = player.getPosition(1);
         Vec3 look = player.getLook(1.0F);
         Vec3 end = start.addVector(look.xCoord * reach, look.yCoord * reach, look.zCoord * reach);
+
+        // The world raytrace moves the start vector along as it steps through blocks, so it gets a copy.
+        Vec3 blockStart = Vec3.createVectorHelper(start.xCoord, start.yCoord, start.zCoord);
+        MovingObjectPosition blockHit = player.worldObj.rayTraceBlocks(blockStart, end);
+        if (blockHit != null) {
+            double toBlock = start.distanceTo(blockHit.hitVec) + PICK_BEHIND_BLOCK_EPSILON;
+            end = start.addVector(look.xCoord * toBlock, look.yCoord * toBlock, look.zCoord * toBlock);
+        }
 
         int best = -1;
         double bestDistance = Double.MAX_VALUE;

@@ -232,6 +232,14 @@ public class PreviewRenderer {
         }
     }
 
+    /** Whether the held chisel is currently shaping a deformed box, rather than showing a regular preview. */
+    private static boolean isEditingDeformedBox() {
+        ItemStack held = Minecraft.getMinecraft().thePlayer.getHeldItem();
+        return held != null && held.getItem() == LittleTiles.chisel
+                && LittleDeformedBoxHelper.isEditing()
+                && new LittleToolHandler(held).isDeformedBoxShape();
+    }
+
     private static void moveMarkedCorner(ForgeDirection direction, ForgeDirection direction_look, int amount) {
         LittleDeformedBoxHelper.nudgeMarked(relativeToLook(direction, direction_look), stepAmount(amount));
     }
@@ -243,7 +251,7 @@ public class PreviewRenderer {
     private void handleArrow(ForgeDirection move, ForgeDirection rotate, ForgeDirection direction_look, int align) {
         if (LittleDeformedBoxHelper.hasMarkedCorner()) moveMarkedCorner(move, direction_look, align);
         else if (markedHit != null) moveMarkedHit(move, direction_look, align);
-        else processKey(rotate);
+        else if (!isEditingDeformedBox()) processKey(rotate);
     }
 
     @SubscribeEvent
@@ -292,12 +300,15 @@ public class PreviewRenderer {
                 if (GameSettings.isKeyDown(LittleTilesClient.flip) && !LittleTilesClient.pressedFlip) {
                     LittleTilesClient.pressedFlip = true;
 
-                    ForgeDirection direction = direction_look;
-                    if (mc.thePlayer.rotationPitch > 45) direction = ForgeDirection.DOWN;
-                    if (mc.thePlayer.rotationPitch < -45) direction = ForgeDirection.UP;
-                    LittleFlipPacket packet = new LittleFlipPacket(direction);
-                    packet.executeClient(mc.thePlayer);
-                    PacketHandler.sendPacketToServer(packet);
+                    // Like rotating, flipping would change the tool's nbt and drop the deformed box being edited.
+                    if (!isEditingDeformedBox()) {
+                        ForgeDirection direction = direction_look;
+                        if (mc.thePlayer.rotationPitch > 45) direction = ForgeDirection.DOWN;
+                        if (mc.thePlayer.rotationPitch < -45) direction = ForgeDirection.UP;
+                        LittleFlipPacket packet = new LittleFlipPacket(direction);
+                        packet.executeClient(mc.thePlayer);
+                        PacketHandler.sendPacketToServer(packet);
+                    }
                 } else if (!GameSettings.isKeyDown(LittleTilesClient.flip)) {
                     LittleTilesClient.pressedFlip = false;
                 }
@@ -316,9 +327,7 @@ public class PreviewRenderer {
 
                 // A box being deformed is anchored by its own corners, not by what the player is looking at - so it
                 // stays on screen even while looking at nothing.
-                boolean editingDeformedBox = mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel
-                        && LittleDeformedBoxHelper.isEditing()
-                        && new LittleToolHandler(mc.thePlayer.getHeldItem()).isDeformedBoxShape();
+                boolean editingDeformedBox = isEditingDeformedBox();
                 if (editingDeformedBox) pos = LittleDeformedBoxHelper.placementAnchor();
 
                 if (pos != null && mc.thePlayer.getHeldItem() != null) {

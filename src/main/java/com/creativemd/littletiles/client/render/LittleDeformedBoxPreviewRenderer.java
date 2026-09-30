@@ -173,7 +173,7 @@ public class LittleDeformedBoxPreviewRenderer {
         return nx * adx + ny * ady + nz * adz == 0;
     }
 
-    public static void renderCornerMarker(AxisAlignedBB box, double width, boolean selected, boolean hovered,
+    private static void renderCornerMarker(AxisAlignedBB box, double width, boolean selected, boolean hovered,
             boolean valid) {
         double minX = box.minX - TileEntityRendererDispatcher.staticPlayerX;
         double minY = box.minY - TileEntityRendererDispatcher.staticPlayerY;

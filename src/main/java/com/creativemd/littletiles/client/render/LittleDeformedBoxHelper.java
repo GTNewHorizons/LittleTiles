@@ -39,6 +39,8 @@ public final class LittleDeformedBoxHelper {
     private static int grid = 0;
     /** Index into {@link #corners} of the corner the player selected, or -1 if none is selected. */
     private static int markedCorner = -1;
+    /** Cached result of {@link #hasValidGeometry()}, or null when the corners changed since it was last worked out. */
+    private static Boolean validGeometry = null;
 
     private LittleDeformedBoxHelper() {}
 
@@ -50,6 +52,7 @@ public final class LittleDeformedBoxHelper {
         corners = null;
         grid = 0;
         markedCorner = -1;
+        validGeometry = null;
     }
 
     public static boolean hasMarkedCorner() {
@@ -67,19 +70,28 @@ public final class LittleDeformedBoxHelper {
     /** Moves the selected corner by a number of grid steps. */
     public static void nudgeMarked(ForgeDirection direction, int amount) {
         corners[markedCorner].moveInDirection(direction, amount);
+        validGeometry = null;
     }
 
     /** Warps the selected corner to a position, which is how a right click moves it to where the player looks. */
     public static void moveMarkedTo(LittleTileBlockPos pos) {
         corners[markedCorner] = pos.copy();
+        validGeometry = null;
     }
 
     /**
      * Whether no logical minimum corner has crossed its matching maximum corner, and no part of the box has been
      * squashed flat - see {@link Mesh3dUtil#enclosesVolume}. Collapsed edges are valid. Invalid boxes may exist
      * temporarily while editing so they can be shown in red, but they cannot be placed.
+     * <p>
+     * Only worked out again after the corners changed, since the preview asks for it several times every frame.
      */
     public static boolean hasValidGeometry() {
+        if (validGeometry == null) validGeometry = computeValidGeometry();
+        return validGeometry;
+    }
+
+    private static boolean computeValidGeometry() {
         for (int i = 0; i < corners.length; i++) {
             LittleTileBlockPos corner = geometryCorner(i);
             if ((i & 1) == 0 && geometryCorner(i | 1).subtract(corner).x < 0) return false;
@@ -110,6 +122,7 @@ public final class LittleDeformedBoxHelper {
         }
         corners = box;
         grid = align;
+        validGeometry = null;
     }
 
     /** The actual mesh vertex represented by a corner handle cell. */

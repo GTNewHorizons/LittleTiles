@@ -28,8 +28,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 public final class LittleDeformedBoxHelper {
 
     /**
-     * How far past the first block in the way a corner can still be picked, in blocks. It lets a corner resting
-     * exactly on that block's face win over the block, rather than tying with it.
+     * How far past the first block in the way a corner can still be picked, in blocks. It lets a corner resting exactly
+     * on that block's face win over the block, rather than tying with it.
      */
     private static final double PICK_BEHIND_BLOCK_EPSILON = 0.002;
 

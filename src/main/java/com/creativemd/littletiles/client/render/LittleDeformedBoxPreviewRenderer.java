@@ -1,15 +1,17 @@
 package com.creativemd.littletiles.client.render;
 
-import com.creativemd.creativecore.client.rendering.RenderHelper3D;
-import com.creativemd.creativecore.lib.Vector3d;
-import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
-import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
+
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
+
+import com.creativemd.creativecore.client.rendering.RenderHelper3D;
+import com.creativemd.creativecore.lib.Vector3d;
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 
 public class LittleDeformedBoxPreviewRenderer {
 
@@ -22,8 +24,8 @@ public class LittleDeformedBoxPreviewRenderer {
 
     /** The 12 edges of the box, as pairs of corner indices - the two corners of an edge differ in exactly one axis. */
     private static final int[][] BOX_EDGES = { { 0, 1 }, { 2, 3 }, { 4, 5 }, { 6, 7 }, // along x
-        { 0, 2 }, { 1, 3 }, { 4, 6 }, { 5, 7 }, // along y
-        { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }, // along z
+            { 0, 2 }, { 1, 3 }, { 4, 6 }, { 5, 7 }, // along y
+            { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }, // along z
     };
 
     /**
@@ -75,7 +77,7 @@ public class LittleDeformedBoxPreviewRenderer {
         // Any axis the beam is not parallel to spans its cross section - the one it deviates from most is the safest
         double ax = Math.abs(along.x), ay = Math.abs(along.y), az = Math.abs(along.z);
         Vector3d axis = ax <= ay && ax <= az ? new Vector3d(1, 0, 0)
-            : ay <= az ? new Vector3d(0, 1, 0) : new Vector3d(0, 0, 1);
+                : ay <= az ? new Vector3d(0, 1, 0) : new Vector3d(0, 0, 1);
         Vector3d side = new Vector3d();
         side.cross(along, axis);
         side.normalize();
@@ -137,7 +139,7 @@ public class LittleDeformedBoxPreviewRenderer {
                 continue;
             }
             boolean first = Mesh3dUtil
-                .splitsAlongFirstDiagonal(local[face[0]], local[face[1]], local[face[2]], local[face[3]]);
+                    .splitsAlongFirstDiagonal(local[face[0]], local[face[1]], local[face[2]], local[face[3]]);
             renderBeam(cornerFromCamera(first ? face[0] : face[1]), cornerFromCamera(first ? face[2] : face[3]), width);
         }
         GL11.glEnd();
@@ -168,7 +170,7 @@ public class LittleDeformedBoxPreviewRenderer {
     }
 
     public static void renderCornerMarker(AxisAlignedBB box, double width, boolean selected, boolean hovered,
-                                          boolean valid) {
+            boolean valid) {
         double minX = box.minX - TileEntityRendererDispatcher.staticPlayerX;
         double minY = box.minY - TileEntityRendererDispatcher.staticPlayerY;
         double minZ = box.minZ - TileEntityRendererDispatcher.staticPlayerZ;
@@ -186,19 +188,19 @@ public class LittleDeformedBoxPreviewRenderer {
         // grown slightly so a side resting on a block face sinks behind it instead of z-fighting with it.
         if (hovered) {
             RenderHelper3D.renderBlock(
-                (minX + maxX) / 2,
-                (minY + maxY) / 2,
-                (minZ + maxZ) / 2,
-                maxX - minX + 2 * Z_FIGHT_EPSILON,
-                maxY - minY + 2 * Z_FIGHT_EPSILON,
-                maxZ - minZ + 2 * Z_FIGHT_EPSILON,
-                0,
-                0,
-                0,
-                red,
-                green,
-                blue,
-                CORNER_MARKER_HOVER_FILL_ALPHA);
+                    (minX + maxX) / 2,
+                    (minY + maxY) / 2,
+                    (minZ + maxZ) / 2,
+                    maxX - minX + 2 * Z_FIGHT_EPSILON,
+                    maxY - minY + 2 * Z_FIGHT_EPSILON,
+                    maxZ - minZ + 2 * Z_FIGHT_EPSILON,
+                    0,
+                    0,
+                    0,
+                    red,
+                    green,
+                    blue,
+                    CORNER_MARKER_HOVER_FILL_ALPHA);
         }
 
         // These are real world-space cuboids rather than GL lines. Their thickness therefore stays uniform on every
@@ -231,15 +233,15 @@ public class LittleDeformedBoxPreviewRenderer {
     }
 
     private static void renderMarkerEdge(double x, double y, double z, double sizeX, double sizeY, double sizeZ,
-                                         double red, double green, double blue, double alpha) {
+            double red, double green, double blue, double alpha) {
         RenderHelper3D.renderBlock(x, y, z, sizeX, sizeY, sizeZ, 0, 0, 0, red, green, blue, alpha);
     }
 
     /**
      * Draws a small wireframe cube on each of the 8 corners of the deformed box being edited, so the player can see
-     * what there is to grab. The selected corner is drawn in a different colour, the one aimed at is filled in.
-     * These are the very same cubes {@link LittleDeformedBoxHelper#pickLookedAtCorner} raytraces against, so what is
-     * clicked is what is shown.
+     * what there is to grab. The selected corner is drawn in a different colour, the one aimed at is filled in. These
+     * are the very same cubes {@link LittleDeformedBoxHelper#pickLookedAtCorner} raytraces against, so what is clicked
+     * is what is shown.
      */
     public static void renderCornerMarkers(int grid) {
         boolean valid = LittleDeformedBoxHelper.hasValidGeometry();

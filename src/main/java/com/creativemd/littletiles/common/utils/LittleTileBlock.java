@@ -12,6 +12,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
@@ -140,6 +141,20 @@ public class LittleTileBlock extends LittleTile {
             }
         }
         return block.getLightValue();
+    }
+
+    @Override
+    public boolean canSustainPlant(IBlockAccess world, int x, int y, int z, ForgeDirection direction,
+            IPlantable plantable) {
+        IBlockAccessFake blockAccessFake = blockAccessFakeThreadLocal.get();
+
+        try {
+            blockAccessFake.setWorld(world, x, y, z);
+            blockAccessFake.setBlock(block, meta);
+            return block.canSustainPlant(blockAccessFake, x, y, z, direction, plantable);
+        } finally {
+            blockAccessFake.reset();
+        }
     }
 
     @Override

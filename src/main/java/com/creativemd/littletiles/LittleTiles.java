@@ -30,6 +30,7 @@ import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.items.ItemRubberMallet;
 import com.creativemd.littletiles.common.items.ItemTileContainer;
 import com.creativemd.littletiles.common.packet.LittleBlockPacket;
+import com.creativemd.littletiles.common.packet.LittleCursorBlockUpdatePacket;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
@@ -37,11 +38,7 @@ import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.sorting.LittleTileSortingList;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
-import com.creativemd.littletiles.common.utils.LittleTile;
-import com.creativemd.littletiles.common.utils.LittleTileBlock;
-import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
-import com.creativemd.littletiles.common.utils.LittleTileTileEntity;
-import com.creativemd.littletiles.common.utils.LittleTilesCreativeTab;
+import com.creativemd.littletiles.common.utils.*;
 import com.creativemd.littletiles.server.LittleTilesServer;
 import com.creativemd.littletiles.waila.Waila;
 
@@ -102,6 +99,7 @@ public class LittleTiles {
             .setCreativeTab(creativeTabLittleTiles);
 
     public static AngelicaCompat angelicaCompat;
+    public static NEICompat neiCompat;
 
     @EventHandler
     public void Init(FMLInitializationEvent event) {
@@ -137,8 +135,10 @@ public class LittleTiles {
         CreativeCorePacket.registerPacket(LittleRotatePacket.class, "LittleRotate");
         CreativeCorePacket.registerPacket(LittleFlipPacket.class, "LittleFlip");
         CreativeCorePacket.registerPacket(LittleItemUpdatePacket.class, "LittleItemUpdate");
+        CreativeCorePacket.registerPacket(LittleCursorBlockUpdatePacket.class, "LittleCursorItemUpdate");
         FMLCommonHandler.instance().bus().register(new LittleEvent());
         MinecraftForge.EVENT_BUS.register(new LittleEvent());
+        if (Loader.isModLoaded("bogosorter")) MinecraftForge.EVENT_BUS.register(new BogoCompat());
 
         LittleStructure.initStructures();
         Mesh3dUtil.initializeMeshes();
@@ -172,6 +172,9 @@ public class LittleTiles {
         }
         if (Loader.isModLoaded("Waila")) {
             Waila.init();
+        }
+        if (Loader.isModLoaded("NotEnoughItems")) {
+            neiCompat = new NEICompat();
         }
     }
 

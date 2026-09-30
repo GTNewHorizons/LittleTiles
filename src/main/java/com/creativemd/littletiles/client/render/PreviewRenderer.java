@@ -49,6 +49,10 @@ public class PreviewRenderer {
 
     /** Opacity of the fill of the corner the player is aiming at. */
     private static final double CORNER_MARKER_HOVER_FILL_ALPHA = 0.25;
+    /**
+     * How far the deformed box overlay is pulled off the grid planes to prevent z-fighting, in blocks.
+     */
+    private static final double Z_FIGHT_EPSILON = 0.002;
 
     public void processKey(ForgeDirection direction) {
         LittleRotatePacket packet = new LittleRotatePacket(direction);
@@ -125,10 +129,14 @@ public class PreviewRenderer {
 
     private static void vertexAtCorner(int index) {
         Vec3 vec = LittleDeformedBoxHelper.cornerHitVec(index);
-        GL11.glVertex3d(
-                vec.xCoord - TileEntityRendererDispatcher.staticPlayerX,
-                vec.yCoord - TileEntityRendererDispatcher.staticPlayerY,
-                vec.zCoord - TileEntityRendererDispatcher.staticPlayerZ);
+        double x = vec.xCoord - TileEntityRendererDispatcher.staticPlayerX;
+        double y = vec.yCoord - TileEntityRendererDispatcher.staticPlayerY;
+        double z = vec.zCoord - TileEntityRendererDispatcher.staticPlayerZ;
+
+        // Lines have no polygon offset, and a deformed box cannot simply be grown like an axis-aligned one. Pulling
+        // each vertex towards the camera, which sits at the origin here, lifts them off any face from every angle.
+        double scale = Math.max(0, 1 - Z_FIGHT_EPSILON / Math.sqrt(x * x + y * y + z * z));
+        GL11.glVertex3d(x * scale, y * scale, z * scale);
     }
 
     /**
@@ -197,15 +205,16 @@ public class PreviewRenderer {
         double alpha = selected ? 0.9 : 0.5;
 
         // The corner a left click would select is filled in faintly, like vanilla highlights the block under the
-        // cursor. A fill rather than a different colour, since colour already tells selected and invalid apart.
+        // cursor. A fill rather than a different colour, since colour already tells selected and invalid apart. It is
+        // grown slightly so a side resting on a block face sinks behind it instead of z-fighting with it.
         if (hovered) {
             RenderHelper3D.renderBlock(
                     (minX + maxX) / 2,
                     (minY + maxY) / 2,
                     (minZ + maxZ) / 2,
-                    maxX - minX,
-                    maxY - minY,
-                    maxZ - minZ,
+                    maxX - minX + 2 * Z_FIGHT_EPSILON,
+                    maxY - minY + 2 * Z_FIGHT_EPSILON,
+                    maxZ - minZ + 2 * Z_FIGHT_EPSILON,
                     0,
                     0,
                     0,

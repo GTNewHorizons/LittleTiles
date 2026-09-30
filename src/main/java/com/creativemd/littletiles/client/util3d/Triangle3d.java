@@ -148,6 +148,11 @@ public class Triangle3d {
         return ret;
     }
 
+    /** The block face this triangle is textured from. */
+    public ForgeDirection getFaceDirection() {
+        return Plane3d.getPlaneForTriangle(this).getDirection();
+    }
+
     public void setTexture(Block block, int meta) {
         Plane3d plane = Plane3d.getPlaneForTriangle(this);
         ForgeDirection direction = plane.getDirection();

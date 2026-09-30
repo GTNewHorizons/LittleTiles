@@ -179,7 +179,6 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
         float inventoryScale = size * 0.625F;
         GL11.glTranslatef(x - size * 0.125F, y + size * 0.1875F, 0.0F);
         GL11.glScalef(inventoryScale, inventoryScale, inventoryScale);
-        GL11.glColor4d(1, 1, 1, 1);
         mesh.renderIcon();
         GL11.glPopMatrix();
     }

@@ -49,6 +49,8 @@ public class PreviewRenderer {
 
     /** Physical width of selectable-corner edges, in blocks. */
     private static final double CORNER_MARKER_EDGE_WIDTH = 1D / 64D;
+    /** Opacity of the fill of the corner the player is aiming at. */
+    private static final double CORNER_MARKER_HOVER_FILL_ALPHA = 0.25;
 
     public void processKey(ForgeDirection direction) {
         LittleRotatePacket packet = new LittleRotatePacket(direction);
@@ -182,7 +184,7 @@ public class PreviewRenderer {
         return nx * adx + ny * ady + nz * adz == 0;
     }
 
-    public static void renderCornerMarker(AxisAlignedBB box, boolean selected, boolean valid) {
+    public static void renderCornerMarker(AxisAlignedBB box, boolean selected, boolean hovered, boolean valid) {
         double minX = box.minX - TileEntityRendererDispatcher.staticPlayerX;
         double minY = box.minY - TileEntityRendererDispatcher.staticPlayerY;
         double minZ = box.minZ - TileEntityRendererDispatcher.staticPlayerZ;
@@ -195,6 +197,25 @@ public class PreviewRenderer {
         double blue = valid ? (selected ? 0 : 1) : 0.1;
         double alpha = selected ? 0.9 : 0.5;
         double width = CORNER_MARKER_EDGE_WIDTH;
+
+        // The corner a left click would select is filled in faintly, like vanilla highlights the block under the
+        // cursor. A fill rather than a different colour, since colour already tells selected and invalid apart.
+        if (hovered) {
+            RenderHelper3D.renderBlock(
+                    (minX + maxX) / 2,
+                    (minY + maxY) / 2,
+                    (minZ + maxZ) / 2,
+                    maxX - minX,
+                    maxY - minY,
+                    maxZ - minZ,
+                    0,
+                    0,
+                    0,
+                    red,
+                    green,
+                    blue,
+                    CORNER_MARKER_HOVER_FILL_ALPHA);
+        }
 
         // These are real world-space cuboids rather than GL lines. Their thickness therefore stays uniform on every
         // face and does not depend on the display's pixel scale or the driver's supported line widths.
@@ -220,15 +241,17 @@ public class PreviewRenderer {
 
     /**
      * Draws a small wireframe cube on each of the 8 corners of the deformed box being edited, so the player can see
-     * what there is to grab. The selected corner is drawn in a different colour. These are the very same cubes
-     * {@link LittleDeformedBoxHelper#pickLookedAtCorner} raytraces against, so what is clicked is what is shown.
+     * what there is to grab. The selected corner is drawn in a different colour, the one aimed at is filled in.
+     * These are the very same cubes {@link LittleDeformedBoxHelper#pickLookedAtCorner} raytraces against, so what is
+     * clicked is what is shown.
      */
     private static void renderCornerMarkers(int grid) {
         boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
+        int hovered = LittleDeformedBoxHelper.pickLookedAtCorner(Minecraft.getMinecraft().thePlayer, grid);
         for (int i = 0; i < Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT; i++) {
             AxisAlignedBB box = LittleDeformedBoxHelper.getCornerBoxAABB(i, grid);
             boolean selected = LittleDeformedBoxHelper.isMarkedCorner(i);
-            renderCornerMarker(box, selected, valid);
+            renderCornerMarker(box, selected, i == hovered, valid);
         }
     }
 

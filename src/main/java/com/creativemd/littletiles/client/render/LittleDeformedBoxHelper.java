@@ -166,7 +166,7 @@ public final class LittleDeformedBoxHelper {
 
     /**
      * Raytraces the corner cubes along the player's line of sight and returns the index of the nearest one hit, or -1
-     * if the ray misses all of them. This is the corner a left click selects.
+     * if the ray misses all of them. This is the corner a left click selects, and the one highlighted while aimed at.
      */
     public static int pickLookedAtCorner(EntityPlayer player, int grid) {
         if (!isEditing()) return -1;

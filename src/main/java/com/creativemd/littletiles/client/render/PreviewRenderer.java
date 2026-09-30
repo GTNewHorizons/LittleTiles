@@ -113,30 +113,91 @@ public class PreviewRenderer {
      * Draws the deformed box being edited as a wireframe of its 12 edges. Faces are never filled, so the player can see
      * the tiles behind the box while shaping it.
      */
-    private static void renderBoxEdges() {
+    private static void renderBoxEdges(int grid) {
         boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
+        double width = cornerMarkerEdgeWidth(grid);
         GL11.glColor4d(valid ? 0.2 : 1, valid ? 0.8 : 0.1, valid ? 1 : 0.1, 0.9);
-        GL11.glBegin(GL11.GL_LINES);
+        GL11.glBegin(GL11.GL_QUADS);
         for (int[] edge : BOX_EDGES) {
-            for (int index : edge) {
-                vertexAtCorner(index);
-            }
+            renderBeam(cornerFromCamera(edge[0]), cornerFromCamera(edge[1]), width);
         }
         GL11.glEnd();
 
-        renderFaceDiagonals();
+        renderFaceDiagonals(width);
     }
 
-    private static void vertexAtCorner(int index) {
+    /** A corner relative to the camera, which sits at the origin while rendering. */
+    private static Vector3d cornerFromCamera(int index) {
         Vec3 vec = LittleDeformedBoxHelper.cornerHitVec(index);
         double x = vec.xCoord - TileEntityRendererDispatcher.staticPlayerX;
         double y = vec.yCoord - TileEntityRendererDispatcher.staticPlayerY;
         double z = vec.zCoord - TileEntityRendererDispatcher.staticPlayerZ;
 
-        // Lines have no polygon offset, and a deformed box cannot simply be grown like an axis-aligned one. Pulling
-        // each vertex towards the camera, which sits at the origin here, lifts them off any face from every angle.
+        // A deformed box cannot simply be grown like an axis-aligned one. Pulling each corner towards the camera lifts
+        // the edges off any face from every angle.
         double scale = Math.max(0, 1 - Z_FIGHT_EPSILON / Math.sqrt(x * x + y * y + z * z));
-        GL11.glVertex3d(x * scale, y * scale, z * scale);
+        return new Vector3d(x * scale, y * scale, z * scale);
+    }
+
+    /**
+     * Draws a line as a square beam of the given width, in blocks. Like the corner markers it is real world-space
+     * geometry rather than a GL line, so it does not get thinner on high resolution displays. Both ends are extended by
+     * half the width, so beams meeting at a corner close the joint. Must be called between
+     * <code>glBegin(GL_QUADS)</code> and <code>glEnd()</code>.
+     */
+    private static void renderBeam(Vector3d from, Vector3d to, double width) {
+        Vector3d along = new Vector3d(to);
+        along.sub(from);
+        double length = along.length();
+        // A collapsed edge has no direction to build a beam around, and the corner marker already covers it
+        if (length < 1.0E-9) {
+            return;
+        }
+        along.scale(width / 2 / length);
+
+        // Any axis the beam is not parallel to spans its cross section - the one it deviates from most is the safest
+        double ax = Math.abs(along.x), ay = Math.abs(along.y), az = Math.abs(along.z);
+        Vector3d axis = ax <= ay && ax <= az ? new Vector3d(1, 0, 0)
+                : ay <= az ? new Vector3d(0, 1, 0) : new Vector3d(0, 0, 1);
+        Vector3d side = new Vector3d();
+        side.cross(along, axis);
+        side.normalize();
+        side.scale(width / 2);
+        Vector3d up = new Vector3d();
+        up.cross(along, side);
+        up.normalize();
+        up.scale(width / 2);
+
+        Vector3d start = new Vector3d(from);
+        start.sub(along);
+        Vector3d end = new Vector3d(to);
+        end.add(along);
+
+        // The corners of the cross section, in ring order
+        Vector3d[] ring = new Vector3d[4];
+        for (int i = 0; i < ring.length; i++) {
+            ring[i] = new Vector3d(side);
+            ring[i].scale(i == 0 || i == 3 ? 1 : -1);
+            ring[i].scaleAdd(i < 2 ? 1 : -1, up, ring[i]);
+        }
+
+        for (int i = 0; i < ring.length; i++) {
+            Vector3d next = ring[(i + 1) % ring.length];
+            beamVertex(start, ring[i]);
+            beamVertex(start, next);
+            beamVertex(end, next);
+            beamVertex(end, ring[i]);
+        }
+        for (int i = ring.length - 1; i >= 0; i--) {
+            beamVertex(start, ring[i]);
+        }
+        for (Vector3d offset : ring) {
+            beamVertex(end, offset);
+        }
+    }
+
+    private static void beamVertex(Vector3d base, Vector3d offset) {
+        GL11.glVertex3d(base.x + offset.x, base.y + offset.y, base.z + offset.z);
     }
 
     /**
@@ -144,7 +205,7 @@ public class PreviewRenderer {
      * bends. The diagonal comes from {@link Mesh3dUtil#splitsAlongFirstDiagonal}, the same call the mesh itself is
      * built from, so the line can never disagree with the geometry it is describing.
      */
-    private static void renderFaceDiagonals() {
+    private static void renderFaceDiagonals(double width) {
         LittleTileCutoutInfo cutout = LittleDeformedBoxHelper.currentCutout();
         Vector3d[] local = new Vector3d[cutout.corners.length];
         for (int i = 0; i < local.length; i++) {
@@ -153,15 +214,14 @@ public class PreviewRenderer {
 
         boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
         GL11.glColor4d(valid ? 0.2 : 1, valid ? 0.8 : 0.1, valid ? 1 : 0.1, 0.45);
-        GL11.glBegin(GL11.GL_LINES);
+        GL11.glBegin(GL11.GL_QUADS);
         for (int[] face : Mesh3dUtil.DEFORMED_BOX_FACES) {
             if (isFacePlanar(face, cutout.corners)) {
                 continue;
             }
             boolean first = Mesh3dUtil
                     .splitsAlongFirstDiagonal(local[face[0]], local[face[1]], local[face[2]], local[face[3]]);
-            vertexAtCorner(first ? face[0] : face[1]);
-            vertexAtCorner(first ? face[2] : face[3]);
+            renderBeam(cornerFromCamera(first ? face[0] : face[1]), cornerFromCamera(first ? face[2] : face[3]), width);
         }
         GL11.glEnd();
     }
@@ -421,7 +481,7 @@ public class PreviewRenderer {
                     GL11.glDepthMask(false);
 
                     if (editingDeformedBox) {
-                        renderBoxEdges();
+                        renderBoxEdges(align);
                         renderCornerMarkers(align);
                     }
 

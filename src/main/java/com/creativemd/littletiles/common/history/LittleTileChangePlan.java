@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.EmptyChunk;
 
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -50,6 +51,7 @@ public final class LittleTileChangePlan {
         List<ResolvedChange> resolved = new ArrayList<>(changes.size());
         for (ChangeEntry change : changes) {
             ChunkCoordinates coord = change.coord;
+            if (world.getChunkFromBlockCoords(coord.posX, coord.posZ) instanceof EmptyChunk) return null;
             TileEntityLittleTiles tile = LittleTileChangeRecorder.getTileEntity(world, coord);
             Block block = world.getBlock(coord.posX, coord.posY, coord.posZ);
 

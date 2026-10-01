@@ -9,6 +9,8 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.joml.Vector3i;
+
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.common.utils.Rotation;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -84,6 +86,21 @@ public class LittleTileBox {
 
     public LittleTileBox(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
         set(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    /** The bounding box around a set of points */
+    public static LittleTileBox fromPoints(Vector3i[] points) {
+        int minX = points[0].x, minY = points[0].y, minZ = points[0].z;
+        int maxX = minX, maxY = minY, maxZ = minZ;
+        for (Vector3i point : points) {
+            minX = Math.min(minX, point.x);
+            minY = Math.min(minY, point.y);
+            minZ = Math.min(minZ, point.z);
+            maxX = Math.max(maxX, point.x);
+            maxY = Math.max(maxY, point.y);
+            maxZ = Math.max(maxZ, point.z);
+        }
+        return new LittleTileBox(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
     public AxisAlignedBB getBox() {

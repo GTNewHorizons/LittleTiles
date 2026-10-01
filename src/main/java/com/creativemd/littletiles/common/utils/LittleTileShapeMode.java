@@ -16,7 +16,8 @@ public enum LittleTileShapeMode {
     SLOPE_INNER_CORNER("key.littletiles.slope_inner_corner"),
     SLOPE_TRIANGLE_ALT("key.littletiles.slope_triangle_alt"),
     SLOPE_CONVEX_INNER_CORNER("key.littletiles.slope_convex_inner_corner"),
-    SLOPE_CONVEX_OUTER_CORNER("key.littletiles.slope_convex_outer_corner");
+    SLOPE_CONVEX_OUTER_CORNER("key.littletiles.slope_convex_outer_corner"),
+    DEFORMED_BOX("key.littletiles.deformed_box");
 
     private final String name;
 

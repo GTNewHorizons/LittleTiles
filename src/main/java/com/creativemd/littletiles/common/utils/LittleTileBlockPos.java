@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.utils;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -46,19 +47,28 @@ public class LittleTileBlockPos {
         moveSubZ(subZ);
     }
 
+    public LittleTileBlockPos copy() {
+        return new LittleTileBlockPos(posX, posY, posZ, subX, subY, subZ, side);
+    }
+
     public static LittleTileBlockPos fromMovingObjectPosition(MovingObjectPosition pos, int align) {
         ForgeDirection side = ForgeDirection.getOrientation(pos.sideHit);
         double x = pos.hitVec.xCoord;
         double y = pos.hitVec.yCoord;
         double z = pos.hitVec.zCoord;
 
-        if (side == ForgeDirection.WEST) {
+        // A box face lies on a grid line, where the cell in front of it is wanted. A hit on a cutout tile's mesh, like
+        // a slope, can lie anywhere and simply takes the cell it is in.
+        double sideCoord = side.offsetX != 0 ? x : side.offsetY != 0 ? y : z;
+        boolean onGridLine = Math.abs(sideCoord * 16 - Math.rint(sideCoord * 16)) < 1.0E-4;
+
+        if (onGridLine && side == ForgeDirection.WEST) {
             x -= align / 16f;
         }
-        if (side == ForgeDirection.DOWN) {
+        if (onGridLine && side == ForgeDirection.DOWN) {
             y -= align / 16f;
         }
-        if (side == ForgeDirection.NORTH) {
+        if (onGridLine && side == ForgeDirection.NORTH) {
             z -= align / 16f;
         }
         int subX = (int) Math.floor((x - Math.floor(x)) * 16);
@@ -81,6 +91,12 @@ public class LittleTileBlockPos {
                 subY = subY / align * align;
                 subZ = subZ / align * align;
                 break;
+        }
+        if (!onGridLine) {
+            // The switch leaves the side's own axis as it is, which only suits a hit on a grid line
+            subX = subX / align * align;
+            subY = subY / align * align;
+            subZ = subZ / align * align;
         }
 
         return new LittleTileBlockPos(
@@ -169,6 +185,19 @@ public class LittleTileBlockPos {
 
     public Vec3 toHitVec() {
         return Vec3.createVectorHelper(posX + subX / 16.0, posY + subY / 16.0, posZ + subZ / 16.0);
+    }
+
+    /** The world-space box of the grid cell beginning at this position. */
+    public AxisAlignedBB getHitBox(int grid) {
+        double size = grid / 16.0;
+        Vec3 vec = toHitVec();
+        return AxisAlignedBB.getBoundingBox(
+                vec.xCoord,
+                vec.yCoord,
+                vec.zCoord,
+                vec.xCoord + size,
+                vec.yCoord + size,
+                vec.zCoord + size);
     }
 
     public Comparison compareTo(LittleTileBlockPos other) {

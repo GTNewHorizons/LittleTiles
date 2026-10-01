@@ -95,15 +95,8 @@ public class LittleTilesBlockRenderHelper {
     public static void renderMesh(double x, double y, double z, Vector3i cutoutSize, int orientation, double red,
             double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax,
             LittleTileCutoutInfo cutoutInfo) {
-        Mesh3d mesh = Mesh3dUtil.createMesh(
-                cutoutInfo,
-                cutoutSize,
-                posCutout,
-                posSubMin,
-                posSubMax,
-                null,
-                0,
-                orientation);
+        Mesh3d mesh = Mesh3dUtil
+                .createMesh(cutoutInfo, cutoutSize, posCutout, posSubMin, posSubMax, null, 0, orientation);
 
         GL11.glColor4d(red, green, blue, alpha);
 

@@ -1,5 +1,6 @@
 package com.creativemd.littletiles.common.gui.bag;
 
+import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
@@ -32,5 +33,26 @@ public class LittleBagSlot extends ModularSlot {
         ItemStack heldStack = getPlayer().inventory.getItemStack();
         if (heldStack == null) return super.getSlotStackLimit();
         return this.handler.getStackLimit(this.slot, heldStack);
+    }
+
+    /**
+     * Vanilla hotbar swap (pressing a number key over an empty slot) asks whether the stack in the hotbar is valid and
+     * then puts all of it into the slot. The slot accepts any stack of which at least one item fits, so a stack that
+     * still lies in the hotbar has to fit completely. Every other path clamps to the limit afterwards: a click takes
+     * the stack from the cursor and shift click works on a copy.
+     */
+    @Override
+    public boolean isItemValid(ItemStack stack) {
+        if (!super.isItemValid(stack)) return false;
+        if (!isInitialized() || !isInHotbar(stack)) return true;
+        return this.handler.getStackLimit(this.slot, stack) >= stack.stackSize;
+    }
+
+    private boolean isInHotbar(ItemStack stack) {
+        InventoryPlayer inventory = getPlayer().inventory;
+        for (int i = 0; i < InventoryPlayer.getHotbarSize(); i++) {
+            if (inventory.getStackInSlot(i) == stack) return true;
+        }
+        return false;
     }
 }

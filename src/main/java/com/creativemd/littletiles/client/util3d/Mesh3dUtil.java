@@ -43,35 +43,12 @@ public class Mesh3dUtil {
     public static Mesh3d meshFromTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
         return Mesh3dUtil.createMesh(
                 cutoutInfo,
-                box.minX / 16.0,
-                box.minY / 16.0,
-                box.minZ / 16.0,
-                box.maxX / 16.0,
-                box.maxY / 16.0,
-                box.maxZ / 16.0,
-                null,
-                0);
-    }
-
-    /** The mesh of a cube given in blocks, relative to its own block. */
-    public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, double minX, double minY, double minZ,
-            double maxX, double maxY, double maxZ, Block block, int meta) {
-        Vector3i posSubMin = new Vector3i();
-        posSubMin.x = (int) Math.round(minX * 16);
-        posSubMin.y = (int) Math.round(minY * 16);
-        posSubMin.z = (int) Math.round(minZ * 16);
-        Vector3i posSubMax = new Vector3i();
-        posSubMax.x = (int) Math.round(maxX * 16);
-        posSubMax.y = (int) Math.round(maxY * 16);
-        posSubMax.z = (int) Math.round(maxZ * 16);
-        return Mesh3dUtil.createMesh(
-                cutoutInfo,
                 cutoutInfo.size,
                 cutoutInfo.pos,
-                posSubMin,
-                posSubMax,
-                block,
-                meta,
+                new Vector3i(box.minX, box.minY, box.minZ),
+                new Vector3i(box.maxX, box.maxY, box.maxZ),
+                null,
+                0,
                 cutoutInfo.orientation);
     }
 

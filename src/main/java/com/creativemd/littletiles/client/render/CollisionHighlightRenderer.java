@@ -16,6 +16,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.lib.Vector3d;
@@ -173,14 +174,13 @@ public class CollisionHighlightRenderer {
                                 } else {
                                     Mesh3d mesh = Mesh3dUtil.createMesh(
                                             cube.cutoutInfo,
-                                            cube.minX,
-                                            cube.minY,
-                                            cube.minZ,
-                                            cube.maxX,
-                                            cube.maxY,
-                                            cube.maxZ,
+                                            cube.cutoutInfo.size,
+                                            cube.cutoutInfo.pos,
+                                            new Vector3i(cube.gridMinX, cube.gridMinY, cube.gridMinZ),
+                                            new Vector3i(cube.gridMaxX, cube.gridMaxY, cube.gridMaxZ),
                                             cube.block,
-                                            cube.meta);
+                                            cube.meta,
+                                            cube.cutoutInfo.orientation);
                                     for (Triangle3d t : mesh.getTriangles()) t.inflate(EPSILON);
                                     cached.meshes.add(new PlacedMesh(mesh, te.xCoord, te.yCoord, te.zCoord));
                                 }

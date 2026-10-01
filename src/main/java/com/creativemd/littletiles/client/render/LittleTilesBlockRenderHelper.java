@@ -42,18 +42,21 @@ public class LittleTilesBlockRenderHelper {
 
     private static final ThreadLocal<ExtendedRenderBlocks> extraRendererThreadLocal = ThreadLocal
             .withInitial(ExtendedRenderBlocks::new);
+    /** How far preview overlays are pulled off the grid planes to prevent z-fighting, in blocks. */
+    static final double Z_FIGHT_EPSILON = 0.002;
 
     public static void renderShape(LittleTileShapeMode shape, double centerX, double centerY, double centerZ, Vec3 size,
             Vector3d cutoutScale, int orientation, Vector3i posCutout, Vec3 color, double alpha,
             LittleTileCutoutInfo cutoutInfo) {
         if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
+            // Grown slightly so a side resting on a block face sinks behind it instead of z-fighting with it.
             RenderHelper3D.renderBlock(
                     centerX,
                     centerY,
                     centerZ,
-                    size.xCoord,
-                    size.yCoord,
-                    size.zCoord,
+                    size.xCoord + 2 * Z_FIGHT_EPSILON,
+                    size.yCoord + 2 * Z_FIGHT_EPSILON,
+                    size.zCoord + 2 * Z_FIGHT_EPSILON,
                     0,
                     0,
                     0,
@@ -100,19 +103,30 @@ public class LittleTilesBlockRenderHelper {
                 0,
                 orientation);
 
-        GL11.glPushMatrix();
-        GL11.glTranslated(x, y, z);
         GL11.glColor4d(red, green, blue, alpha);
 
         GL11.glBegin(GL11.GL_TRIANGLES);
         for (Triangle3d triangle : mesh.getTriangles()) {
-            GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
-            GL11.glVertex3d(triangle.getP2().x, triangle.getP2().y, triangle.getP2().z);
-            GL11.glVertex3d(triangle.getP3().x, triangle.getP3().y, triangle.getP3().z);
+            vertexFromCamera(x, y, z, triangle.getP1());
+            vertexFromCamera(x, y, z, triangle.getP2());
+            vertexFromCamera(x, y, z, triangle.getP3());
         }
         GL11.glEnd();
+    }
 
-        GL11.glPopMatrix();
+    /** Emits a mesh vertex offset by x, y, z, which are relative to the camera sitting at the origin. */
+    private static void vertexFromCamera(double x, double y, double z, Vector3d point) {
+        Vector3d vec = pullTowardsCamera(x + point.x, y + point.y, z + point.z);
+        GL11.glVertex3d(vec.x, vec.y, vec.z);
+    }
+
+    /**
+     * A shape that is not axis-aligned cannot simply be grown like a box. Pulling each vertex towards the camera, which
+     * sits at the origin while rendering, lifts it off any face from every angle.
+     */
+    static Vector3d pullTowardsCamera(double x, double y, double z) {
+        double scale = Math.max(0, 1 - Z_FIGHT_EPSILON / Math.sqrt(x * x + y * y + z * z));
+        return new Vector3d(x * scale, y * scale, z * scale);
     }
 
     /** What became of a cutout tile. */

@@ -57,13 +57,18 @@ public class LittleTileBlockPos {
         double y = pos.hitVec.yCoord;
         double z = pos.hitVec.zCoord;
 
-        if (side == ForgeDirection.WEST) {
+        // A box face lies on a grid line, where the cell in front of it is wanted. A hit on a cutout tile's mesh, like
+        // a slope, can lie anywhere and simply takes the cell it is in.
+        double sideCoord = side.offsetX != 0 ? x : side.offsetY != 0 ? y : z;
+        boolean onGridLine = Math.abs(sideCoord * 16 - Math.rint(sideCoord * 16)) < 1.0E-4;
+
+        if (onGridLine && side == ForgeDirection.WEST) {
             x -= align / 16f;
         }
-        if (side == ForgeDirection.DOWN) {
+        if (onGridLine && side == ForgeDirection.DOWN) {
             y -= align / 16f;
         }
-        if (side == ForgeDirection.NORTH) {
+        if (onGridLine && side == ForgeDirection.NORTH) {
             z -= align / 16f;
         }
         int subX = (int) Math.floor((x - Math.floor(x)) * 16);
@@ -86,6 +91,12 @@ public class LittleTileBlockPos {
                 subY = subY / align * align;
                 subZ = subZ / align * align;
                 break;
+        }
+        if (!onGridLine) {
+            // The switch leaves the side's own axis as it is, which only suits a hit on a grid line
+            subX = subX / align * align;
+            subY = subY / align * align;
+            subZ = subZ / align * align;
         }
 
         return new LittleTileBlockPos(

@@ -324,9 +324,9 @@ public class Mesh3dUtil {
      * contributes nothing: all corners share that coordinate.
      */
     private static double localDistanceSquared(Vector3i p, Vector3i q, Vector3i size) {
-        double dx = size.x == 0 ? 0 : (p.x - q.x) / (double) size.x;
-        double dy = size.y == 0 ? 0 : (p.y - q.y) / (double) size.y;
-        double dz = size.z == 0 ? 0 : (p.z - q.z) / (double) size.z;
+        double dx = size.x == 0 ? 0 : ((double) p.x - q.x) / (double) size.x;
+        double dy = size.y == 0 ? 0 : ((double) p.y - q.y) / (double) size.y;
+        double dz = size.z == 0 ? 0 : ((double) p.z - q.z) / (double) size.z;
         return dx * dx + dy * dy + dz * dz;
     }
 

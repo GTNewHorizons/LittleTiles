@@ -7,11 +7,14 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 
 public class Mesh3dObjLoader {
 
+    /**
+     * Loads a unit mesh: the OBJ spans [0, 1] on each axis, which is mapped onto [0, {@link Grid3d#PIXEL}] and rounded
+     * to the grid.
+     */
     public static Mesh3d load(String name) {
         String path = "assets/" + LittleTiles.modid + "/models/" + name + ".obj";
         try {
@@ -23,7 +26,7 @@ public class Mesh3dObjLoader {
     }
 
     private static Mesh3d loadFromStream(InputStream stream) throws IOException {
-        List<Vector3d> vertices = new ArrayList<>();
+        List<GridVector> vertices = new ArrayList<>();
         List<Triangle3d> triangles = new ArrayList<>();
 
         BufferedReader br = new BufferedReader(new InputStreamReader(stream));
@@ -36,10 +39,10 @@ public class Mesh3dObjLoader {
             if (line.startsWith("v ")) {
                 // vertex
                 String[] tok = line.split("\\s+");
-                double x = Double.parseDouble(tok[1]);
-                double y = Double.parseDouble(tok[2]);
-                double z = Double.parseDouble(tok[3]);
-                vertices.add(new Vector3d(x, y, z));
+                int x = (int) Math.round(Double.parseDouble(tok[1]) * Grid3d.PIXEL);
+                int y = (int) Math.round(Double.parseDouble(tok[2]) * Grid3d.PIXEL);
+                int z = (int) Math.round(Double.parseDouble(tok[3]) * Grid3d.PIXEL);
+                vertices.add(new GridVector(x, y, z));
             }
 
             else if (line.startsWith("f ")) {
@@ -53,9 +56,9 @@ public class Mesh3dObjLoader {
                 // copies, as the triangles of a mesh must not share points
                 triangles.add(
                         new Triangle3d(
-                                new Vector3d(vertices.get(a)),
-                                new Vector3d(vertices.get(b)),
-                                new Vector3d(vertices.get(c))));
+                                new GridVector(vertices.get(a)),
+                                new GridVector(vertices.get(b)),
+                                new GridVector(vertices.get(c))));
             }
         }
 

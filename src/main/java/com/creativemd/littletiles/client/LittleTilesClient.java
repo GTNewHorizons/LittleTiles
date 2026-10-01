@@ -43,6 +43,16 @@ public class LittleTilesClient extends LittleTilesServer {
             0,
             "key.categories.littletiles");
     public static boolean pressedToolConfig = false;
+    public static KeyBinding undoPlacement = new KeyBinding(
+            "key.littletiles.undo_placement",
+            0,
+            "key.categories.littletiles");
+    public static boolean pressedUndoPlacement = false;
+    public static KeyBinding redoPlacement = new KeyBinding(
+            "key.littletiles.redo_placement",
+            0,
+            "key.categories.littletiles");
+    public static boolean pressedRedoPlacement = false;
 
     @Override
     public void loadSide() {
@@ -57,6 +67,7 @@ public class LittleTilesClient extends LittleTilesServer {
         CollisionHighlightRenderer collisionHighlight = new CollisionHighlightRenderer();
         FMLCommonHandler.instance().bus().register(collisionHighlight);
         MinecraftForge.EVENT_BUS.register(collisionHighlight);
+        MinecraftForge.EVENT_BUS.register(new ChiselCornerMouseHandler());
         ClientRegistry.registerKeyBinding(up);
         ClientRegistry.registerKeyBinding(down);
         ClientRegistry.registerKeyBinding(right);
@@ -64,6 +75,8 @@ public class LittleTilesClient extends LittleTilesServer {
         ClientRegistry.registerKeyBinding(flip);
         ClientRegistry.registerKeyBinding(mark);
         ClientRegistry.registerKeyBinding(toolConfig);
+        ClientRegistry.registerKeyBinding(undoPlacement);
+        ClientRegistry.registerKeyBinding(redoPlacement);
         MinecraftForgeClient.registerItemRenderer(LittleTiles.chisel, new BlockOverlayRenderer());
         ClientCommandHandler.instance.registerCommand(new DumpMeshCommand());
     }

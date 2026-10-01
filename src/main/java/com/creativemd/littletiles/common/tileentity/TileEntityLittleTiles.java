@@ -360,6 +360,13 @@ public class TileEntityLittleTiles extends TileEntity {
                             float distance = 0;
                             if (mesh != null && !mesh.getTriangles().isEmpty()) {
                                 distance = TriangleRayIntersect.intersects(mesh, xCoord, yCoord, zCoord, pos, look);
+                                if (distance <= 1) {
+                                    // Report where the mesh is hit rather than its bounding box
+                                    Temphit.hitVec = pos.addVector(
+                                            (look.xCoord - pos.xCoord) * distance,
+                                            (look.yCoord - pos.yCoord) * distance,
+                                            (look.zCoord - pos.zCoord) * distance);
+                                }
                             }
                             isHit = distance < lastCutoutDistance;
                             if (isHit) {

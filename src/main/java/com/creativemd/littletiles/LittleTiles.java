@@ -11,6 +11,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
 import com.creativemd.littletiles.client.render.AngelicaCompat;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
@@ -18,6 +21,7 @@ import com.creativemd.littletiles.common.blocks.BlockLTColored;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ItemBlockColored;
 import com.creativemd.littletiles.common.events.LittleEvent;
+import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.items.ItemBlockTiles;
 import com.creativemd.littletiles.common.items.ItemCollisionTool;
 import com.creativemd.littletiles.common.items.ItemColorTube;
@@ -35,6 +39,7 @@ import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
+import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.sorting.LittleTileSortingList;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -47,10 +52,13 @@ import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
+import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
+import cpw.mods.fml.common.event.FMLServerStoppedEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
+import cpw.mods.fml.common.versioning.DefaultArtifactVersion;
 
 @Mod(
         modid = LittleTiles.modid,
@@ -69,6 +77,11 @@ public class LittleTiles {
 
     public static final String modid = "littletiles";
     public static final String version = LTTags.VERSION;
+    public static final Logger logger = LogManager.getLogger(modid);
+
+    private static final String MINIMUM_ANGELICA_VERSION = "2.1.0";
+    private static final DefaultArtifactVersion MINIMUM_ANGELICA_ARTIFACT_VERSION = new DefaultArtifactVersion(
+            MINIMUM_ANGELICA_VERSION);
 
     public static int maxNewTiles = 512;
 
@@ -136,6 +149,8 @@ public class LittleTiles {
         CreativeCorePacket.registerPacket(LittleFlipPacket.class, "LittleFlip");
         CreativeCorePacket.registerPacket(LittleItemUpdatePacket.class, "LittleItemUpdate");
         CreativeCorePacket.registerPacket(LittleCursorBlockUpdatePacket.class, "LittleCursorItemUpdate");
+        CreativeCorePacket.registerPacket(LittleUndoRedoPacket.class, "LittleUndoRedo");
+
         FMLCommonHandler.instance().bus().register(new LittleEvent());
         MinecraftForge.EVENT_BUS.register(new LittleEvent());
         if (Loader.isModLoaded("bogosorter")) MinecraftForge.EVENT_BUS.register(new BogoCompat());
@@ -167,15 +182,35 @@ public class LittleTiles {
         GameRegistry.addRecipe(
                 new ItemStack(colorTube),
                 new Object[] { "XXX", "XLX", "XXX", 'X', Items.dye, 'L', Items.iron_ingot });
-        if (Loader.isModLoaded("angelica")) {
-            angelicaCompat = new AngelicaCompat();
-        }
+        initAngelicaCompat();
         if (Loader.isModLoaded("Waila")) {
             Waila.init();
         }
         if (Loader.isModLoaded("NotEnoughItems")) {
             neiCompat = new NEICompat();
         }
+    }
+
+    private static void initAngelicaCompat() {
+        if (!Loader.isModLoaded("angelica")) return;
+
+        ModContainer angelica = Loader.instance().getIndexedModList().get("angelica");
+        String installedVersion = angelica.getVersion();
+        if (new DefaultArtifactVersion(installedVersion).compareTo(MINIMUM_ANGELICA_ARTIFACT_VERSION) < 0) {
+            logger.warn(
+                    "Angelica {} is too old for LittleTiles integration; version {} or newer is required. "
+                            + "Angelica compatibility will be disabled.",
+                    installedVersion,
+                    MINIMUM_ANGELICA_VERSION);
+            return;
+        }
+
+        angelicaCompat = new AngelicaCompat();
+    }
+
+    @EventHandler
+    public void serverStopped(FMLServerStoppedEvent event) {
+        LittleTilesPlacementHistory.clear();
     }
 
     @EventHandler

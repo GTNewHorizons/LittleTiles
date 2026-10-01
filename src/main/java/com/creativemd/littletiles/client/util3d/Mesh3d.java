@@ -396,20 +396,28 @@ public class Mesh3d {
      * The point is based on the first triangle's centroid and nudged slightly opposite that triangle's outward normal.
      * This avoids using an exact surface vertex or face point when a later containment test needs an interior sample.
      *
-     * @return A point just inside the mesh surface.
+     * @return A point just inside the mesh surface, in blocks.
      */
     public Vector3f getInteriorSamplePoint() {
         Triangle3d t = triangles.get(0);
         GridVector p1 = t.getP1();
         GridVector p2 = t.getP2();
         GridVector p3 = t.getP3();
-        Vector3f normal = t.getNormal();
-        double eps = 1e-4;
-        return new Vector3f(
-                (float) ((p1.blockX() + p2.blockX() + p3.blockX()) / 3.0 - normal.x * eps),
-                (float) ((p1.blockY() + p2.blockY() + p3.blockY()) / 3.0 - normal.y * eps),
-                (float) ((p1.blockZ() + p2.blockZ() + p3.blockZ()) / 3.0 - normal.z * eps));
+        GridVector point = new GridVector(
+                (int) Grid3d.divRound((long) p1.x + p2.x + p3.x, 3),
+                (int) Grid3d.divRound((long) p1.y + p2.y + p3.y, 3),
+                (int) Grid3d.divRound((long) p1.z + p2.z + p3.z, 3));
+        // Along the axis the normal points along the most, so the step always leads to the inner side. It leaves the
+        // plane by at least INTERIOR_STEP / sqrt(3), well clear of the half unit the centroid was rounded by.
+        GridNormal normal = t.unnormalizedNormal();
+        int axis = normal.dominantAxis();
+        int step = normal.get(axis) > 0 ? -INTERIOR_STEP : INTERIOR_STEP;
+        point.setComponent(axis, point.get(axis) + step);
+        return point.toVector3f();
     }
+
+    /** How far {@link #getInteriorSamplePoint} moves into the mesh, in grid units. About 1e-4 blocks. */
+    private static final int INTERIOR_STEP = 8;
 
     /**
      * Tests whether a point is inside this closed mesh using the summed signed solid angle of all triangles.

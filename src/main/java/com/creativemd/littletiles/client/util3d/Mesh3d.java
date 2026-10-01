@@ -25,6 +25,10 @@ import com.creativemd.littletiles.client.render.LittleTilesBlockRenderHelper;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.FMLLog;
 
+/**
+ * A triangle mesh. Triangles must not share point objects: transforms move the points in place, so a shared one would
+ * be moved once per triangle.
+ */
 public class Mesh3d {
 
     private static final double DEGENERATE_EPSILON = 1.0E-8;

@@ -11,6 +11,7 @@ import com.creativemd.creativecore.common.gui.controls.GuiControl;
 import com.creativemd.creativecore.common.gui.controls.container.GuiSlotControl;
 import com.creativemd.creativecore.common.gui.event.container.SlotChangeEvent;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -56,9 +57,15 @@ public class SlotControl extends ContainerControl {
 
     @Override
     public void readFromNBT(NBTTagCompound nbt) {
+        if (nbt == null) return;
+        boolean isServer = FMLCommonHandler.instance().getEffectiveSide().isServer();
         switch (nbt.getInteger("type")) {
             /** Update */
             case 0:
+                // Server -> client slot/cursor sync only. A rogue client must never be able to
+                // push this upward: it would let it place arbitrary items into the slot and onto
+                // the cursor.
+                if (isServer) break;
                 ItemStack stack = null;
                 if (nbt.hasKey("id")) stack = ItemStack.loadItemStackFromNBT(nbt);
                 slot.putStack(stack);
@@ -74,7 +81,12 @@ public class SlotControl extends ContainerControl {
                 dropItem(nbt.getBoolean("ctrl"));
                 break;
             case 3:
-                splitStack(nbt.getIntArray("slots"), ItemStack.loadItemStackFromNBT(nbt), nbt.getBoolean("right"));
+                // The stack being distributed is the cursor stack. On the server, use the
+                // authoritative held item rather than the client-supplied one, otherwise a rogue
+                // client could split an arbitrary stack into the slots (item creation).
+                ItemStack splitStack = isServer ? parent.player.inventory.getItemStack()
+                        : ItemStack.loadItemStackFromNBT(nbt);
+                if (splitStack != null) splitStack(nbt.getIntArray("slots"), splitStack, nbt.getBoolean("right"));
                 break;
         }
     }
@@ -266,6 +278,10 @@ public class SlotControl extends ContainerControl {
         int StackPerSlot = MathHelper.floor_float((float) stack.stackSize / (float) slots.length);
         if (isRightClick) StackPerSlot = 1;
         for (int i = 0; i < slots.length; i++) {
+            // slots is client-supplied: guard the index and type before casting.
+            if (slots[i] < 0 || slots[i] >= parent.controls.size()
+                    || !(parent.controls.get(slots[i]) instanceof SlotControl))
+                continue;
             SlotControl control = (SlotControl) parent.controls.get(slots[i]);
             int stackSize = Math.min(control.slot.getSlotStackLimit(), stack.getMaxStackSize());
             if (control.slot.getHasStack()) stackSize -= control.slot.getStack().stackSize;

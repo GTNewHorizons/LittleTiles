@@ -26,6 +26,7 @@ whitelist.json
 *.ipr
 *.iws
 *.bat
+*.sh
 *.DS_Store
 !gradlew.bat
 layout.json

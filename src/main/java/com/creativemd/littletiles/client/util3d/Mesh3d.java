@@ -153,10 +153,37 @@ public class Mesh3d {
                 dumpFailingMesh();
                 return new Mesh3d(new ArrayList<>());
             }
-            Triangulator.triangulate(newTriangles, plane, addVertices);
+            Triangulator.triangulate(newTriangles, plane, removeCollinearPoints(addVertices));
         }
 
         return new Mesh3d(newTriangles);
+    }
+
+    /**
+     * Drops the points of a closed loop that lie on the straight line between their neighbours, as well as the closing
+     * point that repeats the first one. Cutting long triangles leaves many of those along the sides of a cap, and
+     * triangulating them would only produce fans of long, thin triangles. Exact, as the points are on the grid.
+     */
+    private static List<GridVector> removeCollinearPoints(List<GridVector> loop) {
+        List<GridVector> points = new ArrayList<>(loop);
+        if (points.size() > 1 && points.get(0).equals(points.get(points.size() - 1))) {
+            points.remove(points.size() - 1);
+        }
+        boolean removed = true;
+        while (removed && points.size() > 3) {
+            removed = false;
+            for (int i = 0; i < points.size() && points.size() > 3;) {
+                GridVector previous = points.get((i + points.size() - 1) % points.size());
+                GridVector next = points.get((i + 1) % points.size());
+                if (previous.cross(points.get(i), next).isZero()) {
+                    points.remove(i);
+                    removed = true;
+                } else {
+                    i++;
+                }
+            }
+        }
+        return points;
     }
 
     /** Exact, as both the points and the plane are on the grid: a point is only on the plane if it really is. */

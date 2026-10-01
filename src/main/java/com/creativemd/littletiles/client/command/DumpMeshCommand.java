@@ -3,6 +3,8 @@ package com.creativemd.littletiles.client.command;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
@@ -16,16 +18,21 @@ import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 
 import org.joml.Vector3i;
 
+import com.creativemd.littletiles.client.render.LittleTilesFaceCuller;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
+import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 public class DumpMeshCommand extends CommandBase {
 
     private static final String ERROR_KEY = "littletiles.command.dumpmesh.error";
     private static final String SUCCESS_KEY = "littletiles.command.dumpmesh.success";
+    private static final String CULLED_SUCCESS_KEY = "littletiles.command.dumpmesh.culled.success";
+    private static final String CULLED_HIDDEN_KEY = "littletiles.command.dumpmesh.culled.hidden";
 
     @Override
     public String getCommandName() {
@@ -53,15 +60,38 @@ public class DumpMeshCommand extends CommandBase {
         EntityPlayer player = mc.thePlayer;
 
         TileEntityLittleTiles te = findTileEntity(player, mc.objectMouseOver);
-        Mesh3d mesh = te == null ? null : te.loadedTile.getSimpleMesh();
-        if (mesh == null || mesh.getTriangles().isEmpty()) {
+        if (te == null) {
             sender.addChatMessage(new ChatComponentTranslation(ERROR_KEY));
             return;
         }
+        LittleTile tile = te.loadedTile;
+        boolean dumped = false;
 
-        File outFile = mesh.dumpMesh();
-        dumpMetadata(outFile, tile, mesh);
-        sender.addChatMessage(new ChatComponentTranslation(SUCCESS_KEY, "logs/" + outFile.getName()));
+        Mesh3d mesh = tile.getSimpleMesh();
+        if (mesh != null && !mesh.getTriangles().isEmpty()) {
+            File outFile = mesh.dumpMesh();
+            dumpMetadata(outFile, tile, mesh);
+            sender.addChatMessage(new ChatComponentTranslation(SUCCESS_KEY, "logs/" + outFile.getName()));
+            dumped = true;
+        }
+        List<LittleTilesCubeObject> cubes = te.getRenderingCubes();
+        LittleTilesCubeObject cube = findCube(cubes, tile);
+        List<Triangle3d> culled = cube == null ? null
+                : LittleTilesFaceCuller
+                        .renderedTriangles(player.worldObj, cubes, te.xCoord, te.yCoord, te.zCoord, cube);
+        if (culled != null) {
+            if (culled.isEmpty()) {
+                sender.addChatMessage(new ChatComponentTranslation(CULLED_HIDDEN_KEY));
+            } else {
+                File outFile = new Mesh3d(new ArrayList<>(culled)).dumpMesh("CulledMesh");
+                sender.addChatMessage(new ChatComponentTranslation(CULLED_SUCCESS_KEY, "logs/" + outFile.getName()));
+            }
+            dumped = true;
+        }
+
+        if (!dumped) {
+            sender.addChatMessage(new ChatComponentTranslation(ERROR_KEY));
+        }
     }
 
     private static TileEntityLittleTiles findTileEntity(EntityPlayer player, MovingObjectPosition look) {
@@ -155,5 +185,15 @@ public class DumpMeshCommand extends CommandBase {
             output.append(name).append('=').append(vector.x).append(',').append(vector.y).append(',').append(vector.z)
                     .append('\n');
         }
+    }
+
+    /** The cube rendered for {@code tile}, recognised by the geometry cache only that tile's cube carries. */
+    private static LittleTilesCubeObject findCube(List<LittleTilesCubeObject> cubes, LittleTile tile) {
+        for (LittleTilesCubeObject cube : cubes) {
+            if (cube.geometryCache == tile.getGeometryCache()) {
+                return cube;
+            }
+        }
+        return null;
     }
 }

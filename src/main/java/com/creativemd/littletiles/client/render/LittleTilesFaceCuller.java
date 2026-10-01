@@ -338,6 +338,29 @@ public final class LittleTilesFaceCuller {
         }
     }
 
+    /**
+     * Every triangle world rendering draws for a cutout {@code cube}, in block-local coordinates, for debugging
+     * culling. Goes through the same cached path as rendering, so a stale culling result shows up here just as it does
+     * on screen.
+     * <p>
+     * Empty when the cube draws nothing. Null when the cube is no cutout, when culling does not apply to it at all, or
+     * when it has no mesh: a cutout that lost its mesh falls back to a plain box in world rendering, which this does
+     * not reproduce.
+     *
+     * @param cubes all cubes of the tile entity at the given position, {@code cube} among them
+     */
+    public static List<Triangle3d> renderedTriangles(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x,
+            int y, int z, LittleTilesCubeObject cube) {
+        if (cube.cutoutInfo == null || ignoreForCulling(cube)) {
+            return null;
+        }
+        Mesh3d mesh = cube.geometryCache.getOrCreateSimpleMesh();
+        if (mesh == null || mesh.getTriangles().isEmpty()) {
+            return null;
+        }
+        return visibleCutoutTriangles(() -> prepareCulling(world, cubes, x, y, z), cube, mesh);
+    }
+
     /** Whether an occluding triangle shares a plane with one of the triangles and could therefore hide part of it. */
     private static boolean overlapsAny(List<Triangle3d> triangles, List<Triangle3d> occludingTriangles) {
         for (Triangle3d triangle : triangles) {

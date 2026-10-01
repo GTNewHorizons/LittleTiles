@@ -4,8 +4,6 @@ import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 
-import com.creativemd.creativecore.lib.Vector3d;
-
 /**
  * A point or offset in grid units, see {@link Grid3d}. A type of its own, so it cannot be mixed up with the plain
  * {@link Vector3i}s used for tile pixels.
@@ -33,6 +31,12 @@ public class GridVector extends Vector3i {
                 Grid3d.fromPixels(pixels.z()));
     }
 
+    /** Rotates this in place around the origin, see {@link OrientationMapper}. */
+    public GridVector rotate(int orientation) {
+        OrientationMapper.rotate(orientation, this);
+        return this;
+    }
+
     /** {@code (b - this) x (c - this)}, widened to longs before multiplying so it cannot overflow. */
     public GridNormal cross(GridVector b, GridVector c) {
         long abx = (long) b.x - x, aby = (long) b.y - y, abz = (long) b.z - z;
@@ -55,11 +59,20 @@ public class GridVector extends Vector3i {
         return z <= other.z;
     }
 
-    public Vector3d toVector3d() {
-        return new Vector3d(Grid3d.toBlocks(x), Grid3d.toBlocks(y), Grid3d.toBlocks(z));
+    public double blockX() {
+        return Grid3d.toBlocks(x);
     }
 
+    public double blockY() {
+        return Grid3d.toBlocks(y);
+    }
+
+    public double blockZ() {
+        return Grid3d.toBlocks(z);
+    }
+
+    /** In blocks. */
     public Vector3f toVector3f() {
-        return new Vector3f((float) Grid3d.toBlocks(x), (float) Grid3d.toBlocks(y), (float) Grid3d.toBlocks(z));
+        return new Vector3f((float) blockX(), (float) blockY(), (float) blockZ());
     }
 }

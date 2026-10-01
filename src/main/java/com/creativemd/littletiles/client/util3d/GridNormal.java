@@ -1,8 +1,7 @@
 package com.creativemd.littletiles.client.util3d;
 
 import org.joml.Vector3L;
-
-import com.creativemd.creativecore.lib.Vector3d;
+import org.joml.Vector3f;
 
 /**
  * An unnormalized normal of grid geometry, as {@link GridVector#cross} produces it. Its components are products of two
@@ -25,6 +24,15 @@ public class GridNormal extends Vector3L {
     }
 
     /**
+     * The axis the normal points along the most, 0 to 2 for x to z. A coplanar polygon can be projected along it
+     * without folding, and stepping along it against the normal always leads to the inner side.
+     */
+    public int dominantAxis() {
+        long ax = Math.abs(x), ay = Math.abs(y), az = Math.abs(z);
+        return ax >= ay && ax >= az ? 0 : ay >= az ? 1 : 2;
+    }
+
+    /**
      * Worked out in doubles. The inherited one squares in longs, which overflows for the size of a cross product, and
      * so does {@link #lengthSquared()}.
      */
@@ -35,9 +43,8 @@ public class GridNormal extends Vector3L {
     }
 
     /** The direction as a unit vector. Not exact, so only fit for lighting and picking texture planes. */
-    public Vector3d toUnitVector() {
-        Vector3d ret = new Vector3d(x, y, z);
-        ret.normalize();
-        return ret;
+    public Vector3f toUnitVector() {
+        double length = length();
+        return new Vector3f((float) (x / length), (float) (y / length), (float) (z / length));
     }
 }

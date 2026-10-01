@@ -19,8 +19,9 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
-import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.client.util3d.Grid3d;
+import com.creativemd.littletiles.client.util3d.GridVector;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
@@ -66,8 +67,8 @@ public class CollisionHighlightRenderer {
             this.z = z;
         }
 
-        void emitVertex(Vector3d point, double camX, double camY, double camZ) {
-            GL11.glVertex3d(x + point.x - camX, y + point.y - camY, z + point.z - camZ);
+        void emitVertex(GridVector point, double camX, double camY, double camZ) {
+            GL11.glVertex3d(x + point.blockX() - camX, y + point.blockY() - camY, z + point.blockZ() - camZ);
         }
     }
 
@@ -181,7 +182,7 @@ public class CollisionHighlightRenderer {
                                             cube.block,
                                             cube.meta,
                                             cube.cutoutInfo.orientation);
-                                    for (Triangle3d t : mesh.getTriangles()) t.inflate(EPSILON);
+                                    for (Triangle3d t : mesh.getTriangles()) t.inflate(Grid3d.fromBlocks(EPSILON));
                                     cached.meshes.add(new PlacedMesh(mesh, te.xCoord, te.yCoord, te.zCoord));
                                 }
                             }

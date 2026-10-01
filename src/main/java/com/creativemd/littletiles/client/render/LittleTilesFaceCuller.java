@@ -17,7 +17,8 @@ import com.creativemd.creativecore.client.rendering.FacePiece;
 import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
-import com.creativemd.creativecore.lib.Vector3d;
+import com.creativemd.littletiles.client.util3d.Grid3d;
+import com.creativemd.littletiles.client.util3d.GridVector;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -250,7 +251,10 @@ public final class LittleTilesFaceCuller {
                     triangles = boxFaceTriangles(neighbour, facingUs);
                 }
                 for (Triangle3d triangle : triangles) {
-                    triangle.translate(side.offsetX, side.offsetY, side.offsetZ);
+                    triangle.translate(
+                            side.offsetX * Grid3d.BLOCK,
+                            side.offsetY * Grid3d.BLOCK,
+                            side.offsetZ * Grid3d.BLOCK);
                 }
                 neighbours.add(new Neighbour(neighbour, side, triangles));
             }
@@ -340,8 +344,9 @@ public final class LittleTilesFaceCuller {
     }
 
     /**
-     * Every triangle world rendering draws for {@code cube}, in block-local coordinates, for debugging culling. Goes
-     * through the same cached path as rendering, so a stale culling result shows up here just as it does on screen.
+     * Every triangle world rendering draws for {@code cube}, in grid units within its block, for debugging culling.
+     * Goes through the same cached path as rendering, so a stale culling result shows up here just as it does on
+     * screen.
      * <p>
      * A cutout comes back as its culled mesh. A box comes back whole: its untouched sides, the rectangles left over by
      * {@link FaceClipper} and the sides culling replaced with triangles. Empty when the cube draws nothing. Null when
@@ -449,51 +454,51 @@ public final class LittleTilesFaceCuller {
 
     /** Builds the two outward-facing triangles of one box face. */
     private static List<Triangle3d> boxFaceTriangles(LittleTilesCubeObject cube, ForgeDirection side) {
-        double minX = cube.gridMinX / 16.0;
-        double minY = cube.gridMinY / 16.0;
-        double minZ = cube.gridMinZ / 16.0;
-        double maxX = cube.gridMaxX / 16.0;
-        double maxY = cube.gridMaxY / 16.0;
-        double maxZ = cube.gridMaxZ / 16.0;
+        int minX = Grid3d.fromPixels(cube.gridMinX);
+        int minY = Grid3d.fromPixels(cube.gridMinY);
+        int minZ = Grid3d.fromPixels(cube.gridMinZ);
+        int maxX = Grid3d.fromPixels(cube.gridMaxX);
+        int maxY = Grid3d.fromPixels(cube.gridMaxY);
+        int maxZ = Grid3d.fromPixels(cube.gridMaxZ);
         return switch (side) {
             case DOWN -> quad(
-                    new Vector3d(minX, minY, minZ),
-                    new Vector3d(maxX, minY, minZ),
-                    new Vector3d(maxX, minY, maxZ),
-                    new Vector3d(minX, minY, maxZ));
+                    new GridVector(minX, minY, minZ),
+                    new GridVector(maxX, minY, minZ),
+                    new GridVector(maxX, minY, maxZ),
+                    new GridVector(minX, minY, maxZ));
             case UP -> quad(
-                    new Vector3d(minX, maxY, minZ),
-                    new Vector3d(minX, maxY, maxZ),
-                    new Vector3d(maxX, maxY, maxZ),
-                    new Vector3d(maxX, maxY, minZ));
+                    new GridVector(minX, maxY, minZ),
+                    new GridVector(minX, maxY, maxZ),
+                    new GridVector(maxX, maxY, maxZ),
+                    new GridVector(maxX, maxY, minZ));
             case NORTH -> quad(
-                    new Vector3d(minX, minY, minZ),
-                    new Vector3d(minX, maxY, minZ),
-                    new Vector3d(maxX, maxY, minZ),
-                    new Vector3d(maxX, minY, minZ));
+                    new GridVector(minX, minY, minZ),
+                    new GridVector(minX, maxY, minZ),
+                    new GridVector(maxX, maxY, minZ),
+                    new GridVector(maxX, minY, minZ));
             case SOUTH -> quad(
-                    new Vector3d(minX, minY, maxZ),
-                    new Vector3d(maxX, minY, maxZ),
-                    new Vector3d(maxX, maxY, maxZ),
-                    new Vector3d(minX, maxY, maxZ));
+                    new GridVector(minX, minY, maxZ),
+                    new GridVector(maxX, minY, maxZ),
+                    new GridVector(maxX, maxY, maxZ),
+                    new GridVector(minX, maxY, maxZ));
             case WEST -> quad(
-                    new Vector3d(minX, minY, minZ),
-                    new Vector3d(minX, minY, maxZ),
-                    new Vector3d(minX, maxY, maxZ),
-                    new Vector3d(minX, maxY, minZ));
+                    new GridVector(minX, minY, minZ),
+                    new GridVector(minX, minY, maxZ),
+                    new GridVector(minX, maxY, maxZ),
+                    new GridVector(minX, maxY, minZ));
             case EAST -> quad(
-                    new Vector3d(maxX, minY, minZ),
-                    new Vector3d(maxX, maxY, minZ),
-                    new Vector3d(maxX, maxY, maxZ),
-                    new Vector3d(maxX, minY, maxZ));
+                    new GridVector(maxX, minY, minZ),
+                    new GridVector(maxX, maxY, minZ),
+                    new GridVector(maxX, maxY, maxZ),
+                    new GridVector(maxX, minY, maxZ));
             default -> Collections.emptyList();
         };
     }
 
-    private static List<Triangle3d> quad(Vector3d p1, Vector3d p2, Vector3d p3, Vector3d p4) {
+    private static List<Triangle3d> quad(GridVector p1, GridVector p2, GridVector p3, GridVector p4) {
         List<Triangle3d> triangles = new ArrayList<>(2);
         triangles.add(new Triangle3d(p1, p2, p3));
-        triangles.add(new Triangle3d(new Vector3d(p1), new Vector3d(p3), p4));
+        triangles.add(new Triangle3d(new GridVector(p1), new GridVector(p3), p4));
         return triangles;
     }
 

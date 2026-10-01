@@ -24,24 +24,27 @@ public class LittleMaterialValuator {
         LittleTileItemType type = LittleTileItemType.detectItemType(stack);
         if (type == null) return Collections.emptyList();
 
-        if (type.isLittleTile()) {
-            return stacksOfLittleTiles(stack);
-        }
-        if (type == LittleTileItemType.PARTIAL_TILE) {
-            return singletonIfStorable(ItemPartialTiles.getMaterialStack(stack), ItemPartialTiles.MAX_TILES);
-        }
+        return switch (type) {
+            case TILE, STRUCTURE -> stacksOfLittleTiles(stack);
+            case PARTIAL_TILE -> stacksOfPartialTiles(stack);
+            case BLOCK -> stacksOfBlocks(stack);
+        };
+    }
 
-        if (type == LittleTileItemType.BLOCK) {
-            long count = (long) stack.stackSize * LittleMaterialStack.TILES_PER_BLOCK;
-            if (count > Integer.MAX_VALUE) return Collections.emptyList();
-            return singletonIfStorable(
-                    new LittleMaterialStack(
-                            new LittleMaterial(Block.getBlockFromItem(stack.getItem()), stack.getItemDamage()),
-                            (int) count),
-                    Integer.MAX_VALUE);
-        }
+    private static List<LittleMaterialStack> stacksOfBlocks(ItemStack stack) {
+        long count = (long) stack.stackSize * LittleMaterialStack.TILES_PER_BLOCK;
+        if (count > Integer.MAX_VALUE) return Collections.emptyList();
+        return singletonIfStorable(
+                new LittleMaterialStack(
+                        new LittleMaterial(Block.getBlockFromItem(stack.getItem()), stack.getItemDamage()),
+                        (int) count));
+    }
 
-        return Collections.emptyList();
+    private static List<LittleMaterialStack> stacksOfPartialTiles(ItemStack stack) {
+        LittleMaterialStack materialStack = ItemPartialTiles.getMaterialStack(stack);
+        // Partial tiles only come from the bag, but their nbt can still be edited.
+        if (materialStack.count >= LittleMaterialStack.TILES_PER_BLOCK) return Collections.emptyList();
+        return singletonIfStorable(materialStack);
     }
 
     private static List<LittleMaterialStack> stacksOfLittleTiles(ItemStack stack) {
@@ -55,27 +58,16 @@ public class LittleMaterialValuator {
             long count = (long) preview.size.getVolume() * stack.stackSize;
             if (count <= 0 || count > Integer.MAX_VALUE) return Collections.emptyList();
 
-            LittleMaterialStack material = new LittleMaterialStack(
-                    preview.nbt.getString("block"),
-                    preview.nbt.getInteger("meta"),
+            LittleMaterialStack materialStack = new LittleMaterialStack(
+                    new LittleMaterial(preview.nbt.getString("block"), preview.nbt.getInteger("meta")),
                     (int) count);
-            if (!material.isStorable()) return Collections.emptyList();
-            materials.add(material);
+            if (!materialStack.isStorable()) return Collections.emptyList();
+            materials.add(materialStack);
         }
         return materials;
     }
 
-    private static List<LittleMaterialStack> singletonIfStorable(LittleMaterialStack material, int maxCount) {
-        return material.isStorable() && material.count <= maxCount ? Collections.singletonList(material)
-                : Collections.emptyList();
-    }
-
-    /** Amount of tiles the given stack is worth, counting only what can actually be stored. */
-    public static int tilesOf(ItemStack stack) {
-        long tiles = 0;
-        for (LittleMaterialStack material : stacksOf(stack)) {
-            tiles += material.count;
-        }
-        return (int) Math.min(tiles, Integer.MAX_VALUE);
+    private static List<LittleMaterialStack> singletonIfStorable(LittleMaterialStack materialStack) {
+        return materialStack.isStorable() ? Collections.singletonList(materialStack) : Collections.emptyList();
     }
 }

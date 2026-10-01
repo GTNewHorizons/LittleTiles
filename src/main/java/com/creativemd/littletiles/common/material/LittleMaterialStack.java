@@ -2,7 +2,6 @@ package com.creativemd.littletiles.common.material;
 
 import java.util.Comparator;
 
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
 /**
@@ -12,8 +11,10 @@ public class LittleMaterialStack {
 
     public static final int TILES_PER_BLOCK = 4096;
 
+    /** Order of materials in a gui: by block name, then by meta. */
     public static final Comparator<LittleMaterialStack> SORT_ORDER = Comparator
-            .comparing((LittleMaterialStack stack) -> stack.material, LittleMaterial.SORT_ORDER);
+            .comparing((LittleMaterialStack stack) -> stack.material.blockName)
+            .thenComparingInt(stack -> stack.material.meta);
 
     private static final String COUNT_TAG = "count";
 
@@ -23,10 +24,6 @@ public class LittleMaterialStack {
     public LittleMaterialStack(LittleMaterial material, int count) {
         this.material = material;
         this.count = count;
-    }
-
-    public LittleMaterialStack(String blockName, int meta, int count) {
-        this(new LittleMaterial(blockName, meta), count);
     }
 
     /** Whether this holds an amount of a material that can actually be stored. */
@@ -48,12 +45,8 @@ public class LittleMaterialStack {
         count = (int) Math.min((long) count + tiles, Integer.MAX_VALUE);
     }
 
-    public String getKey() {
-        return material.getKey();
-    }
-
-    public ItemStack createItemStack(int blocks) {
-        return material.createItemStack(blocks);
+    public LittleMaterialStack copy() {
+        return new LittleMaterialStack(material, count);
     }
 
     public static LittleMaterialStack readFromNBT(NBTTagCompound nbt) {

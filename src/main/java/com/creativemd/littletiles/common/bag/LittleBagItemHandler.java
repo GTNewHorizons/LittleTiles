@@ -12,9 +12,9 @@ import net.minecraft.item.ItemStack;
 import com.cleanroommc.modularui.utils.item.ItemStackHandler;
 import com.creativemd.littletiles.LittleTilesConfig;
 import com.creativemd.littletiles.common.items.ItemPartialTiles;
+import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.material.LittleMaterialStack;
 import com.creativemd.littletiles.common.material.LittleMaterialValuator;
-import com.creativemd.littletiles.common.material.LittleTileItemType;
 
 /**
  * The inventory of a little bag, which is the view the gui works on. The bag has no fixed size: it is created with as
@@ -39,26 +39,30 @@ public class LittleBagItemHandler extends ItemStackHandler {
     public static final int EMPTY_ROWS = 4;
 
     private final LittleBagStorage storage;
+    /** What every slot is worth. Decomposing little tiles is too expensive to repeat on every frame. */
+    private final StackValue[] slotValues;
+    /** What the last stack offered to the bag is worth, usually the one on the cursor. */
+    private StackValue incomingValue;
 
     public LittleBagItemHandler(Supplier<ItemStack> bagGetter, Consumer<ItemStack> bagSetter) {
         super(0);
         this.storage = new LittleBagStorage(bagGetter, bagSetter);
 
         List<ItemStack> sorted = new ArrayList<>();
-        List<LittleMaterialStack> materials = storage.read(MAX_TILES, getMaxMaterials()).getSortedMaterials();
-        for (LittleMaterialStack material : materials) {
-            int blocks = material.getBlocks();
+        // Everything the bag holds is loaded, even above its limits, it only refuses new content then.
+        List<LittleMaterialStack> materials = storage.read().getSortedMaterials();
+        for (LittleMaterialStack materialStack : materials) {
+            int blocks = materialStack.getBlocks();
             // A material can need more than one slot.
             while (blocks > 0) {
-                int stackSize = Math.min(64, blocks);
-                ItemStack stack = material.createItemStack(stackSize);
-                if (stack == null) break;
+                ItemStack stack = materialStack.material.createItemStack(1);
+                // Always take at least one block, so an item with a broken stack size cannot loop forever.
+                stack.stackSize = Math.max(1, Math.min(stack.getMaxStackSize(), blocks));
                 sorted.add(stack);
-                blocks -= stackSize;
+                blocks -= stack.stackSize;
             }
             // Whatever does not add up to a whole block goes into an extra item.
-            ItemStack partial = ItemPartialTiles
-                    .create(material.material.blockName, material.material.meta, material.getRemainingTiles());
+            ItemStack partial = ItemPartialTiles.create(materialStack.material, materialStack.getRemainingTiles());
             if (partial != null) {
                 sorted.add(partial);
             }
@@ -69,6 +73,29 @@ public class LittleBagItemHandler extends ItemStackHandler {
         for (int slot = 0; slot < sorted.size(); slot++) {
             this.stacks.set(slot, sorted.get(slot));
         }
+        this.slotValues = new StackValue[getSlots()];
+    }
+
+    /** What the given slot is worth, recomputed only once it holds a different stack or a different amount. */
+    private StackValue getSlotValue(int slot) {
+        ItemStack stack = getStackInSlot(slot);
+        StackValue value = slotValues[slot];
+        if (value == null || !value.isFor(stack)) {
+            value = new StackValue(stack);
+            slotValues[slot] = value;
+        }
+        return value;
+    }
+
+    /**
+     * What the given stack that is offered to the bag is worth. While dragging, the limit is asked for on every frame
+     * with the same cursor stack, so only a different stack or amount is decomposed again.
+     */
+    private StackValue getIncomingValue(ItemStack stack) {
+        if (incomingValue == null || !incomingValue.isFor(stack)) {
+            incomingValue = new StackValue(stack);
+        }
+        return incomingValue;
     }
 
     public int getMaxMaterials() {
@@ -83,14 +110,14 @@ public class LittleBagItemHandler extends ItemStackHandler {
     public int getTileCount() {
         int tiles = 0;
         for (int slot = 0; slot < getSlots(); slot++) {
-            tiles += LittleMaterialValuator.tilesOf(getStackInSlot(slot));
+            tiles += getSlotValue(slot).tiles;
         }
         return tiles;
     }
 
     /** Amount of different materials stored in the bag. */
     public int getMaterialCount() {
-        return getMaterials(-1).size();
+        return getAllMaterials().size();
     }
 
     /** How full the bag is, from 0 to 100. */
@@ -98,17 +125,20 @@ public class LittleBagItemHandler extends ItemStackHandler {
         return (int) ((long) getTileCount() * 100 / MAX_TILES);
     }
 
+    /** The materials stored in the bag. */
+    private Set<LittleMaterial> getAllMaterials() {
+        return getMaterials(-1);
+    }
+
     /**
-     * The materials stored in the bag, keyed by {@link LittleMaterialStack#getKey()}. What lies in the given slot is
-     * left out, the same way {@link #getFreeTiles(int)} does not count it as used.
+     * The materials stored in the bag. What lies in the given slot is left out, the same way {@link #getFreeTiles(int)}
+     * does not count it as used.
      */
-    private Set<String> getMaterials(int excludedSlot) {
-        Set<String> materials = new HashSet<>();
+    private Set<LittleMaterial> getMaterials(int excludedSlot) {
+        Set<LittleMaterial> materials = new HashSet<>();
         for (int slot = 0; slot < getSlots(); slot++) {
             if (slot == excludedSlot) continue;
-            for (LittleMaterialStack material : LittleMaterialValuator.stacksOf(getStackInSlot(slot))) {
-                materials.add(material.getKey());
-            }
+            materials.addAll(getSlotValue(slot).materials);
         }
         return materials;
     }
@@ -116,77 +146,44 @@ public class LittleBagItemHandler extends ItemStackHandler {
     /**
      * Whether the materials of the given stack still fit next to those in the other slots. A stack whose materials are
      * all stored already always fits, no matter how full the bag is, so materials cannot be locked out of their own
-     * slot. This also means a stack that was taken out of a slot always fits back in, which
-     * {@link com.cleanroommc.modularui.utils.item.SlotItemHandler} relies on while it checks whether an item may be
-     * inserted.
+     * slot. A bag that holds more materials than allowed, because the limit was lowered, keeps them and only refuses
+     * new ones until enough were taken out.
      */
-    private boolean fitsMaterialLimit(int slot, ItemStack stack) {
-        Set<String> materials = getMaterials(slot);
-        for (LittleMaterialStack material : LittleMaterialValuator.stacksOf(stack)) {
-            materials.add(material.getKey());
-        }
-        return materials.size() <= getMaxMaterials();
+    private boolean fitsMaterialLimit(int slot, Set<LittleMaterial> stackMaterials) {
+        Set<LittleMaterial> materials = getMaterials(slot);
+        materials.addAll(stackMaterials);
+        return materials.size() <= getMaxMaterials() || getAllMaterials().containsAll(stackMaterials);
     }
 
     /**
      * Amount of items that may be stored in the given slot, which is limited by how full the bag is. The cap counts
      * tiles, not stacks, so how the tiles are spread over the slots does not matter.
      * <p>
-     * This is what {@link #setStackInSlot(int, ItemStack)} accepts, and every gui path has to clamp to it before it
-     * takes anything off the cursor. Vanilla quick craft does not on its own, see
-     * {@link com.creativemd.littletiles.common.gui.bag.LittleBagSlot#getSlotStackLimit()}.
+     * This is the only place the limits are enforced, the slots themselves accept anything. Every gui path has to clamp
+     * to it before it takes anything off the cursor. Vanilla quick craft and hotbar swap do not on their own, see
+     * {@link com.creativemd.littletiles.common.gui.bag.LittleBagSlot}.
      */
     @Override
     public int getStackLimit(int slot, ItemStack stack) {
-        LittleTileItemType type = LittleTileItemType.detectItemType(stack);
-        if (type == null) return 0;
+        StackValue value = getIncomingValue(stack);
+        if (value.tiles <= 0 || !fitsMaterialLimit(slot, value.materials)) return 0;
 
-        int stackTiles = LittleMaterialValuator.tilesOf(stack);
-        if (stackTiles <= 0) return 0;
-        if (!fitsMaterialLimit(slot, stack)) return 0;
-
-        int freeTiles = getFreeTiles(slot);
-
-        // Partial tiles are a single item that is either stored completely or not at all.
-        if (type == LittleTileItemType.PARTIAL_TILE) {
-            return ItemPartialTiles.getTiles(stack) <= freeTiles ? 1 : 0;
-        }
-        // Little tiles are worth the tiles they are made of, which is a different amount for every one of them.
-        if (type.isLittleTile()) {
-            int tilesPerItem = stackTiles / stack.stackSize;
-            if (tilesPerItem <= 0) return 0;
-            return Math.min(super.getStackLimit(slot, stack), freeTiles / tilesPerItem);
-        }
-        return Math.min(super.getStackLimit(slot, stack), freeTiles / LittleMaterialStack.TILES_PER_BLOCK);
+        // Every item of a stack is worth the same: a whole block, the tiles a little tile is made of, or the content of
+        // partial tiles. Only an edited stack of partial tiles can be worth less than one tile per item.
+        int tilesPerItem = value.tiles / stack.stackSize;
+        if (tilesPerItem <= 0) return 0;
+        return Math.min(super.getStackLimit(slot, stack), getFreeTiles(slot) / tilesPerItem);
     }
 
     /** Tiles that may still go into the given slot. What already lies in that slot does not count as used. */
     private int getFreeTiles(int slot) {
-        int existing = LittleMaterialValuator.tilesOf(getStackInSlot(slot));
+        int existing = getSlotValue(slot).tiles;
         return Math.max(MAX_TILES - getTileCount() + existing, 0);
-    }
-
-    /**
-     * Replaces the content of the given slot. This is all or nothing: storing only a part of the stack would destroy
-     * blocks, since the caller replaces whatever was in the slot before. The rejection is a guard against corrupt
-     * content, not a safety net for the gui: whoever calls this has already taken the stack from the player, so a
-     * rejected stack is lost. Callers have to clamp to {@link #getStackLimit(int, ItemStack)} beforehand.
-     * <p>
-     * The limit is measured in tiles rather than in items, so that a stack which was in the slot before always fits
-     * back in. {@link com.cleanroommc.modularui.utils.item.SlotItemHandler} empties and refills slots while it checks
-     * whether an item may be inserted, and a full bag must not swallow the stack it takes out for that check.
-     */
-    @Override
-    public void setStackInSlot(int slot, ItemStack stack) {
-        if (stack != null && LittleMaterialValuator.tilesOf(stack) > getFreeTiles(slot)) return;
-        if (stack != null && !fitsMaterialLimit(slot, stack)) return;
-
-        super.setStackInSlot(slot, stack);
     }
 
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
-        return LittleTileItemType.detectItemType(stack) != null && LittleMaterialValuator.tilesOf(stack) > 0;
+        return getIncomingValue(stack).tiles > 0;
     }
 
     @Override
@@ -201,5 +198,30 @@ public class LittleBagItemHandler extends ItemStackHandler {
             stock.addItemStack(getStackInSlot(slot));
         }
         storage.write(stock);
+    }
+
+    /** What a stack is worth, see {@link LittleMaterialValuator}. */
+    private static class StackValue {
+
+        private final ItemStack stack;
+        private final int stackSize;
+        private final Set<LittleMaterial> materials = new HashSet<>();
+        private final int tiles;
+
+        private StackValue(ItemStack stack) {
+            this.stack = stack;
+            this.stackSize = stack == null ? 0 : stack.stackSize;
+            long tiles = 0;
+            for (LittleMaterialStack materialStack : LittleMaterialValuator.stacksOf(stack)) {
+                materials.add(materialStack.material);
+                tiles += materialStack.count;
+            }
+            this.tiles = (int) Math.min(tiles, Integer.MAX_VALUE);
+        }
+
+        /** Vanilla changes the size of a stack in place when it merges onto it, so the size is checked as well. */
+        private boolean isFor(ItemStack stack) {
+            return this.stack == stack && (stack == null || stack.stackSize == stackSize);
+        }
     }
 }

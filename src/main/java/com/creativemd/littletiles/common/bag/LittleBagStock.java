@@ -8,31 +8,35 @@ import java.util.Map;
 
 import net.minecraft.item.ItemStack;
 
+import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.material.LittleMaterialStack;
 import com.creativemd.littletiles.common.material.LittleMaterialValuator;
 
 /**
- * What a little bag holds: an amount of tiles per material, keyed by {@link LittleMaterialStack#getKey()}. Every
- * material is stored once, adding the same material twice merges the amounts.
+ * What a little bag holds: an amount of tiles per material, keyed by {@link LittleMaterial}. Every material is stored
+ * once, adding the same material twice merges the amounts.
  */
 public class LittleBagStock {
 
-    private final Map<String, LittleMaterialStack> materials = new LinkedHashMap<>();
+    private final Map<LittleMaterial, LittleMaterialStack> materials = new LinkedHashMap<>();
 
-    /** Adds the amount to the material that is already stored, or stores it as a new one. */
-    public void add(LittleMaterialStack material) {
-        LittleMaterialStack existing = materials.get(material.getKey());
+    /**
+     * Adds the amount to the material that is already stored, or stores it as a new one. The given stack is copied, as
+     * the stored one keeps growing with every material that is added.
+     */
+    public void add(LittleMaterialStack materialStack) {
+        LittleMaterialStack existing = materials.get(materialStack.material);
         if (existing == null) {
-            materials.put(material.getKey(), material);
+            materials.put(materialStack.material, materialStack.copy());
         } else {
-            existing.add(material.count);
+            existing.add(materialStack.count);
         }
     }
 
     /** Adds everything the given item stack is worth, see {@link LittleMaterialValuator}. */
     public void addItemStack(ItemStack stack) {
-        for (LittleMaterialStack material : LittleMaterialValuator.stacksOf(stack)) {
-            add(material);
+        for (LittleMaterialStack materialStack : LittleMaterialValuator.stacksOf(stack)) {
+            add(materialStack);
         }
     }
 
@@ -49,14 +53,5 @@ public class LittleBagStock {
 
     public int getMaterialCount() {
         return materials.size();
-    }
-
-    /** Total amount of tiles, saturated so absurd amounts cannot turn into negative ones. */
-    public int getTileCount() {
-        long tiles = 0;
-        for (LittleMaterialStack material : materials.values()) {
-            tiles += material.count;
-        }
-        return (int) Math.min(tiles, Integer.MAX_VALUE);
     }
 }

@@ -10,10 +10,10 @@ public class LittleTilesConfig {
 
     public static final int DEFAULT_MAX_BAG_MATERIALS = 200;
     /** Keeps a config that was edited by hand from creating an absurd amount of slots. */
-    private static final int MAX_BAG_MATERIALS_LIMIT = 10000;
+    public static final int MAX_BAG_MATERIALS_LIMIT = 10000;
 
     /**
-     * How many different materials a single little bag can hold to keeps the amount of slots in check.
+     * How many different materials a single little bag can hold to keep the amount of slots in check.
      */
     public static int maxBagMaterials = DEFAULT_MAX_BAG_MATERIALS;
 
@@ -27,7 +27,7 @@ public class LittleTilesConfig {
                 DEFAULT_MAX_BAG_MATERIALS,
                 1,
                 MAX_BAG_MATERIALS_LIMIT,
-                "How many different materials a single little bag can hold. Every material needs a slot of its own for the tiles that do not add up to a whole block, so this is what keeps the size of the bag in check. Has to be the same on the client and on the server.");
+                "How many different materials a single little bag can hold. Every material needs a slot of its own for the tiles that do not add up to a whole block, so this is what keeps the size of the bag in check. Has to be the same on the client and on the server. Lowering it keeps what bags hold already, a bag above the limit only refuses new materials until enough were taken out.");
 
         if (config.hasChanged()) config.save();
     }

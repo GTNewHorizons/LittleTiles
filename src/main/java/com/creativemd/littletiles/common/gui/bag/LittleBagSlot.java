@@ -23,8 +23,7 @@ public class LittleBagSlot extends ModularSlot {
     /**
      * Vanilla quick craft (dragging a stack over several slots) is the one insert path that asks for the generic slot
      * limit instead of the stack specific one. It debits the cursor by whatever that limit allows and only then hands
-     * the stack to the slot, so a limit that is too generous makes the handler reject a stack the player has already
-     * paid for.
+     * the stack to the slot, so a limit that is too generous would overfill the bag.
      */
     @Override
     public int getSlotStackLimit() {

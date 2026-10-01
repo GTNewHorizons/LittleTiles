@@ -1,6 +1,5 @@
 package com.creativemd.littletiles.common.material;
 
-import java.util.Comparator;
 import java.util.Objects;
 
 import net.minecraft.block.Block;
@@ -13,10 +12,6 @@ import com.creativemd.littletiles.common.BlockValidator;
  * The material little tiles are made of: a block and its meta.
  */
 public class LittleMaterial {
-
-    /** Order of materials in a gui: by block name, then by meta. */
-    public static final Comparator<LittleMaterial> SORT_ORDER = Comparator
-            .comparing((LittleMaterial material) -> material.blockName).thenComparingInt(material -> material.meta);
 
     private static final String BLOCK_TAG = "block";
     private static final String META_TAG = "meta";
@@ -50,12 +45,8 @@ public class LittleMaterial {
         return new ItemStack(block, blocks, meta);
     }
 
-    /** Identifies the material, so that the same block and meta always end up in the same place. */
+    /** Identifies the material in nbt, so that the same block and meta always end up in the same place. */
     public String getKey() {
-        return getKey(blockName, meta);
-    }
-
-    public static String getKey(String blockName, int meta) {
         return blockName + "@" + meta;
     }
 
@@ -73,7 +64,7 @@ public class LittleMaterial {
         if (this == other) return true;
         if (!(other instanceof LittleMaterial material)) return false;
 
-        return meta == material.meta && (Objects.equals(blockName, material.blockName));
+        return meta == material.meta && Objects.equals(blockName, material.blockName);
     }
 
     @Override

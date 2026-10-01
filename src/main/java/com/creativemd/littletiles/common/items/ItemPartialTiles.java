@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.block.Block;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -13,6 +14,7 @@ import net.minecraft.util.StatCollector;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
+import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.material.LittleMaterialStack;
 
 import cpw.mods.fml.relauncher.Side;
@@ -26,8 +28,6 @@ import cpw.mods.fml.relauncher.SideOnly;
  */
 public class ItemPartialTiles extends Item implements ITilesRenderer {
 
-    /** Most tiles a single item can hold. Anything above that is a whole block. */
-    public static final int MAX_TILES = LittleMaterialStack.TILES_PER_BLOCK;
     /** The height is rounded to sixteenths, like the grid a block is divided into. */
     public static final int HEIGHT_STEPS = 16;
 
@@ -35,13 +35,16 @@ public class ItemPartialTiles extends Item implements ITilesRenderer {
         setMaxStackSize(1);
     }
 
-    /** Creates the given amount of tiles of the given material, or null if the material cannot be stored. */
-    public static ItemStack create(String blockName, int meta, int count) {
-        LittleMaterialStack material = new LittleMaterialStack(blockName, meta, count);
-        if (count > MAX_TILES || !material.isStorable()) return null;
+    /**
+     * Creates the given amount of tiles of the given material, or null if the material cannot be stored. The amount has
+     * to be less than {@link LittleMaterialStack#TILES_PER_BLOCK}, anything from that on is a whole block.
+     */
+    public static ItemStack create(LittleMaterial material, int count) {
+        LittleMaterialStack materialStack = new LittleMaterialStack(material, count);
+        if (!materialStack.isStorable()) return null;
 
         ItemStack stack = new ItemStack(LittleTiles.partialTiles);
-        stack.stackTagCompound = material.writeToNBT();
+        stack.stackTagCompound = materialStack.writeToNBT();
         return stack;
     }
 
@@ -50,33 +53,29 @@ public class ItemPartialTiles extends Item implements ITilesRenderer {
                 .readFromNBT(stack.stackTagCompound == null ? new NBTTagCompound() : stack.stackTagCompound);
     }
 
-    public static Block getBlock(ItemStack stack) {
-        return getMaterialStack(stack).material.getBlock();
-    }
-
-    public static int getMeta(ItemStack stack) {
-        return getMaterialStack(stack).material.meta;
-    }
-
-    public static int getTiles(ItemStack stack) {
-        return getMaterialStack(stack).count;
-    }
+    /** Only exists inside a bag, an empty one would show up in NEI as an item without material. */
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void getSubItems(Item item, CreativeTabs tab, List list) {}
 
     @Override
     @SideOnly(Side.CLIENT)
     public String getItemStackDisplayName(ItemStack stack) {
-        Block block = getBlock(stack);
-        if (block == null) return super.getItemStackDisplayName(stack);
+        ItemStack blockStack = getMaterialStack(stack).material.createItemStack(1);
+        if (blockStack == null) return super.getItemStackDisplayName(stack);
 
-        return new ItemStack(block, 1, getMeta(stack)).getDisplayName() + " " + super.getItemStackDisplayName(stack);
+        return blockStack.getDisplayName() + " " + super.getItemStackDisplayName(stack);
     }
 
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
+        int tiles = getMaterialStack(stack).count;
         list.add(
-                StatCollector
-                        .translateToLocalFormatted("littletiles.partial_tiles.amount", getTiles(stack), MAX_TILES));
+                StatCollector.translateToLocalFormatted(
+                        "littletiles.partial_tiles.amount",
+                        tiles,
+                        LittleMaterialStack.TILES_PER_BLOCK));
     }
 
     @Override
@@ -89,11 +88,11 @@ public class ItemPartialTiles extends Item implements ITilesRenderer {
     @SideOnly(Side.CLIENT)
     public ArrayList<CubeObject> getRenderingCubes(ItemStack stack) {
         ArrayList<CubeObject> cubes = new ArrayList<>();
-        LittleMaterialStack material = getMaterialStack(stack);
-        Block block = material.material.getBlock();
+        LittleMaterialStack materialStack = getMaterialStack(stack);
+        Block block = materialStack.material.getBlock();
         if (block == null) return cubes;
 
-        cubes.add(new CubeObject(0, 0, 0, 1, getHeight(material.count), 1, block, material.material.meta));
+        cubes.add(new CubeObject(0, 0, 0, 1, getHeight(materialStack.count), 1, block, materialStack.material.meta));
         return cubes;
     }
 
@@ -103,9 +102,12 @@ public class ItemPartialTiles extends Item implements ITilesRenderer {
         return false;
     }
 
-    /** Height of the rendered block, scaled by the amount of tiles. */
+    /**
+     * Height of the rendered block, scaled by the amount of tiles. The clamp only matters for corrupt nbt, a valid item
+     * always holds less than {@link LittleMaterialStack#TILES_PER_BLOCK}.
+     */
     private static double getHeight(int tiles) {
-        int steps = (int) Math.ceil((double) tiles / MAX_TILES * HEIGHT_STEPS);
+        int steps = (int) Math.ceil((double) tiles / LittleMaterialStack.TILES_PER_BLOCK * HEIGHT_STEPS);
         return (double) Math.max(1, Math.min(HEIGHT_STEPS, steps)) / HEIGHT_STEPS;
     }
 }

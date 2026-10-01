@@ -36,7 +36,7 @@ public class ItemLittleBag extends Item implements IGuiHolder<PlayerInventoryGui
 
     @Override
     public ModularPanel buildUI(PlayerInventoryGuiData data, PanelSyncManager syncManager, UISettings settings) {
-        return LittleBagGui.build(data, syncManager, settings);
+        return LittleBagGui.build(data, syncManager);
     }
 
     @Override

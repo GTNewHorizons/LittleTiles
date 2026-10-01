@@ -67,10 +67,12 @@ public class DumpMeshCommand extends CommandBase {
         }
         LittleTile tile = te.loadedTile;
         boolean dumped = false;
+        // the full and the culled dump share their index, so they can be matched up
+        int dumpIndex = Mesh3d.nextDumpIndex();
 
         Mesh3d mesh = tile.getSimpleMesh();
         if (mesh != null && !mesh.getTriangles().isEmpty()) {
-            File outFile = mesh.dumpMesh();
+            File outFile = mesh.dumpMesh("DumpMesh", dumpIndex);
             dumpMetadata(outFile, tile, mesh);
             sender.addChatMessage(new ChatComponentTranslation(SUCCESS_KEY, "logs/" + outFile.getName()));
             dumped = true;
@@ -84,7 +86,7 @@ public class DumpMeshCommand extends CommandBase {
             if (culled.isEmpty()) {
                 sender.addChatMessage(new ChatComponentTranslation(CULLED_HIDDEN_KEY));
             } else {
-                File outFile = new Mesh3d(new ArrayList<>(culled)).dumpMesh("CulledMesh");
+                File outFile = new Mesh3d(new ArrayList<>(culled)).dumpMesh("CulledMesh", dumpIndex);
                 sender.addChatMessage(new ChatComponentTranslation(CULLED_SUCCESS_KEY, "logs/" + outFile.getName()));
             }
             dumped = true;

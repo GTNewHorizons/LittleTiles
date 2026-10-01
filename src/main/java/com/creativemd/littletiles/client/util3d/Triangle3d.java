@@ -426,12 +426,24 @@ public class Triangle3d {
                     new GridVector(polygon.get(0)),
                     new GridVector(polygon.get(i)),
                     new GridVector(polygon.get(i + 1)));
-            if (!triangle.isDegenerate()) {
+            if (!triangle.isSliver()) {
                 triangle.ensureWindingOrder(normal);
                 triangle.inheritPlane(parent);
                 triangles.add(triangle);
             }
         }
+    }
+
+    /**
+     * Whether the triangle is thinner than one grid unit, which covers degenerate ones as well. Rounding where
+     * {@link #split} cuts an edge moves the point by up to half a unit, so the pieces of a triangle cut along the
+     * shared edge of two occluders can keep a sliver that neither occluder covers. Nothing that thin can ever be seen.
+     */
+    private boolean isSliver() {
+        long longestEdgeSquared = Math
+                .max(p1.distanceSquared(p2), Math.max(p2.distanceSquared(p3), p3.distanceSquared(p1)));
+        // twice the area over the longest edge is the height on it
+        return unnormalizedNormal().length() <= Math.sqrt(longestEdgeSquared);
     }
 
     public Triangle3d copy() {

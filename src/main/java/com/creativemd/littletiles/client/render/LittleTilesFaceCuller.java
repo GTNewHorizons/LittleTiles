@@ -515,7 +515,8 @@ public final class LittleTilesFaceCuller {
             }
             List<Triangle3d> next = new ArrayList<>();
             for (Triangle3d piece : remaining) {
-                if (piece.boundsOverlap(occludingTriangle)) {
+                // an occluder that only touches the piece would still cut it into fragments
+                if (piece.boundsOverlap(occludingTriangle) && piece.overlaps(occludingTriangle)) {
                     next.addAll(piece.split(occludingTriangle));
                 } else {
                     next.add(piece);

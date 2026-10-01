@@ -25,6 +25,8 @@ import com.creativemd.littletiles.client.render.ITilesRenderer;
 import com.creativemd.littletiles.client.render.LittleDeformedBoxHelper;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
+import com.creativemd.littletiles.common.history.LittleTilePlacementPlanResult;
+import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -207,18 +209,6 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         return block.isReplaceable(world, x, y, z) || PlacementHelper.canBePlacedInsideBlock(player, x, y, z);
     }
 
-    public static boolean placeTiles(World world, EntityPlayer player, ArrayList<PreviewTile> previews,
-            LittleStructure structure, int x, int y, int z, ItemStack stack, ArrayList<LittleTile> unplaceableTiles,
-            LittleTilePlaceMode placeMode) {
-        LittleTilePlacementPlan plan = new LittleTilePlacementPlan();
-        plan.fillPlan(world, x, y, z, previews, structure, placeMode);
-        if (!plan.canApplyPlan()) {
-            return false;
-        }
-
-        return plan.applyPlan(world, player, stack, structure, unplaceableTiles);
-    }
-
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
             boolean customPlacement, LittleTilePlaceMode placeMode) {
         ArrayList<PreviewTile> previews = PlacementHelper.getPreviewTiles(player, stack, pos, customPlacement);
@@ -239,13 +229,30 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         int y = pos.getPosY();
         int z = pos.getPosZ();
 
+        LittleTilePlacementPlan plan = new LittleTilePlacementPlan();
+        plan.fillPlan(world, x, y, z, previews, structure, placeMode);
+        if (!plan.canApplyPlan()) {
+            return false;
+        }
+
         ArrayList<LittleTile> unplaceableTiles = new ArrayList<>();
-        if (placeTiles(world, player, previews, structure, x, y, z, stack, unplaceableTiles, placeMode)) {
+        boolean shouldRecordHistory = !world.isRemote && player.capabilities.isCreativeMode;
+        LittleTilePlacementPlanResult placementResult = plan
+                .applyPlan(world, player, stack, structure, unplaceableTiles);
+        if (placementResult.hasChanges()) {
             ItemStack currentStack = player.inventory.mainInventory[player.inventory.currentItem];
             boolean isChisel = currentStack != null && currentStack.getItem() == LittleTiles.chisel;
             if (!player.capabilities.isCreativeMode && !isChisel) {
                 currentStack.stackSize--;
                 if (currentStack.stackSize == 0) player.inventory.mainInventory[player.inventory.currentItem] = null;
+            }
+
+            if (shouldRecordHistory) {
+                LittleTilesPlacementHistory.recordAction(
+                        player,
+                        new LittleTilesPlacementHistory.PlacementAction(
+                                world.provider.dimensionId,
+                                placementResult.createPlan()));
             }
 
             if (!world.isRemote) {

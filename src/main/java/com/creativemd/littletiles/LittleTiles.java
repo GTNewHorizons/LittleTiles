@@ -21,6 +21,7 @@ import com.creativemd.littletiles.common.blocks.BlockLTColored;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ItemBlockColored;
 import com.creativemd.littletiles.common.events.LittleEvent;
+import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.items.ItemBlockTiles;
 import com.creativemd.littletiles.common.items.ItemCollisionTool;
 import com.creativemd.littletiles.common.items.ItemColorTube;
@@ -38,6 +39,7 @@ import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
+import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.sorting.LittleTileSortingList;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -54,6 +56,7 @@ import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
+import cpw.mods.fml.common.event.FMLServerStoppedEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.common.versioning.DefaultArtifactVersion;
 
@@ -146,6 +149,8 @@ public class LittleTiles {
         CreativeCorePacket.registerPacket(LittleFlipPacket.class, "LittleFlip");
         CreativeCorePacket.registerPacket(LittleItemUpdatePacket.class, "LittleItemUpdate");
         CreativeCorePacket.registerPacket(LittleCursorBlockUpdatePacket.class, "LittleCursorItemUpdate");
+        CreativeCorePacket.registerPacket(LittleUndoRedoPacket.class, "LittleUndoRedo");
+
         FMLCommonHandler.instance().bus().register(new LittleEvent());
         MinecraftForge.EVENT_BUS.register(new LittleEvent());
         if (Loader.isModLoaded("bogosorter")) MinecraftForge.EVENT_BUS.register(new BogoCompat());
@@ -201,6 +206,11 @@ public class LittleTiles {
         }
 
         angelicaCompat = new AngelicaCompat();
+    }
+
+    @EventHandler
+    public void serverStopped(FMLServerStoppedEvent event) {
+        LittleTilesPlacementHistory.clear();
     }
 
     @EventHandler

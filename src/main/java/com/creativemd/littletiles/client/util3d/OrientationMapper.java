@@ -111,10 +111,7 @@ public class OrientationMapper {
     public static void rotate(int id, Vector3i point) {
         int[] m = INT_ORIENTATIONS[id];
         int x = point.x, y = point.y, z = point.z;
-        point.set(
-                m[0] * x + m[1] * y + m[2] * z,
-                m[3] * x + m[4] * y + m[5] * z,
-                m[6] * x + m[7] * y + m[8] * z);
+        point.set(m[0] * x + m[1] * y + m[2] * z, m[3] * x + m[4] * y + m[5] * z, m[6] * x + m[7] * y + m[8] * z);
     }
 
     /** The size a box had before it was rotated into one of the given size, the inverse of rotating its size. */

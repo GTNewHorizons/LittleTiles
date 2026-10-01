@@ -93,10 +93,7 @@ public class Triangle3d {
     /** Moves the triangle {@code distance} grid units along its normal, rounded to the grid. */
     public void inflate(int distance) {
         Vector3f n = getNormal();
-        translate(
-                (int) Math.round(n.x * distance),
-                (int) Math.round(n.y * distance),
-                (int) Math.round(n.z * distance));
+        translate((int) Math.round(n.x * distance), (int) Math.round(n.y * distance), (int) Math.round(n.z * distance));
     }
 
     /** The direction the triangle faces, as a unit vector. Not exact, so only fit for lighting and texturing. */
@@ -275,8 +272,8 @@ public class Triangle3d {
     }
 
     /**
-     * Whether this triangle and another one in the same plane cover some area together, rather than at most touching
-     * at an edge or a corner. Exact: two triangles in a plane are apart exactly when one of their edges has all of the
+     * Whether this triangle and another one in the same plane cover some area together, rather than at most touching at
+     * an edge or a corner. Exact: two triangles in a plane are apart exactly when one of their edges has all of the
      * other on its outside, the edge itself counting as outside.
      */
     public boolean overlaps(Triangle3d other) {
@@ -326,8 +323,7 @@ public class Triangle3d {
      */
     private boolean isCoplanarWith(Triangle3d plane, GridNormal normal) {
         double tolerance = normal.length();
-        return Math.abs(normal.dot(plane.p1, p1)) <= tolerance
-                && Math.abs(normal.dot(plane.p1, p2)) <= tolerance
+        return Math.abs(normal.dot(plane.p1, p1)) <= tolerance && Math.abs(normal.dot(plane.p1, p2)) <= tolerance
                 && Math.abs(normal.dot(plane.p1, p3)) <= tolerance;
     }
 

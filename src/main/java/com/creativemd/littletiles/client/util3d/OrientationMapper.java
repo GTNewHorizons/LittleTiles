@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.joml.Matrix3f;
+import org.joml.Vector3i;
+import org.joml.Vector3ic;
 
 public class OrientationMapper {
 
@@ -13,9 +15,17 @@ public class OrientationMapper {
     private static final int NUM_ORIENTATIONS = 48;
     private static final List<Matrix3f> ORIENTATIONS = new ArrayList<>();
     private static final Map<String, Integer> LOOKUP = new HashMap<>();
+    /** {@link #ORIENTATIONS} as exact integers, row major, so grid points can be rotated without rounding. */
+    private static final int[][] INT_ORIENTATIONS = new int[NUM_ORIENTATIONS][];
 
     static {
         generateOrientations();
+        for (int i = 0; i < NUM_ORIENTATIONS; i++) {
+            Matrix3f m = ORIENTATIONS.get(i);
+            INT_ORIENTATIONS[i] = new int[] { Math.round(m.m00), Math.round(m.m10), Math.round(m.m20),
+                    Math.round(m.m01), Math.round(m.m11), Math.round(m.m21), Math.round(m.m02), Math.round(m.m12),
+                    Math.round(m.m22) };
+        }
     }
 
     private static void generateOrientations() {
@@ -95,6 +105,30 @@ public class OrientationMapper {
         Integer id = LOOKUP.get(key);
         if (id == null) throw new IllegalArgumentException("Matrix not a valid orientation: " + m);
         return id;
+    }
+
+    /** Rotates {@code point} in place around the origin. */
+    public static void rotate(int id, Vector3i point) {
+        int[] m = INT_ORIENTATIONS[id];
+        int x = point.x, y = point.y, z = point.z;
+        point.set(m[0] * x + m[1] * y + m[2] * z, m[3] * x + m[4] * y + m[5] * z, m[6] * x + m[7] * y + m[8] * z);
+    }
+
+    /** The size a box had before it was rotated into one of the given size, the inverse of rotating its size. */
+    public static Vector3i unrotateSize(int id, Vector3ic size) {
+        int[] m = INT_ORIENTATIONS[id];
+        // the inverse of a rotation is its transpose
+        return new Vector3i(
+                m[0] * size.x() + m[3] * size.y() + m[6] * size.z(),
+                m[1] * size.x() + m[4] * size.y() + m[7] * size.z(),
+                m[2] * size.x() + m[5] * size.y() + m[8] * size.z()).absolute();
+    }
+
+    /** Mirrored orientations invert the winding order of everything they rotate. */
+    public static boolean isMirrored(int id) {
+        int[] m = INT_ORIENTATIONS[id];
+        return m[0] * (m[4] * m[8] - m[5] * m[7]) - m[1] * (m[3] * m[8] - m[5] * m[6])
+                + m[2] * (m[3] * m[7] - m[4] * m[6]) < 0;
     }
 
     /** Get orientation matrix from ID */

@@ -52,8 +52,8 @@ public class DumpMeshCommand extends CommandBase {
         Minecraft mc = Minecraft.getMinecraft();
         EntityPlayer player = mc.thePlayer;
 
-        LittleTile tile = findTile(player, mc.objectMouseOver);
-        Mesh3d mesh = tile == null ? null : tile.getSimpleMesh();
+        TileEntityLittleTiles te = findTileEntity(player, mc.objectMouseOver);
+        Mesh3d mesh = te == null ? null : te.loadedTile.getSimpleMesh();
         if (mesh == null || mesh.getTriangles().isEmpty()) {
             sender.addChatMessage(new ChatComponentTranslation(ERROR_KEY));
             return;
@@ -64,7 +64,7 @@ public class DumpMeshCommand extends CommandBase {
         sender.addChatMessage(new ChatComponentTranslation(SUCCESS_KEY, "logs/" + outFile.getName()));
     }
 
-    private static LittleTile findTile(EntityPlayer player, MovingObjectPosition look) {
+    private static TileEntityLittleTiles findTileEntity(EntityPlayer player, MovingObjectPosition look) {
         if (look == null || look.typeOfHit != MovingObjectType.BLOCK) {
             return null;
         }
@@ -76,7 +76,7 @@ public class DumpMeshCommand extends CommandBase {
         if (!teLT.updateLoadedTile(player)) {
             return null;
         }
-        return teLT.loadedTile;
+        return teLT;
     }
 
     /** Writes the tile state needed to reproduce and diagnose the mesh beside the OBJ using the same base name. */

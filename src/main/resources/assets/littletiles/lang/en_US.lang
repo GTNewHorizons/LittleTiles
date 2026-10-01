@@ -45,6 +45,7 @@ key.littletiles.slope_outer_corner=Slope Outer Corner
 key.littletiles.slope_inner_corner=Slope Inner Corner
 key.littletiles.wall=Wall
 key.littletiles.pillar=Pillar
+key.littletiles.deformed_box=Deformed Box
 key.littletiles.mode_normal=Normal Mode
 key.littletiles.mode_normal_info=Will only place tiles if they don't overlap something.
 key.littletiles.mode_fill=Fill Mode

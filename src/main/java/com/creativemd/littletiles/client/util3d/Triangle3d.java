@@ -87,6 +87,10 @@ public class Triangle3d {
         return normal;
     }
 
+    public double getArea() {
+        return unnormalizedNormal().length() / 2;
+    }
+
     /**
      * Computes this triangle's signed solid angle relative to a point.
      *

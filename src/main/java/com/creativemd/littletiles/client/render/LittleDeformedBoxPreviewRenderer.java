@@ -260,4 +260,17 @@ public class LittleDeformedBoxPreviewRenderer {
             renderCornerMarker(box, width, selected, i == hovered, valid);
         }
     }
+
+    /**
+     * Draws the two fixed corners of an ordinary two-hit chisel preview with the same markers as a deformed box, so
+     * they can be picked the same way. The marked, movable corner is drawn as selected, the one aimed at is filled in.
+     */
+    public static void renderTwoHitCornerMarkers(int grid) {
+        AxisAlignedBB[] boxes = PreviewRenderer.twoHitCornerBoxes(grid);
+        int hovered = PreviewRenderer.pickTwoHitCorner(Minecraft.getMinecraft().thePlayer, grid);
+        double width = cornerMarkerEdgeWidth(grid);
+        for (int i = 0; i < boxes.length; i++) {
+            renderCornerMarker(boxes[i], width, i == 1, i == hovered, true);
+        }
+    }
 }

@@ -203,6 +203,16 @@ public final class LittleDeformedBoxHelper {
     public static int pickLookedAtCorner(EntityPlayer player, int grid) {
         if (!isEditing() || !areCornersShown(player)) return -1;
 
+        AxisAlignedBB[] boxes = new AxisAlignedBB[corners.length];
+        for (int i = 0; i < corners.length; i++) boxes[i] = getCornerBoxAABB(i, grid);
+        return pickLookedAtBox(player, boxes);
+    }
+
+    /**
+     * Raytraces the given boxes along the player's line of sight, stopping just behind the first block in the way, and
+     * returns the index of the nearest one hit, or -1 if the ray misses all of them.
+     */
+    public static int pickLookedAtBox(EntityPlayer player, AxisAlignedBB... boxes) {
         // Same ray the tile raytrace in TileEntityLittleTiles uses - getPosition already accounts for eye height.
         double reach = Minecraft.getMinecraft().playerController.getBlockReachDistance();
         Vec3 start = player.getPosition(1);
@@ -219,8 +229,8 @@ public final class LittleDeformedBoxHelper {
 
         int best = -1;
         double bestDistance = Double.MAX_VALUE;
-        for (int i = 0; i < corners.length; i++) {
-            MovingObjectPosition hit = getCornerBoxAABB(i, grid).calculateIntercept(start, end);
+        for (int i = 0; i < boxes.length; i++) {
+            MovingObjectPosition hit = boxes[i].calculateIntercept(start, end);
             if (hit == null) continue;
 
             double distance = start.squareDistanceTo(hit.hitVec);

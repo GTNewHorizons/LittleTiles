@@ -183,7 +183,7 @@ public class Mesh3dUtil {
      * <p>
      * Deformed-box corners always remain in orientation-zero space. The corners are stretched to the cutout size from
      * before rotation, then rotated, so that the result spans {@code cutoutSize}. The stored cutout size describes the
-     * rotated tile bounds and must not be used to normalize corners.
+     * rotated tile bounds, so it has to be rotated back before the corners can be stretched to it.
      *
      * @param cutoutSize the size the mesh is to span once rotated, in tile pixels
      */
@@ -225,7 +225,7 @@ public class Mesh3dUtil {
         long sumX = 0, sumY = 0, sumZ = 0;
         for (int i = 0; i < corners.length; i++) {
             // cutoutInfo.size follows the rotated tile bounds, while the corners remain in orientation-zero space.
-            // Recover that space from the corners themselves so a non-cubic box is normalized before mesh rotation.
+            // Recover that space from the corners themselves, so a non-cubic box is stretched along the right axes.
             Vector3i corner = new Vector3i(cornerOffsets[i]);
             corner.sub(cornerBounds.minX, cornerBounds.minY, cornerBounds.minZ);
             offsets[i] = corner;
@@ -280,7 +280,8 @@ public class Mesh3dUtil {
      * has surface triangles covering each other, so any two triangles overlapping in more than an edge rule it out.
      * Collapsed edges and faces, as in a wedge or pyramid, stay valid.
      *
-     * @param cornerOffsets the corners as grid offsets, indexed as described by {@link #DEFORMED_BOX_CORNER_COUNT}
+     * @param cornerOffsets the corners as tile pixel offsets, indexed as described by
+     *                      {@link #DEFORMED_BOX_CORNER_COUNT}
      */
     public static boolean enclosesVolume(Vector3i[] cornerOffsets) {
         // at their own size, where the corners need no rounding and the overlap test below stays exact

@@ -80,10 +80,6 @@ public class Triangle3d {
         this.plane = plane;
     }
 
-    public void translate(GridVector vec) {
-        translate(vec.x, vec.y, vec.z);
-    }
-
     public void translate(int x, int y, int z) {
         p1.add(x, y, z);
         p2.add(x, y, z);

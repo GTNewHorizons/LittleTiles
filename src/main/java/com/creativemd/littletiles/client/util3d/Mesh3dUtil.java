@@ -199,7 +199,7 @@ public class Mesh3dUtil {
     }
 
     /** Size of the space the corners of a deformed box span, with orientation zero. */
-    private static Vector3i originalSize(Vector3i[] cornerOffsets) {
+    public static Vector3i originalSize(Vector3i[] cornerOffsets) {
         LittleTileBox cornerBounds = LittleTileBox.fromPoints(cornerOffsets);
         return new Vector3i(
                 cornerBounds.maxX - cornerBounds.minX,
@@ -311,7 +311,8 @@ public class Mesh3dUtil {
      * space, every corner offset divided by the size per axis, not world space - on a non-cubic box the normalization
      * changes which diagonal is shorter.
      *
-     * @param size the size of the space the corner offsets are normalized by
+     * @param size the size of the space the corner offsets are normalized by, {@link #originalSize} for the corners of
+     *             a deformed box
      */
     public static boolean splitsAlongFirstDiagonal(Vector3i a, Vector3i b, Vector3i c, Vector3i d, Vector3i size) {
         return localDistanceSquared(a, c, size) <= localDistanceSquared(b, d, size);

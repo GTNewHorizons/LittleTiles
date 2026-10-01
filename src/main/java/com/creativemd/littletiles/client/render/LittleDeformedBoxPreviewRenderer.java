@@ -130,6 +130,9 @@ public class LittleDeformedBoxPreviewRenderer {
      */
     private static void renderFaceDiagonals(double width) {
         LittleTileCutoutInfo cutout = LittleDeformedBoxHelper.currentCutout();
+        // the corners keep orientation zero, so they are normalized by their own extent, as the mesh does it, and not
+        // by the rotated cutout size
+        Vector3i size = Mesh3dUtil.originalSize(cutout.corners);
 
         boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
         GL11.glColor4d(valid ? 0.2 : 1, valid ? 0.8 : 0.1, valid ? 1 : 0.1, 0.45);
@@ -143,7 +146,7 @@ public class LittleDeformedBoxPreviewRenderer {
                     cutout.corners[face[1]],
                     cutout.corners[face[2]],
                     cutout.corners[face[3]],
-                    cutout.size);
+                    size);
             renderBeam(cornerFromCamera(first ? face[0] : face[1]), cornerFromCamera(first ? face[2] : face[3]), width);
         }
         GL11.glEnd();

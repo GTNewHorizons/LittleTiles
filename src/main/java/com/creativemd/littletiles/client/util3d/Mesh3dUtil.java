@@ -89,8 +89,9 @@ public class Mesh3dUtil {
         return new Matrix3f().rotation(angle, (float) from.x, (float) from.y, (float) from.z);
     }
 
-    private static Mesh3d createWallMesh(LittleTileCutoutInfo cutoutInfo) {
-        ArrayList<Triangle3d> triangles = new ArrayList<>();
+    /** A box from the origin to (1, 1, 1). */
+    private static List<Triangle3d> createBoxTriangles() {
+        List<Triangle3d> triangles = new ArrayList<>();
 
         // Front face (z = 1)
         triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 0, 1), new Vector3d(1, 1, 1)));
@@ -116,7 +117,11 @@ public class Mesh3dUtil {
         triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 1), new Vector3d(0, 0, 1)));
         triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(1, 0, 1)));
 
-        Mesh3d mesh = new Mesh3d(triangles);
+        return triangles;
+    }
+
+    private static Mesh3d createWallMesh(LittleTileCutoutInfo cutoutInfo) {
+        Mesh3d mesh = new Mesh3d(createBoxTriangles());
 
         mesh.scale(cutoutInfo.thickness / 16f);
         float middle = cutoutInfo.thickness / 16f / 2;
@@ -351,23 +356,7 @@ public class Mesh3dUtil {
     }
 
     public static Mesh3d createBoxMesh() {
-        List<Triangle3d> triangles = new ArrayList<>();
-
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 0, 1), new Vector3d(1, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 1, 1), new Vector3d(0, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 1, 0), new Vector3d(1, 0, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(0, 1, 0), new Vector3d(1, 1, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(0, 0, 1), new Vector3d(0, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(0, 1, 1), new Vector3d(0, 1, 0)));
-        triangles.add(new Triangle3d(new Vector3d(1, 0, 0), new Vector3d(1, 1, 1), new Vector3d(1, 0, 1)));
-        triangles.add(new Triangle3d(new Vector3d(1, 0, 0), new Vector3d(1, 1, 0), new Vector3d(1, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(0, 1, 1), new Vector3d(1, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(1, 1, 1), new Vector3d(1, 1, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 1), new Vector3d(0, 0, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(1, 0, 1)));
-
-        Mesh3d mesh = new Mesh3d(triangles);
-        return mesh;
+        return new Mesh3d(createBoxTriangles());
     }
 
     /** @param cutoutSize the size of the whole cutout, in tile pixels */

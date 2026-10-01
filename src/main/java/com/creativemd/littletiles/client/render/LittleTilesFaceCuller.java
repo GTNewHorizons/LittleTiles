@@ -13,6 +13,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.creativemd.creativecore.client.rendering.FacePiece;
 import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
@@ -339,26 +340,62 @@ public final class LittleTilesFaceCuller {
     }
 
     /**
-     * Every triangle world rendering draws for a cutout {@code cube}, in block-local coordinates, for debugging
-     * culling. Goes through the same cached path as rendering, so a stale culling result shows up here just as it does
-     * on screen.
+     * Every triangle world rendering draws for {@code cube}, in block-local coordinates, for debugging culling. Goes
+     * through the same cached path as rendering, so a stale culling result shows up here just as it does on screen.
      * <p>
-     * Empty when the cube draws nothing. Null when the cube is no cutout, when culling does not apply to it at all, or
-     * when it has no mesh: a cutout that lost its mesh falls back to a plain box in world rendering, which this does
-     * not reproduce.
+     * A cutout comes back as its culled mesh. A box comes back whole: its untouched sides, the rectangles left over by
+     * {@link FaceClipper} and the sides culling replaced with triangles. Empty when the cube draws nothing. Null when
+     * culling does not apply to the cube at all, when it is a box that culling leaves untouched, or when it has no
+     * geometry to draw: a cutout that lost its mesh falls back to a plain box in world rendering, which this does not
+     * reproduce.
      *
      * @param cubes all cubes of the tile entity at the given position, {@code cube} among them
      */
     public static List<Triangle3d> renderedTriangles(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x,
             int y, int z, LittleTilesCubeObject cube) {
-        if (cube.cutoutInfo == null || ignoreForCulling(cube)) {
+        if (ignoreForCulling(cube)) {
             return null;
         }
-        Mesh3d mesh = cube.geometryCache.getOrCreateSimpleMesh();
-        if (mesh == null || mesh.getTriangles().isEmpty()) {
-            return null;
+        Supplier<CullingContext> culling = () -> prepareCulling(world, cubes, x, y, z);
+        if (cube.cutoutInfo != null) {
+            Mesh3d mesh = cube.geometryCache.getOrCreateSimpleMesh();
+            if (mesh == null || mesh.getTriangles().isEmpty()) {
+                return null;
+            }
+            return visibleCutoutTriangles(culling, cube, mesh);
         }
-        return visibleCutoutTriangles(() -> prepareCulling(world, cubes, x, y, z), cube, mesh);
+
+        // only cubes ignored for culling are left without a clipper
+        FaceClipper faceClipper = (FaceClipper) computeCoverage(world, cubes, x, y, z)[cubes.indexOf(cube)];
+        // also covers the replaced sides on the clipper, so those come back as no pieces below
+        List<Triangle3d> triangles = new ArrayList<>(visibleBoxTriangles(culling, cube, faceClipper));
+        boolean culled = false;
+        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
+            List<FacePiece> pieces = faceClipper.getFacePieces(side);
+            if (pieces == null) {
+                triangles.addAll(boxFaceTriangles(cube, side));
+                continue;
+            }
+            culled = true;
+            for (FacePiece piece : pieces) {
+                triangles.addAll(boxFaceTriangles(facePieceCube(cube, side, piece), side));
+            }
+        }
+        return culled ? triangles : null;
+    }
+
+    /** The cube shrunk to {@code piece} in the plane of {@code side}, so its face on that side is the piece. */
+    private static LittleTilesCubeObject facePieceCube(LittleTilesCubeObject cube, ForgeDirection side,
+            FacePiece piece) {
+        int[] min = { cube.gridMinX, cube.gridMinY, cube.gridMinZ };
+        int[] max = { cube.gridMaxX, cube.gridMaxY, cube.gridMaxZ };
+        int planeX = PLANE_X_AXIS[side.ordinal()].toInt();
+        int planeY = PLANE_Y_AXIS[side.ordinal()].toInt();
+        min[planeX] = piece.minPlaneX;
+        max[planeX] = piece.maxPlaneX;
+        min[planeY] = piece.minPlaneY;
+        max[planeY] = piece.maxPlaneY;
+        return new LittleTilesCubeObject(min[0], min[1], min[2], max[0], max[1], max[2]);
     }
 
     /** Whether an occluding triangle shares a plane with one of the triangles and could therefore hide part of it. */

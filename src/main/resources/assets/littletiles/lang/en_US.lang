@@ -62,6 +62,7 @@ littletiles.command.dumpmesh.error=No mesh under cursor.
 littletiles.command.dumpmesh.success=Mesh dumped to %s
 littletiles.command.dumpmesh.culled.success=Culled mesh dumped to %s
 littletiles.command.dumpmesh.culled.hidden=Selected tile is fully culled, which should not happen - check culling.
+littletiles.command.dumpmesh.plainbox=Selected tile is a plain box, dump skipped.
 message.littletiles.tile_collision.disabled=Tile collision disabled
 message.littletiles.tile_collision.enabled=Tile collision enabled
 littletiles.history.undo_failed=Cannot undo: Change doesn't apply anymore, world changed.

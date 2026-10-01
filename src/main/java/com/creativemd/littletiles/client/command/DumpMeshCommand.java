@@ -33,6 +33,7 @@ public class DumpMeshCommand extends CommandBase {
     private static final String SUCCESS_KEY = "littletiles.command.dumpmesh.success";
     private static final String CULLED_SUCCESS_KEY = "littletiles.command.dumpmesh.culled.success";
     private static final String CULLED_HIDDEN_KEY = "littletiles.command.dumpmesh.culled.hidden";
+    private static final String PLAIN_BOX_KEY = "littletiles.command.dumpmesh.plainbox";
 
     @Override
     public String getCommandName() {
@@ -86,6 +87,9 @@ public class DumpMeshCommand extends CommandBase {
                 File outFile = new Mesh3d(new ArrayList<>(culled)).dumpMesh("CulledMesh");
                 sender.addChatMessage(new ChatComponentTranslation(CULLED_SUCCESS_KEY, "logs/" + outFile.getName()));
             }
+            dumped = true;
+        } else if (cube != null && cube.cutoutInfo == null) {
+            sender.addChatMessage(new ChatComponentTranslation(PLAIN_BOX_KEY));
             dumped = true;
         }
 

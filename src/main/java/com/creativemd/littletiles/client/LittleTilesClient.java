@@ -62,6 +62,7 @@ public class LittleTilesClient extends LittleTilesServer {
         MinecraftForgeClient.registerItemRenderer(Item.getItemFromBlock(LittleTiles.blockTile), renderer);
         MinecraftForgeClient.registerItemRenderer(LittleTiles.recipe, renderer);
         MinecraftForgeClient.registerItemRenderer(LittleTiles.multiTiles, renderer);
+        MinecraftForgeClient.registerItemRenderer(LittleTiles.partialTiles, renderer);
         FMLCommonHandler.instance().bus().register(new PreviewRenderer());
         MinecraftForge.EVENT_BUS.register(new PreviewRenderer());
         CollisionHighlightRenderer collisionHighlight = new CollisionHighlightRenderer();

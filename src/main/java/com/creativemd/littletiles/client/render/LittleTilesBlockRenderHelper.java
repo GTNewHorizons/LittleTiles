@@ -175,10 +175,9 @@ public class LittleTilesBlockRenderHelper {
 
     private static void renderTriangles(int x, int y, int z, LittleTilesCubeObject cube, List<Triangle3d> triangles,
             IBlockAccess world) {
-        // cut results are cached on the tile and must not be textured or translated in place
+        // cut results are cached on the tile and must not be textured in place
         Mesh3d mesh = new Mesh3d(triangles).copy();
         mesh.setTextures(cube.block, cube.meta);
-        mesh.translate(new Vector3d(x, y, z));
         Tessellator tess = Tessellator.instance;
 
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
@@ -199,6 +198,7 @@ public class LittleTilesBlockRenderHelper {
                 LittleTiles.angelicaCompat.beginAmbientOcclusion(tess);
             }
 
+            // the mesh is relative to its block, so the block position is added on the way out
             for (Triangle3d triangle : mesh.getTriangles()) {
                 Vector3d p1 = triangle.getP1();
                 Vector3d p2 = triangle.getP2();
@@ -208,10 +208,10 @@ public class LittleTilesBlockRenderHelper {
                 Vector2d tex3 = triangle.getTex3();
                 tess.setColorOpaque_I(
                         topTintOnly && triangle.getFaceDirection() != ForgeDirection.UP ? ColorUtils.WHITE : color);
-                tess.addVertexWithUV(p1.x, p1.y, p1.z, tex1.x, tex1.y);
-                tess.addVertexWithUV(p2.x, p2.y, p2.z, tex2.x, tex2.y);
-                tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
-                tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
+                tess.addVertexWithUV(x + p1.x, y + p1.y, z + p1.z, tex1.x, tex1.y);
+                tess.addVertexWithUV(x + p2.x, y + p2.y, z + p2.z, tex2.x, tex2.y);
+                tess.addVertexWithUV(x + p3.x, y + p3.y, z + p3.z, tex3.x, tex3.y);
+                tess.addVertexWithUV(x + p3.x, y + p3.y, z + p3.z, tex3.x, tex3.y);
             }
         } finally {
             if (useAngelicaAmbientOcclusion) {

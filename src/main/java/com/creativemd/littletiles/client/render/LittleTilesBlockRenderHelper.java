@@ -116,19 +116,18 @@ public class LittleTilesBlockRenderHelper {
         GL11.glEnd();
     }
 
-    /** Emits a mesh vertex offset by x, y, z, which are relative to the camera sitting at the origin. */
-    private static void vertexFromCamera(double x, double y, double z, Vector3d point) {
-        Vector3d vec = pullTowardsCamera(x + point.x, y + point.y, z + point.z);
-        GL11.glVertex3d(vec.x, vec.y, vec.z);
-    }
-
     /**
-     * A shape that is not axis-aligned cannot simply be grown like a box. Pulling each vertex towards the camera, which
-     * sits at the origin while rendering, lifts it off any face from every angle.
+     * Emits a mesh vertex offset by x, y, z, which are relative to the camera sitting at the origin.
+     * <p>
+     * A shape that is not axis-aligned cannot simply be grown like a box. Pulling each vertex towards the camera lifts
+     * it off any face from every angle.
      */
-    static Vector3d pullTowardsCamera(double x, double y, double z) {
-        double scale = Math.max(0, 1 - Z_FIGHT_EPSILON / Math.sqrt(x * x + y * y + z * z));
-        return new Vector3d(x * scale, y * scale, z * scale);
+    private static void vertexFromCamera(double x, double y, double z, Vector3d point) {
+        double px = x + point.x;
+        double py = y + point.y;
+        double pz = z + point.z;
+        double scale = Math.max(0, 1 - Z_FIGHT_EPSILON / Math.sqrt(px * px + py * py + pz * pz));
+        GL11.glVertex3d(px * scale, py * scale, pz * scale);
     }
 
     /** What became of a cutout tile. */

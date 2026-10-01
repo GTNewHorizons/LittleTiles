@@ -125,6 +125,10 @@ public class Plane3d {
      */
     private static final double PLANE_EPSILON = 1.0E-4;
 
+    /**
+     * The plane that fits the triangle best, worked out from its own normal. Prefer {@link Triangle3d#getPlane}, which
+     * pieces cut out of a triangle inherit, as their own normals are tilted by the cut.
+     */
     public static Plane3d getPlaneForTriangle(Triangle3d triangle) {
         return getPlaneForNormal(triangle.getNormal());
     }

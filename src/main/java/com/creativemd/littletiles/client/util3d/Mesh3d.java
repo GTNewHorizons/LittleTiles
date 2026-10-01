@@ -136,6 +136,7 @@ public class Mesh3d {
 
             for (Triangle3d t : addTriangles) {
                 t.ensureWindingOrder(triangle.getNormal());
+                t.inheritPlane(triangle);
             }
 
             newTriangles.addAll(addTriangles);

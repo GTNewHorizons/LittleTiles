@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -59,8 +60,8 @@ public class Mesh3d {
         scale(new Vector3d(vec.x / 16.0, vec.y / 16.0, vec.z / 16.0));
     }
 
-    private static int logCount;
-    private static int dumpCount;
+    private static final AtomicInteger logCount = new AtomicInteger();
+    private static final AtomicInteger dumpCount = new AtomicInteger();
 
     public File dumpMesh() {
         File mcDir;
@@ -70,8 +71,7 @@ public class Mesh3d {
             mcDir = new File(".");
         }
         File logsFolder = new File(mcDir, "logs");
-        File outFile = new File(logsFolder, "littleTilesDumpMesh" + dumpCount + ".obj");
-        dumpCount++;
+        File outFile = new File(logsFolder, "littleTilesDumpMesh" + dumpCount.getAndIncrement() + ".obj");
         exportObj(outFile);
         FMLLog.getLogger().info("Dumped mesh into " + outFile.getAbsolutePath());
         return outFile;
@@ -87,8 +87,7 @@ public class Mesh3d {
         }
 
         File logsFolder = new File(mcDir, "logs");
-        File outFile = new File(logsFolder, "littleTilesErrorMesh" + logCount + ".obj");
-        logCount++;
+        File outFile = new File(logsFolder, "littleTilesErrorMesh" + logCount.getAndIncrement() + ".obj");
         exportObj(outFile);
         FMLLog.getLogger().error("Failed to process mesh, dumped into " + outFile.getAbsolutePath());
     }

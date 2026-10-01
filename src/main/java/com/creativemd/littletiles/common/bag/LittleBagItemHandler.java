@@ -81,7 +81,7 @@ public class LittleBagItemHandler extends ItemStackHandler {
         ItemStack stack = getStackInSlot(slot);
         StackValue value = slotValues[slot];
         if (value == null || !value.isFor(stack)) {
-            value = new StackValue(stack);
+            value = StackValue.of(stack);
             slotValues[slot] = value;
         }
         return value;
@@ -93,7 +93,7 @@ public class LittleBagItemHandler extends ItemStackHandler {
      */
     private StackValue getIncomingValue(ItemStack stack) {
         if (incomingValue == null || !incomingValue.isFor(stack)) {
-            incomingValue = new StackValue(stack);
+            incomingValue = StackValue.of(stack);
         }
         return incomingValue;
     }
@@ -203,6 +203,9 @@ public class LittleBagItemHandler extends ItemStackHandler {
     /** What a stack is worth, see {@link LittleMaterialValuator}. */
     private static class StackValue {
 
+        /** Shared by all empty slots, which are most of a bag. */
+        private static final StackValue EMPTY = new StackValue(null);
+
         private final ItemStack stack;
         private final int stackSize;
         private final Set<LittleMaterial> materials = new HashSet<>();
@@ -217,6 +220,10 @@ public class LittleBagItemHandler extends ItemStackHandler {
                 tiles += materialStack.count;
             }
             this.tiles = (int) Math.min(tiles, Integer.MAX_VALUE);
+        }
+
+        private static StackValue of(ItemStack stack) {
+            return stack == null ? EMPTY : new StackValue(stack);
         }
 
         /** Vanilla changes the size of a stack in place when it merges onto it, so the size is checked as well. */

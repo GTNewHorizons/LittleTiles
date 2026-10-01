@@ -36,12 +36,12 @@ public class ItemPartialTiles extends Item implements ITilesRenderer {
     }
 
     /**
-     * Creates the given amount of tiles of the given material, or null if the material cannot be stored. The amount has
-     * to be less than {@link LittleMaterialStack#TILES_PER_BLOCK}, anything from that on is a whole block.
+     * Creates the given amount of tiles of the given material, or null if it cannot be stored. Partial tiles hold less
+     * than {@link LittleMaterialStack#TILES_PER_BLOCK}, anything from that on is a whole block.
      */
     public static ItemStack create(LittleMaterial material, int count) {
         LittleMaterialStack materialStack = new LittleMaterialStack(material, count);
-        if (!materialStack.isStorable()) return null;
+        if (count >= LittleMaterialStack.TILES_PER_BLOCK || !materialStack.isStorable()) return null;
 
         ItemStack stack = new ItemStack(LittleTiles.partialTiles);
         stack.stackTagCompound = materialStack.writeToNBT();

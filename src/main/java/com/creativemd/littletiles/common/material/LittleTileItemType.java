@@ -42,9 +42,4 @@ public enum LittleTileItemType {
         }
         return null;
     }
-
-    /** Whether the item is made of little tiles, which have to be decomposed before they can be stored. */
-    public boolean isLittleTile() {
-        return this == TILE || this == STRUCTURE;
-    }
 }

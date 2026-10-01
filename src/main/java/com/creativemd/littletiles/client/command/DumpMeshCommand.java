@@ -34,6 +34,7 @@ public class DumpMeshCommand extends CommandBase {
     private static final String CULLED_SUCCESS_KEY = "littletiles.command.dumpmesh.culled.success";
     private static final String CULLED_HIDDEN_KEY = "littletiles.command.dumpmesh.culled.hidden";
     private static final String PLAIN_BOX_KEY = "littletiles.command.dumpmesh.plainbox";
+    private static final String INVALID_MESH_KEY = "littletiles.command.dumpmesh.invalid";
 
     @Override
     public String getCommandName() {
@@ -71,6 +72,12 @@ public class DumpMeshCommand extends CommandBase {
         int dumpIndex = Mesh3d.nextDumpIndex();
 
         Mesh3d mesh = tile.getSimpleMesh();
+        if (tile.getCutoutInfo() != null && mesh.getTriangles().isEmpty()) {
+            File objFile = new File(new File(mc.mcDataDir, "logs"), "littleTilesDumpMesh" + dumpIndex + ".obj");
+            File metaFile = dumpMetadata(objFile, tile, mesh);
+            sender.addChatMessage(new ChatComponentTranslation(INVALID_MESH_KEY, "logs/" + metaFile.getName()));
+            return;
+        }
         if (mesh != null && !mesh.getTriangles().isEmpty()) {
             File outFile = mesh.dumpMesh("DumpMesh", dumpIndex);
             dumpMetadata(outFile, tile, mesh);
@@ -115,8 +122,8 @@ public class DumpMeshCommand extends CommandBase {
         return teLT;
     }
 
-    /** Writes the tile state needed to reproduce and diagnose the mesh beside the OBJ using the same base name. */
-    private static void dumpMetadata(File objFile, LittleTile tile, Mesh3d mesh) {
+    /** Writes the tile state beside the OBJ, or on its own when the mesh cannot be dumped. */
+    private static File dumpMetadata(File objFile, LittleTile tile, Mesh3d mesh) {
         String objName = objFile.getName();
         String baseName = objName.endsWith(".obj") ? objName.substring(0, objName.length() - 4) : objName;
         File metaFile = new File(objFile.getParentFile(), baseName + ".meta");
@@ -182,6 +189,7 @@ public class DumpMeshCommand extends CommandBase {
         } catch (IOException e) {
             throw new RuntimeException("Failed to dump mesh metadata to " + metaFile.getAbsolutePath(), e);
         }
+        return metaFile;
     }
 
     private static void appendVector(StringBuilder output, String name, Vector3i vector) {

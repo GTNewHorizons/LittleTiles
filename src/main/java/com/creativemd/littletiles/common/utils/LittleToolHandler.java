@@ -149,16 +149,7 @@ public class LittleToolHandler {
     }
 
     public static ForgeDirection getDirectionForNormal(Vector3d normal) {
-        Plane3d ret = null;
-        double biggestDot = -1;
-        for (Plane3d plane : Plane3d.planes) {
-            double dot = plane.getNormal().dot(normal);
-            if (dot > biggestDot) {
-                biggestDot = dot;
-                ret = plane;
-            }
-        }
-        return ret.getDirection();
+        return Plane3d.getPlaneForNormal(normal).getDirection();
     }
 
     private static Vector3f toVector3f(Vec3 vec) {

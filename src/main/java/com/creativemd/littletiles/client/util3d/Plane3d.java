@@ -126,7 +126,10 @@ public class Plane3d {
     private static final double PLANE_EPSILON = 1.0E-4;
 
     public static Plane3d getPlaneForTriangle(Triangle3d triangle) {
-        Vector3d normal = triangle.getNormal();
+        return getPlaneForNormal(triangle.getNormal());
+    }
+
+    public static Plane3d getPlaneForNormal(Vector3d normal) {
         Plane3d ret = null;
         double biggestDot = -1;
         for (Plane3d plane : planes) {

@@ -151,8 +151,10 @@ public class TileEntityLittleTiles extends TileEntity {
     @SideOnly(Side.CLIENT)
     public double getMaxRenderDistanceSquared() {
         double renderDistance = 0;
-        for (LittleTile tile : tiles) {
-            renderDistance = Math.max(renderDistance, tile.getMaxRenderDistanceSquared());
+        synchronized (tiles) {
+            for (LittleTile tile : tiles) {
+                renderDistance = Math.max(renderDistance, tile.getMaxRenderDistanceSquared());
+            }
         }
         return renderDistance;
     }

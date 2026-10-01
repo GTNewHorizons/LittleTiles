@@ -164,13 +164,11 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
             cutoutInfo.thickness = 5;
             cutoutInfo.faceStart = ForgeDirection.SOUTH;
             cutoutInfo.faceEnd = ForgeDirection.UP;
-            Mesh3d mesh = Mesh3dUtil
-                    .createMesh(cutoutInfo, new Vector3d(1, 1, 1), new Vector3d(), ZERO, ZERO, FULL_TILE, null, 0, 0);
+            Mesh3d mesh = Mesh3dUtil.createMesh(cutoutInfo, new Vector3d(1, 1, 1), ZERO, ZERO, FULL_TILE, null, 0, 0);
             return mesh;
         }
 
-        Mesh3d mesh = Mesh3dUtil
-                .createMesh(cutoutInfo, new Vector3d(1, 1, 1), new Vector3d(), ZERO, ZERO, FULL_TILE, null, 0, 0);
+        Mesh3d mesh = Mesh3dUtil.createMesh(cutoutInfo, new Vector3d(1, 1, 1), ZERO, ZERO, FULL_TILE, null, 0, 0);
         return mesh;
     }
 

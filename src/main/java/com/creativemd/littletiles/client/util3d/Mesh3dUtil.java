@@ -42,9 +42,6 @@ public class Mesh3dUtil {
 
     public static Mesh3d meshFromTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
         return Mesh3dUtil.createMesh(
-                0,
-                0,
-                0,
                 cutoutInfo,
                 box.minX / 16.0,
                 box.minY / 16.0,
@@ -56,9 +53,9 @@ public class Mesh3dUtil {
                 0);
     }
 
-    public static Mesh3d createMesh(int x, int y, int z, LittleTileCutoutInfo cutoutInfo, double minX, double minY,
-            double minZ, double maxX, double maxY, double maxZ, Block block, int meta) {
-        Vector3d pos = new Vector3d(x, y, z);
+    /** The mesh of a cube given in blocks, relative to its own block. */
+    public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, double minX, double minY, double minZ,
+            double maxX, double maxY, double maxZ, Block block, int meta) {
         Vector3d cutoutScale = new Vector3d(
                 cutoutInfo.size.x / 16.0,
                 cutoutInfo.size.y / 16.0,
@@ -74,7 +71,6 @@ public class Mesh3dUtil {
         return Mesh3dUtil.createMesh(
                 cutoutInfo,
                 cutoutScale,
-                pos,
                 cutoutInfo.pos,
                 posSubMin,
                 posSubMax,
@@ -378,8 +374,8 @@ public class Mesh3dUtil {
         return mesh;
     }
 
-    public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3d cutoutScale, Vector3d pos,
-            Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
+    public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3d cutoutScale, Vector3i posCutout,
+            Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
         Mesh3d mesh = switch (cutoutInfo.type) {
             case SLOPE -> MESH_SLOPE.copy();
             case PILLAR -> {
@@ -454,7 +450,6 @@ public class Mesh3dUtil {
         if (block != null) {
             mesh.setTextures(block, meta);
         }
-        mesh.translate(pos);
 
         return mesh;
     }

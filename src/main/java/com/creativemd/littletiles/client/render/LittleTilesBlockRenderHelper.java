@@ -97,7 +97,6 @@ public class LittleTilesBlockRenderHelper {
         Mesh3d mesh = Mesh3dUtil.createMesh(
                 cutoutInfo,
                 cutoutScale,
-                new Vector3d(),
                 posCutout,
                 posSubMin,
                 posSubMax,

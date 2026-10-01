@@ -86,7 +86,6 @@ public class BlockOverlayRenderer implements IItemRenderer {
             mesh = Mesh3dUtil.createMesh(
                     cutoutInfo,
                     new Vector3d(1, 1, 1),
-                    new Vector3d(),
                     new Vector3i(),
                     new Vector3i(),
                     new Vector3i(16, 16, 16),

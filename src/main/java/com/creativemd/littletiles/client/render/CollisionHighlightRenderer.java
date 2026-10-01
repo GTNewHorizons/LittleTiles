@@ -18,6 +18,7 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 
 import org.lwjgl.opengl.GL11;
 
+import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
@@ -41,14 +42,32 @@ public class CollisionHighlightRenderer {
     private static final float MAX_ALPHA = 0.7F;
 
     private final List<AxisAlignedBB> cachedBoxes = new ArrayList<>();
-    private final List<Mesh3d> cachedMeshes = new ArrayList<>();
+    private final List<PlacedMesh> cachedMeshes = new ArrayList<>();
     private final WeakHashMap<LittleTile, TileCache> tileCache = new WeakHashMap<>();
     private int ticksSinceRefresh = REFRESH_INTERVAL_TICKS;
 
     private static final class TileCache {
 
         final List<AxisAlignedBB> boxes = new ArrayList<>();
-        final List<Mesh3d> meshes = new ArrayList<>();
+        final List<PlacedMesh> meshes = new ArrayList<>();
+    }
+
+    /** A mesh relative to its block, along with where that block is. */
+    private static final class PlacedMesh {
+
+        final Mesh3d mesh;
+        final int x, y, z;
+
+        PlacedMesh(Mesh3d mesh, int x, int y, int z) {
+            this.mesh = mesh;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        void emitVertex(Vector3d point, double camX, double camY, double camZ) {
+            GL11.glVertex3d(x + point.x - camX, y + point.y - camY, z + point.z - camZ);
+        }
     }
 
     @SubscribeEvent
@@ -108,11 +127,11 @@ public class CollisionHighlightRenderer {
         GL11.glEnd();
 
         GL11.glBegin(GL11.GL_TRIANGLES);
-        for (Mesh3d mesh : cachedMeshes) {
-            for (Triangle3d t : mesh.getTriangles()) {
-                GL11.glVertex3d(t.getP1().x - camX, t.getP1().y - camY, t.getP1().z - camZ);
-                GL11.glVertex3d(t.getP2().x - camX, t.getP2().y - camY, t.getP2().z - camZ);
-                GL11.glVertex3d(t.getP3().x - camX, t.getP3().y - camY, t.getP3().z - camZ);
+        for (PlacedMesh placed : cachedMeshes) {
+            for (Triangle3d t : placed.mesh.getTriangles()) {
+                placed.emitVertex(t.getP1(), camX, camY, camZ);
+                placed.emitVertex(t.getP2(), camX, camY, camZ);
+                placed.emitVertex(t.getP3(), camX, camY, camZ);
             }
         }
         GL11.glEnd();
@@ -153,9 +172,6 @@ public class CollisionHighlightRenderer {
                                     cached.boxes.add(cube.getAxis().offset(te.xCoord, te.yCoord, te.zCoord));
                                 } else {
                                     Mesh3d mesh = Mesh3dUtil.createMesh(
-                                            te.xCoord,
-                                            te.yCoord,
-                                            te.zCoord,
                                             cube.cutoutInfo,
                                             cube.minX,
                                             cube.minY,
@@ -166,7 +182,7 @@ public class CollisionHighlightRenderer {
                                             cube.block,
                                             cube.meta);
                                     for (Triangle3d t : mesh.getTriangles()) t.inflate(EPSILON);
-                                    cached.meshes.add(mesh);
+                                    cached.meshes.add(new PlacedMesh(mesh, te.xCoord, te.yCoord, te.zCoord));
                                 }
                             }
                             tileCache.put(tile, cached);

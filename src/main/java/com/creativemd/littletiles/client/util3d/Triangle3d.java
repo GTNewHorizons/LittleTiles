@@ -113,10 +113,6 @@ public class Triangle3d {
         return normal;
     }
 
-    public double getArea() {
-        return unnormalizedNormal().length() / 2;
-    }
-
     /**
      * Computes this triangle's signed solid angle relative to a point.
      *
@@ -274,6 +270,38 @@ public class Triangle3d {
                 && max(p1.y, p2.y, p3.y) + SPLIT_EPSILON >= min(other.p1.y, other.p2.y, other.p3.y)
                 && min(p1.z, p2.z, p3.z) <= max(other.p1.z, other.p2.z, other.p3.z) + SPLIT_EPSILON
                 && max(p1.z, p2.z, p3.z) + SPLIT_EPSILON >= min(other.p1.z, other.p2.z, other.p3.z);
+    }
+
+    /**
+     * Whether this triangle and another one in the same plane cover some area together, rather than at most touching at
+     * an edge or a corner. Two triangles in a plane are apart exactly when one of their edges has all of the other on
+     * its outside, the edge itself counting as outside.
+     */
+    public boolean overlaps(Triangle3d other) {
+        Vector3d normal = unnormalizedNormal();
+        double doubleArea = normal.length();
+        if (doubleArea <= SPLIT_EPSILON || other.unnormalizedNormal().length() <= SPLIT_EPSILON) {
+            return false;
+        }
+        normal.scale(1 / doubleArea);
+        return !hasSeparatingEdge(this, other, normal) && !hasSeparatingEdge(other, this, normal);
+    }
+
+    /** Whether one of the edges of {@code triangle} has all corners of {@code other} on its outside or on it. */
+    private static boolean hasSeparatingEdge(Triangle3d triangle, Triangle3d other, Vector3d normal) {
+        // the inside of every edge is the side the triangle's remaining corner is on
+        double winding = Math.signum(signedArea(triangle.p1, triangle.p2, triangle.p3, normal));
+        Vector3d[] corners = { triangle.p1, triangle.p2, triangle.p3 };
+        for (int i = 0; i < 3; i++) {
+            Vector3d start = corners[i];
+            Vector3d end = corners[(i + 1) % 3];
+            if (winding * signedArea(start, end, other.p1, normal) <= SPLIT_EPSILON
+                    && winding * signedArea(start, end, other.p2, normal) <= SPLIT_EPSILON
+                    && winding * signedArea(start, end, other.p3, normal) <= SPLIT_EPSILON) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Whether this triangle and another lie in the same plane. */

@@ -148,12 +148,6 @@ public class Mesh3dUtil {
     private static final double OUTWARD_EPSILON_SQUARED = 1.0E-12;
 
     /**
-     * Overlap, in square grid units, below which two coplanar triangles only touch. Well above the slivers
-     * {@link Triangle3d#split} drops, well below anything the grid can actually produce.
-     */
-    private static final double OVERLAP_AREA_EPSILON = 1.0E-3;
-
-    /**
      * The 4 corners of every box face, in ring order, indexed as described by {@link #DEFORMED_BOX_CORNER_COUNT}. The
      * order of the faces themselves is the one {@link #nominalFaceNormal(int)} relies on.
      */
@@ -288,13 +282,7 @@ public class Mesh3dUtil {
             Triangle3d triangle = triangles.get(i);
             for (int j = i + 1; j < triangles.size(); j++) {
                 Triangle3d other = triangles.get(j);
-                if (!triangle.boundsOverlap(other) || !triangle.isCoplanar(other)) continue;
-
-                double uncovered = 0;
-                for (Triangle3d piece : triangle.split(other)) {
-                    uncovered += piece.getArea();
-                }
-                if (triangle.getArea() - uncovered > OVERLAP_AREA_EPSILON) {
+                if (triangle.boundsOverlap(other) && triangle.isCoplanar(other) && triangle.overlaps(other)) {
                     return false;
                 }
             }

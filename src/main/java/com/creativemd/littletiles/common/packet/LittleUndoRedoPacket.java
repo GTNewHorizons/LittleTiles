@@ -3,7 +3,7 @@ package com.creativemd.littletiles.common.packet;
 import net.minecraft.entity.player.EntityPlayer;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
-import com.creativemd.littletiles.common.utils.LittleTilesPlacementHistory;
+import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;

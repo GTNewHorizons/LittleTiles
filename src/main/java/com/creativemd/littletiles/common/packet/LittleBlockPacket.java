@@ -16,6 +16,8 @@ import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.WorldUtils;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.blocks.BlockTile;
+import com.creativemd.littletiles.common.history.LittleTileChangeRecorder;
+import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.items.ItemColorTube;
 import com.creativemd.littletiles.common.items.ItemTileContainer;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -124,11 +126,18 @@ public class LittleBlockPacket extends CreativeCorePacket {
                             BlockTile.cancelNext = true;
                         break;
                     case DESTROY:
+                        boolean creative = player.capabilities.isCreativeMode;
+                        LittleTileChangeRecorder recorder = new LittleTileChangeRecorder(player.worldObj);
+                        if (creative) recorder.watch(littleEntity.getCoord());
                         tile.destroy();
                         // littleEntity.removeTile(tile);
-                        if (!player.capabilities.isCreativeMode)
-                            WorldUtils.dropItem(player.worldObj, tile.getDrops(), x, y, z);
+                        if (!creative) WorldUtils.dropItem(player.worldObj, tile.getDrops(), x, y, z);
                         littleEntity.update();
+                        if (creative) LittleTilesPlacementHistory.recordAction(
+                                player,
+                                new LittleTilesPlacementHistory.PlacementAction(
+                                        player.worldObj.provider.dimensionId,
+                                        recorder.finish().createPlan()));
                         break;
                     case SAW:
                         try {

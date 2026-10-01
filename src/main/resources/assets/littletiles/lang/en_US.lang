@@ -61,3 +61,5 @@ littletiles.command.dumpmesh.error=No mesh under cursor.
 littletiles.command.dumpmesh.success=Mesh dumped to %s
 message.littletiles.tile_collision.disabled=Tile collision disabled
 message.littletiles.tile_collision.enabled=Tile collision enabled
+littletiles.history.undo_failed=Cannot undo: Change doesn't apply anymore, world changed.
+littletiles.history.redo_failed=Cannot redo: Change doesn't apply anymore, world changed.

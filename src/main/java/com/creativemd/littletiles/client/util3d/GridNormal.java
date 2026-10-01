@@ -11,7 +11,8 @@ import com.creativemd.creativecore.lib.Vector3d;
 public class GridNormal extends Vector3L {
 
     public GridNormal(long x, long y, long z) {
-        super(x, y, z);
+        // Vector3L has no constructor taking longs
+        set(x, y, z);
     }
 
     public boolean isZero() {

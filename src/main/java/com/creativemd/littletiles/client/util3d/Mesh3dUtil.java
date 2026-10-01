@@ -384,9 +384,7 @@ public class Mesh3dUtil {
         };
 
         if (cutoutInfo.type != LittleTileShapeMode.PILLAR) {
-            mesh.translate(new Vector3d(-0.5, -0.5, -0.5));
-            mesh.rotate(orientation);
-            mesh.translate(new Vector3d(0.5, 0.5, 0.5));
+            mesh.rotate(orientation, new Vector3d(1, 1, 1));
         }
 
         mesh.scale(cutoutScale);

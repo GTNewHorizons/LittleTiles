@@ -346,10 +346,18 @@ public class Mesh3d {
 
     }
 
-    public void rotate(int orientation) {
+    /**
+     * Rotates the mesh within the box from the origin to {@code size}, so that afterwards it fills the rotated box from
+     * the origin to {@code size} rotated as well.
+     */
+    public void rotate(int orientation, Vector3d size) {
+        Vector3f rotatedSize = OrientationMapper.fromId(orientation).transform(size.toVector3f());
+        rotatedSize.absolute();
+        translate(new Vector3d(-size.x / 2, -size.y / 2, -size.z / 2));
         for (Triangle3d triangle : triangles) {
             triangle.rotate(orientation);
         }
+        translate(new Vector3d(rotatedSize.x / 2, rotatedSize.y / 2, rotatedSize.z / 2));
     }
 
     public Mesh3d copy() {

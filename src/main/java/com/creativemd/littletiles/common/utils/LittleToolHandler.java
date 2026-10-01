@@ -306,7 +306,8 @@ public class LittleToolHandler {
         return new Vector3i(cutoutPosX, cutoutPosY, cutoutPosZ);
     }
 
-    public Vector3d getTileSize() {
+    /** The size of the cutout, in tile pixels. */
+    public Vector3i getTileSize() {
         NBTTagCompound nbt = getTag(false);
         if (!nbt.hasKey("cutoutSizeX")) {
             return null;
@@ -314,6 +315,6 @@ public class LittleToolHandler {
         int cutoutSizeX = nbt.getInteger("cutoutSizeX");
         int cutoutSizeY = nbt.getInteger("cutoutSizeY");
         int cutoutSizeZ = nbt.getInteger("cutoutSizeZ");
-        return new Vector3d(cutoutSizeX / 16.0, cutoutSizeY / 16.0, cutoutSizeZ / 16.0);
+        return new Vector3i(cutoutSizeX, cutoutSizeY, cutoutSizeZ);
     }
 }

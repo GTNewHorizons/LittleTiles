@@ -27,7 +27,6 @@ import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widget.sizer.Area;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
-import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
@@ -164,11 +163,11 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
             cutoutInfo.thickness = 5;
             cutoutInfo.faceStart = ForgeDirection.SOUTH;
             cutoutInfo.faceEnd = ForgeDirection.UP;
-            Mesh3d mesh = Mesh3dUtil.createMesh(cutoutInfo, new Vector3d(1, 1, 1), ZERO, ZERO, FULL_TILE, null, 0, 0);
+            Mesh3d mesh = Mesh3dUtil.createMesh(cutoutInfo, cutoutInfo.size, ZERO, ZERO, FULL_TILE, null, 0, 0);
             return mesh;
         }
 
-        Mesh3d mesh = Mesh3dUtil.createMesh(cutoutInfo, new Vector3d(1, 1, 1), ZERO, ZERO, FULL_TILE, null, 0, 0);
+        Mesh3d mesh = Mesh3dUtil.createMesh(cutoutInfo, cutoutInfo.size, ZERO, ZERO, FULL_TILE, null, 0, 0);
         return mesh;
     }
 

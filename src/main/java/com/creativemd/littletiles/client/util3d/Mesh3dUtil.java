@@ -56,10 +56,6 @@ public class Mesh3dUtil {
     /** The mesh of a cube given in blocks, relative to its own block. */
     public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, double minX, double minY, double minZ,
             double maxX, double maxY, double maxZ, Block block, int meta) {
-        Vector3d cutoutScale = new Vector3d(
-                cutoutInfo.size.x / 16.0,
-                cutoutInfo.size.y / 16.0,
-                cutoutInfo.size.z / 16.0);
         Vector3i posSubMin = new Vector3i();
         posSubMin.x = (int) Math.round(minX * 16);
         posSubMin.y = (int) Math.round(minY * 16);
@@ -70,7 +66,7 @@ public class Mesh3dUtil {
         posSubMax.z = (int) Math.round(maxZ * 16);
         return Mesh3dUtil.createMesh(
                 cutoutInfo,
-                cutoutScale,
+                cutoutInfo.size,
                 cutoutInfo.pos,
                 posSubMin,
                 posSubMax,
@@ -374,8 +370,10 @@ public class Mesh3dUtil {
         return mesh;
     }
 
-    public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3d cutoutScale, Vector3i posCutout,
+    /** @param cutoutSize the size of the whole cutout, in tile pixels */
+    public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3i cutoutSize, Vector3i posCutout,
             Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
+        Vector3d cutoutScale = new Vector3d(cutoutSize.x / 16.0, cutoutSize.y / 16.0, cutoutSize.z / 16.0);
         Mesh3d mesh = switch (cutoutInfo.type) {
             case SLOPE -> MESH_SLOPE.copy();
             case PILLAR -> {

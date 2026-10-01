@@ -47,8 +47,9 @@ public class LittleTilesBlockRenderHelper {
     /** How far preview overlays are pulled off the grid planes to prevent z-fighting, in blocks. */
     static final double Z_FIGHT_EPSILON = 0.002;
 
+    /** @param cutoutSize in tile pixels, null to make the cutout as big as the shape */
     public static void renderShape(LittleTileShapeMode shape, double centerX, double centerY, double centerZ, Vec3 size,
-            Vector3d cutoutScale, int orientation, Vector3i posCutout, Vec3 color, double alpha,
+            Vector3i cutoutSize, int orientation, Vector3i posCutout, Vec3 color, double alpha,
             LittleTileCutoutInfo cutoutInfo) {
         if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
             // Grown slightly so a side resting on a block face sinks behind it instead of z-fighting with it.
@@ -67,18 +68,18 @@ public class LittleTilesBlockRenderHelper {
                     color.zCoord,
                     alpha);
         } else {
-            if (cutoutScale == null) {
-                cutoutScale = new Vector3d(size.xCoord, size.yCoord, size.zCoord);
-            }
             Vector3i posSubMax = new Vector3i(
                     (int) Math.round(size.xCoord * 16),
                     (int) Math.round(size.yCoord * 16),
                     (int) Math.round(size.zCoord * 16));
+            if (cutoutSize == null) {
+                cutoutSize = posSubMax;
+            }
             renderMesh(
                     centerX - size.xCoord / 2D,
                     centerY - size.yCoord / 2D,
                     centerZ - size.zCoord / 2D,
-                    cutoutScale,
+                    cutoutSize,
                     orientation,
                     color.xCoord,
                     color.yCoord,
@@ -91,12 +92,12 @@ public class LittleTilesBlockRenderHelper {
         }
     }
 
-    public static void renderMesh(double x, double y, double z, Vector3d cutoutScale, int orientation, double red,
+    public static void renderMesh(double x, double y, double z, Vector3i cutoutSize, int orientation, double red,
             double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax,
             LittleTileCutoutInfo cutoutInfo) {
         Mesh3d mesh = Mesh3dUtil.createMesh(
                 cutoutInfo,
-                cutoutScale,
+                cutoutSize,
                 posCutout,
                 posSubMin,
                 posSubMax,

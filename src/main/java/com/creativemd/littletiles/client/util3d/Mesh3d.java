@@ -68,6 +68,16 @@ public class Mesh3d {
     private static final AtomicInteger dumpCount = new AtomicInteger();
 
     public File dumpMesh() {
+        return dumpMesh("DumpMesh", nextDumpIndex());
+    }
+
+    /** Reserves an index for {@link #dumpMesh(String, int)}, so related dumps can share it. */
+    public static int nextDumpIndex() {
+        return dumpCount.getAndIncrement();
+    }
+
+    /** Dumps into {@code logs/littleTiles<name><index>.obj}. */
+    public File dumpMesh(String name, int index) {
         File mcDir;
         if (FMLCommonHandler.instance().getSide().isClient()) {
             mcDir = Minecraft.getMinecraft().mcDataDir;
@@ -75,7 +85,7 @@ public class Mesh3d {
             mcDir = new File(".");
         }
         File logsFolder = new File(mcDir, "logs");
-        File outFile = new File(logsFolder, "littleTilesDumpMesh" + dumpCount.getAndIncrement() + ".obj");
+        File outFile = new File(logsFolder, "littleTiles" + name + index + ".obj");
         exportObj(outFile);
         FMLLog.getLogger().info("Dumped mesh into " + outFile.getAbsolutePath());
         return outFile;

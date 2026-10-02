@@ -47,8 +47,9 @@ public class LittleTilesBlockRenderHelper {
     /** How far preview overlays are pulled off the grid planes to prevent z-fighting, in blocks. */
     static final double Z_FIGHT_EPSILON = 0.002;
 
+    /** @param cutoutSize in tile pixels, null to make the cutout as big as the shape */
     public static void renderShape(LittleTileShapeMode shape, double centerX, double centerY, double centerZ, Vec3 size,
-            Vector3d cutoutScale, int orientation, Vector3i posCutout, Vec3 color, double alpha,
+            Vector3i cutoutSize, int orientation, Vector3i posCutout, Vec3 color, double alpha,
             LittleTileCutoutInfo cutoutInfo) {
         if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
             // Grown slightly so a side resting on a block face sinks behind it instead of z-fighting with it.
@@ -67,18 +68,18 @@ public class LittleTilesBlockRenderHelper {
                     color.zCoord,
                     alpha);
         } else {
-            if (cutoutScale == null) {
-                cutoutScale = new Vector3d(size.xCoord, size.yCoord, size.zCoord);
-            }
             Vector3i posSubMax = new Vector3i(
                     (int) Math.round(size.xCoord * 16),
                     (int) Math.round(size.yCoord * 16),
                     (int) Math.round(size.zCoord * 16));
+            if (cutoutSize == null) {
+                cutoutSize = posSubMax;
+            }
             renderMesh(
                     centerX - size.xCoord / 2D,
                     centerY - size.yCoord / 2D,
                     centerZ - size.zCoord / 2D,
-                    cutoutScale,
+                    cutoutSize,
                     orientation,
                     color.xCoord,
                     color.yCoord,
@@ -91,19 +92,11 @@ public class LittleTilesBlockRenderHelper {
         }
     }
 
-    public static void renderMesh(double x, double y, double z, Vector3d cutoutScale, int orientation, double red,
+    public static void renderMesh(double x, double y, double z, Vector3i cutoutSize, int orientation, double red,
             double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax,
             LittleTileCutoutInfo cutoutInfo) {
-        Mesh3d mesh = Mesh3dUtil.createMesh(
-                cutoutInfo,
-                cutoutScale,
-                new Vector3d(),
-                posCutout,
-                posSubMin,
-                posSubMax,
-                null,
-                0,
-                orientation);
+        Mesh3d mesh = Mesh3dUtil
+                .createMesh(cutoutInfo, cutoutSize, posCutout, posSubMin, posSubMax, null, 0, orientation);
 
         GL11.glColor4d(red, green, blue, alpha);
 
@@ -116,19 +109,18 @@ public class LittleTilesBlockRenderHelper {
         GL11.glEnd();
     }
 
-    /** Emits a mesh vertex offset by x, y, z, which are relative to the camera sitting at the origin. */
-    private static void vertexFromCamera(double x, double y, double z, Vector3d point) {
-        Vector3d vec = pullTowardsCamera(x + point.x, y + point.y, z + point.z);
-        GL11.glVertex3d(vec.x, vec.y, vec.z);
-    }
-
     /**
-     * A shape that is not axis-aligned cannot simply be grown like a box. Pulling each vertex towards the camera, which
-     * sits at the origin while rendering, lifts it off any face from every angle.
+     * Emits a mesh vertex offset by x, y, z, which are relative to the camera sitting at the origin.
+     * <p>
+     * A shape that is not axis-aligned cannot simply be grown like a box. Pulling each vertex towards the camera lifts
+     * it off any face from every angle.
      */
-    static Vector3d pullTowardsCamera(double x, double y, double z) {
-        double scale = Math.max(0, 1 - Z_FIGHT_EPSILON / Math.sqrt(x * x + y * y + z * z));
-        return new Vector3d(x * scale, y * scale, z * scale);
+    private static void vertexFromCamera(double x, double y, double z, Vector3d point) {
+        double px = x + point.x;
+        double py = y + point.y;
+        double pz = z + point.z;
+        double scale = Math.max(0, 1 - Z_FIGHT_EPSILON / Math.sqrt(px * px + py * py + pz * pz));
+        GL11.glVertex3d(px * scale, py * scale, pz * scale);
     }
 
     /** What became of a cutout tile. */
@@ -175,10 +167,9 @@ public class LittleTilesBlockRenderHelper {
 
     private static void renderTriangles(int x, int y, int z, LittleTilesCubeObject cube, List<Triangle3d> triangles,
             IBlockAccess world) {
-        // cut results are cached on the tile and must not be textured or translated in place
+        // cut results are cached on the tile and must not be textured in place
         Mesh3d mesh = new Mesh3d(triangles).copy();
         mesh.setTextures(cube.block, cube.meta);
-        mesh.translate(new Vector3d(x, y, z));
         Tessellator tess = Tessellator.instance;
 
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
@@ -199,6 +190,7 @@ public class LittleTilesBlockRenderHelper {
                 LittleTiles.angelicaCompat.beginAmbientOcclusion(tess);
             }
 
+            // the mesh is relative to its block, so the block position is added on the way out
             for (Triangle3d triangle : mesh.getTriangles()) {
                 Vector3d p1 = triangle.getP1();
                 Vector3d p2 = triangle.getP2();
@@ -208,10 +200,10 @@ public class LittleTilesBlockRenderHelper {
                 Vector2d tex3 = triangle.getTex3();
                 tess.setColorOpaque_I(
                         topTintOnly && triangle.getFaceDirection() != ForgeDirection.UP ? ColorUtils.WHITE : color);
-                tess.addVertexWithUV(p1.x, p1.y, p1.z, tex1.x, tex1.y);
-                tess.addVertexWithUV(p2.x, p2.y, p2.z, tex2.x, tex2.y);
-                tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
-                tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
+                tess.addVertexWithUV(x + p1.x, y + p1.y, z + p1.z, tex1.x, tex1.y);
+                tess.addVertexWithUV(x + p2.x, y + p2.y, z + p2.z, tex2.x, tex2.y);
+                tess.addVertexWithUV(x + p3.x, y + p3.y, z + p3.z, tex3.x, tex3.y);
+                tess.addVertexWithUV(x + p3.x, y + p3.y, z + p3.z, tex3.x, tex3.y);
             }
         } finally {
             if (useAngelicaAmbientOcclusion) {

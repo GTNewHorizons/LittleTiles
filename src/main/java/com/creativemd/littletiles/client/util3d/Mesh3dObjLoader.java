@@ -50,7 +50,12 @@ public class Mesh3dObjLoader {
                 int b = Integer.parseInt(tok[2]) - 1;
                 int c = Integer.parseInt(tok[3]) - 1;
 
-                triangles.add(new Triangle3d(vertices.get(a), vertices.get(b), vertices.get(c)));
+                // copies, as the triangles of a mesh must not share points
+                triangles.add(
+                        new Triangle3d(
+                                new Vector3d(vertices.get(a)),
+                                new Vector3d(vertices.get(b)),
+                                new Vector3d(vertices.get(c))));
             }
         }
 

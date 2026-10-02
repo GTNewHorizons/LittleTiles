@@ -456,4 +456,12 @@ public class Mesh3dUtil {
 
         return mesh;
     }
+
+    static int min(int a, int b, int c) {
+        return Math.min(a, Math.min(b, c));
+    }
+
+    static int max(int a, int b, int c) {
+        return Math.max(a, Math.max(b, c));
+    }
 }

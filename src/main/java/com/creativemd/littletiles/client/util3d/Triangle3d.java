@@ -1,5 +1,8 @@
 package com.creativemd.littletiles.client.util3d;
 
+import static com.creativemd.littletiles.client.util3d.Mesh3dUtil.max;
+import static com.creativemd.littletiles.client.util3d.Mesh3dUtil.min;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -302,14 +305,6 @@ public class Triangle3d {
     public boolean isCoplanar(Triangle3d other) {
         GridNormal normal = unnormalizedNormal();
         return !normal.isZero() && other.isCoplanarWith(this, normal);
-    }
-
-    private static int min(int a, int b, int c) {
-        return Math.min(a, Math.min(b, c));
-    }
-
-    private static int max(int a, int b, int c) {
-        return Math.max(a, Math.max(b, c));
     }
 
     /**

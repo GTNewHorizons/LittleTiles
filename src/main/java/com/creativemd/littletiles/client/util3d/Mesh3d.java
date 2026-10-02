@@ -130,7 +130,7 @@ public class Mesh3d {
                     if (belowCount == 1) {
                         GridVector firstOn = side1 == 0 ? p1 : p2;
                         GridVector secondOn = side3 == 0 ? p3 : p2;
-                        existingEdges.add(new Edge3d(firstOn, secondOn));
+                        Edge3d.addOrCancel(existingEdges, firstOn, secondOn);
                     }
                 }
                 continue;

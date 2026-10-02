@@ -14,6 +14,22 @@ public class Edge3d {
     }
 
     /**
+     * Adds the edge from {@code p1} to {@code p2}, unless it is already in the list in either direction, in which case
+     * that one is removed instead. In a closed mesh every edge belongs to two triangles: if both of them are kept, the
+     * plane only touches the mesh along the edge, so it is no border of the cap and would leave a spur in the loop.
+     */
+    public static void addOrCancel(List<Edge3d> edges, GridVector p1, GridVector p2) {
+        for (int i = 0; i < edges.size(); i++) {
+            Edge3d edge = edges.get(i);
+            if ((edge.p1.equals(p1) && edge.p2.equals(p2)) || (edge.p1.equals(p2) && edge.p2.equals(p1))) {
+                edges.remove(i);
+                return;
+            }
+        }
+        edges.add(new Edge3d(p1, p2));
+    }
+
+    /**
      * Chains the edges into a loop. Points are on the grid, so edges connect only where their ends are identical.
      *
      * @return the points along the loop, or null when the edges do not connect

@@ -191,7 +191,8 @@ public class LittleBagItemHandler extends ItemStackHandler {
         save();
     }
 
-    private void save() {
+    /** Writes the contents to the bag. */
+    public void save() {
         LittleBagStock stock = new LittleBagStock();
         for (int slot = 0; slot < getSlots(); slot++) {
             // Little tiles stay intact as long as they sit in a slot, they are only decomposed when the bag is saved.

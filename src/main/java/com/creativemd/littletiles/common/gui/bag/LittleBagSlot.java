@@ -48,6 +48,16 @@ public class LittleBagSlot extends ModularSlot {
         return this.handler.getStackLimit(this.slot, stack) >= stack.stackSize;
     }
 
+    /**
+     * The gui changes the size of a stack in place when it takes part of it or merges onto it, which the handler does
+     * not notice: putting back the same stack is skipped. Every such path ends here, so the bag is saved here as well.
+     */
+    @Override
+    public void onSlotChanged() {
+        super.onSlotChanged();
+        this.handler.save();
+    }
+
     private boolean isInHotbar(ItemStack stack) {
         InventoryPlayer inventory = getPlayer().inventory;
         for (int i = 0; i < InventoryPlayer.getHotbarSize(); i++) {

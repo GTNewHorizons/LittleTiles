@@ -52,7 +52,10 @@ public class LittleTilesBlockRenderHelper {
     public static void renderShape(LittleTileShapeMode shape, double centerX, double centerY, double centerZ, Vec3 size,
             Vector3i cutoutSize, int orientation, Vector3i posCutout, Vec3 color, double alpha,
             LittleTileCutoutInfo cutoutInfo) {
-        if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
+        // An inverted pillar is no longer box-like, so it has to show its actual mesh
+        boolean boxPreview = shape == LittleTileShapeMode.BOX
+                || shape == LittleTileShapeMode.PILLAR && (cutoutInfo == null || !cutoutInfo.inverted);
+        if (boxPreview) {
             // Grown slightly so a side resting on a block face sinks behind it instead of z-fighting with it.
             RenderHelper3D.renderBlock(
                     centerX,

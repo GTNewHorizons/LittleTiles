@@ -297,6 +297,18 @@ public class LittleTileBox {
                 && (box.maxY > this.minY && box.minY < this.maxY && box.maxZ > this.minZ && box.minZ < this.maxZ);
     }
 
+    /** The box both boxes cover, or null if they do not share any volume. */
+    public LittleTileBox intersection(LittleTileBox other) {
+        LittleTileBox box = new LittleTileBox(
+                Math.max(minX, other.minX),
+                Math.max(minY, other.minY),
+                Math.max(minZ, other.minZ),
+                Math.min(maxX, other.maxX),
+                Math.min(maxY, other.maxY),
+                Math.min(maxZ, other.maxZ));
+        return box.isValidBox() ? box : null;
+    }
+
     public boolean isBoxInsideBlock() {
         return minX >= LittleTile.minPos && maxX <= LittleTile.maxPos
                 && minY >= LittleTile.minPos

@@ -166,6 +166,7 @@ public class DumpMeshCommand extends CommandBase {
             meta.append("cutout.faceEnd=").append(cutout.faceEnd).append('\n');
             meta.append("cutout.negativeAxes=").append(cutout.negX).append(',').append(cutout.negY).append(',')
                     .append(cutout.negZ).append('\n');
+            meta.append("cutout.inverted=").append(cutout.inverted).append('\n');
             if (cutout.corners != null) {
                 LittleTileBox cornerBounds = LittleTileBox.fromPoints(cutout.corners);
                 meta.append("cutout.cornerBounds.min=").append(cornerBounds.minX).append(',').append(cornerBounds.minY)

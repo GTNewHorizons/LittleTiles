@@ -24,6 +24,11 @@ public class LittleTileCutoutInfo {
      * described by <code>Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT</code>. Null for every other shape.
      */
     public Vector3i[] corners;
+    /**
+     * Whether the tile is the anti mesh of its shape: everything inside the tile box the shape itself does not cover.
+     * {@link LittleTilePlaceMode#ANTI_FILL} creates these to fill against existing shapes.
+     */
+    public boolean inverted;
 
     public LittleTileCutoutInfo() {
         size = new Vector3i();
@@ -41,6 +46,7 @@ public class LittleTileCutoutInfo {
         negY = other.negY;
         negZ = other.negZ;
         corners = copyCorners(other.corners);
+        inverted = other.inverted;
     }
 
     public static Vector3i[] copyCorners(Vector3i[] corners) {
@@ -131,6 +137,7 @@ public class LittleTileCutoutInfo {
         cutoutInfo.negX = nbt.getBoolean("cutoutNegX");
         cutoutInfo.negY = nbt.getBoolean("cutoutNegY");
         cutoutInfo.negZ = nbt.getBoolean("cutoutNegZ");
+        cutoutInfo.inverted = nbt.getBoolean("cutoutInverted");
         if (cutoutInfo.type == LittleTileShapeMode.DEFORMED_BOX) {
             cutoutInfo.corners = new Vector3i[Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT];
             for (int i = 0; i < cutoutInfo.corners.length; i++) {
@@ -171,6 +178,9 @@ public class LittleTileCutoutInfo {
             for (int i = 0; i < corners.length; i++) {
                 writeVec(nbt, "cutoutCorner" + i, corners[i]);
             }
+        }
+        if (inverted) {
+            nbt.setBoolean("cutoutInverted", true);
         }
     }
 }

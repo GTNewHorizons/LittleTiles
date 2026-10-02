@@ -556,6 +556,43 @@ public abstract class LittleTile {
         return ret;
     }
 
+    /** Whether this tile actually overlaps the other one, taking both of their shapes into account. */
+    public boolean collidesWith(LittleTile other) {
+        if (!overlapsTile(other)) {
+            return false;
+        }
+        Mesh3d mesh = cutoutInfo == null ? null : Mesh3dUtil.meshFromTile(boundingBox, cutoutInfo);
+        Mesh3d otherMesh = other.cutoutInfo == null ? null
+                : Mesh3dUtil.meshFromTile(other.boundingBox, other.cutoutInfo);
+        return TileEntityLittleTiles.collides(boundingBox, mesh, other.boundingBox, otherMesh);
+    }
+
+    /**
+     * A copy of this tile filling the part of its box the other tile's shape leaves free: it is cut to the box both
+     * tiles share and carries the other tile's shape inverted. Null if there is nothing left to fill.
+     */
+    public LittleTile antiTileAgainst(LittleTile other) {
+        LittleTileBox box = boundingBox.intersection(other.boundingBox);
+        if (box == null || other.cutoutInfo == null) {
+            return null;
+        }
+
+        LittleTileCutoutInfo antiCutout = new LittleTileCutoutInfo(other.cutoutInfo);
+        antiCutout.inverted = !antiCutout.inverted;
+        antiCutout.pos.x += other.boundingBox.minX - box.minX;
+        antiCutout.pos.y += other.boundingBox.minY - box.minY;
+        antiCutout.pos.z += other.boundingBox.minZ - box.minZ;
+        if (Mesh3dUtil.meshFromTile(box, antiCutout).getTriangles().isEmpty()) {
+            return null;
+        }
+
+        LittleTile tile = copy();
+        tile.boundingBox = box;
+        tile.setCutoutInfo(antiCutout);
+        tile.updateCorner();
+        return tile;
+    }
+
     @Deprecated
     public static class LittleTilePosition {
 

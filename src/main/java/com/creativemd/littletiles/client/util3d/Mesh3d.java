@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
@@ -14,6 +17,7 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3f;
+import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
@@ -171,6 +175,216 @@ public class Mesh3d {
         }
 
         return new Mesh3d(newTriangles);
+    }
+
+    /**
+     * Builds the mesh of everything inside the given box this mesh does not cover. Surface triangles away from the box
+     * faces are shared with the complement and only get flipped around; of each box face the complement keeps whatever
+     * part this mesh leaves uncovered. The result may consist of several separate pieces, so it must not be passed to
+     * {@link #cutByPlane}, which can only close a single loop.
+     * <p>
+     * This mesh has to be closed, wound outwards and lie within the box, as every mesh {@link Mesh3dUtil#createMesh}
+     * produces does once it has been cut to its tile. The box is given in grid units.
+     */
+    public Mesh3d invert(GridVector min, GridVector max) {
+        List<Triangle3d> inverted = new ArrayList<>();
+        List<List<Triangle3d>> covers = new ArrayList<>(BOX_FACE_COUNT);
+        for (int face = 0; face < BOX_FACE_COUNT; face++) {
+            covers.add(new ArrayList<>());
+        }
+        for (Triangle3d triangle : triangles) {
+            int face = boxFaceOf(triangle, min, max);
+            if (face >= 0) {
+                covers.get(face).add(triangle);
+            } else {
+                inverted.add(new Triangle3d(
+                        new GridVector(triangle.getP1()),
+                        new GridVector(triangle.getP3()),
+                        new GridVector(triangle.getP2())));
+            }
+        }
+
+        for (int face = 0; face < BOX_FACE_COUNT; face++) {
+            addUncoveredFace(inverted, face, covers.get(face), min, max);
+        }
+        return new Mesh3d(inverted);
+    }
+
+    private static final int BOX_FACE_COUNT = 6;
+
+    /**
+     * Which face of the box the triangle lies on, as <code>axis * 2 + (max side ? 1 : 0)</code>, or -1 if it does not
+     * lie on any. Exact, as cutting a mesh to its tile puts the cut points right on the box faces.
+     */
+    private static int boxFaceOf(Triangle3d triangle, GridVector min, GridVector max) {
+        for (int axis = 0; axis < 3; axis++) {
+            if (allAt(triangle, axis, min.get(axis))) {
+                return axis * 2;
+            }
+            if (allAt(triangle, axis, max.get(axis))) {
+                return axis * 2 + 1;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean allAt(Triangle3d triangle, int axis, int value) {
+        return triangle.getP1().get(axis) == value && triangle.getP2().get(axis) == value
+                && triangle.getP3().get(axis) == value;
+    }
+
+    /**
+     * Adds the part of a box face the given covers leave free. Subtracting the covers one by one shatters the face into
+     * slivers, a curved slope's side alone is a fan of a dozen covers. Instead the face is swept along its u axis in
+     * slabs, cut at every corner of a cover: within a slab each cover is a trapezoid, and the free part is just the
+     * gaps between them.
+     */
+    private static void addUncoveredFace(List<Triangle3d> result, int face, List<Triangle3d> covers, GridVector min,
+            GridVector max) {
+        int axis = face / 2;
+        int uAxis = (axis + 1) % 3;
+        int vAxis = (axis + 2) % 3;
+        int w = face % 2 == 0 ? min.get(axis) : max.get(axis);
+        int uMin = min.get(uAxis);
+        int uMax = max.get(uAxis);
+        int vMin = min.get(vAxis);
+        int vMax = max.get(vAxis);
+        Vector3i normal = new Vector3i();
+        normal.setComponent(axis, face % 2 == 0 ? -1 : 1);
+
+        TreeSet<Integer> cuts = new TreeSet<>();
+        cuts.add(uMin);
+        cuts.add(uMax);
+        for (Triangle3d cover : covers) {
+            for (GridVector point : new GridVector[] { cover.getP1(), cover.getP2(), cover.getP3() }) {
+                int u = point.get(uAxis);
+                if (u > uMin && u < uMax) {
+                    cuts.add(u);
+                }
+            }
+        }
+
+        List<int[]> trapezoids = new ArrayList<>();
+        Iterator<Integer> it = cuts.iterator();
+        int start = it.next();
+        while (it.hasNext()) {
+            int end = it.next();
+
+            trapezoids.clear();
+            for (Triangle3d cover : covers) {
+                int[] trapezoid = trapezoidInSlab(cover, uAxis, vAxis, start, end);
+                if (trapezoid != null) {
+                    trapezoids.add(trapezoid);
+                }
+            }
+            // Covers do not overlap, so ordered by their middle they stack up from vMin to vMax
+            trapezoids.sort(Comparator.comparingLong(t -> (long) t[0] + t[1]));
+
+            int belowStart = vMin;
+            int belowEnd = vMin;
+            for (int[] trapezoid : trapezoids) {
+                addGap(result, axis, uAxis, vAxis, w, start, end, belowStart, belowEnd, trapezoid[0], trapezoid[1],
+                        normal);
+                if ((long) trapezoid[2] + trapezoid[3] > (long) belowStart + belowEnd) {
+                    belowStart = trapezoid[2];
+                    belowEnd = trapezoid[3];
+                }
+            }
+            addGap(result, axis, uAxis, vAxis, w, start, end, belowStart, belowEnd, vMax, vMax, normal);
+            start = end;
+        }
+    }
+
+    /**
+     * The trapezoid a cover occupies within the slab from {@code start} to {@code end}, as its lower v at start and
+     * end followed by its upper v at start and end. Null if the cover lies outside the slab.
+     */
+    private static int[] trapezoidInSlab(Triangle3d cover, int uAxis, int vAxis, int start, int end) {
+        int u1 = cover.getP1().get(uAxis);
+        int u2 = cover.getP2().get(uAxis);
+        int u3 = cover.getP3().get(uAxis);
+        int coverMin = Math.min(u1, Math.min(u2, u3));
+        int coverMax = Math.max(u1, Math.max(u2, u3));
+        if (coverMax <= start || coverMin >= end) {
+            return null;
+        }
+
+        int[] atStart = spanAt(cover, uAxis, vAxis, Math.max(start, coverMin));
+        int[] atEnd = spanAt(cover, uAxis, vAxis, Math.min(end, coverMax));
+        return new int[] { atStart[0], atEnd[0], atStart[1], atEnd[1] };
+    }
+
+    /**
+     * The lowest and highest v of the cover along the line at the given u, rounded to the grid. Every edge is
+     * interpolated from the same end, so two covers sharing it agree on where it is and leave no gap between them.
+     */
+    private static int[] spanAt(Triangle3d cover, int uAxis, int vAxis, int u) {
+        GridVector[] points = { cover.getP1(), cover.getP2(), cover.getP3() };
+        int low = Integer.MAX_VALUE;
+        int high = Integer.MIN_VALUE;
+        for (int i = 0; i < 3; i++) {
+            GridVector a = points[i];
+            GridVector b = points[(i + 1) % 3];
+            if (!a.isBefore(b)) {
+                GridVector temp = a;
+                a = b;
+                b = temp;
+            }
+            int ua = a.get(uAxis);
+            int ub = b.get(uAxis);
+            int va = a.get(vAxis);
+            int vb = b.get(vAxis);
+            if (ua == u) {
+                low = Math.min(low, va);
+                high = Math.max(high, va);
+            }
+            if (ua < u && ub > u || ua > u && ub < u) {
+                int v = (int) (va + Grid3d.divRound(((long) u - ua) * ((long) vb - va), (long) ub - ua));
+                low = Math.min(low, v);
+                high = Math.max(high, v);
+            }
+        }
+        if (low > high) {
+            // Only reachable if the cover does not reach u at all
+            int v = points[0].get(vAxis);
+            return new int[] { v, v };
+        }
+        return new int[] { low, high };
+    }
+
+    /** Adds the free quad between a lower and an upper edge across the slab, if it has any area. */
+    private static void addGap(List<Triangle3d> result, int axis, int uAxis, int vAxis, int w, int start, int end,
+            int lowStart, int lowEnd, int highStart, int highEnd, Vector3ic normal) {
+        highStart = Math.max(highStart, lowStart);
+        highEnd = Math.max(highEnd, lowEnd);
+        if (highStart == lowStart && highEnd == lowEnd) {
+            return;
+        }
+        GridVector a = facePoint(axis, w, uAxis, start, vAxis, lowStart);
+        GridVector b = facePoint(axis, w, uAxis, end, vAxis, lowEnd);
+        GridVector c = facePoint(axis, w, uAxis, end, vAxis, highEnd);
+        GridVector d = facePoint(axis, w, uAxis, start, vAxis, highStart);
+        addFaceTriangle(result, a, b, c, normal);
+        addFaceTriangle(result, new GridVector(a), new GridVector(c), d, normal);
+    }
+
+    private static void addFaceTriangle(List<Triangle3d> result, GridVector a, GridVector b, GridVector c,
+            Vector3ic normal) {
+        Triangle3d triangle = new Triangle3d(a, b, c);
+        // Collinear covers interpolated from different ends can be a rounding apart, which leaves nothing visible
+        if (triangle.isSliver()) {
+            return;
+        }
+        triangle.ensureWindingOrder(normal);
+        result.add(triangle);
+    }
+
+    private static GridVector facePoint(int axis, int w, int uAxis, int u, int vAxis, int v) {
+        GridVector point = new GridVector();
+        point.setComponent(axis, w);
+        point.setComponent(uAxis, u);
+        point.setComponent(vAxis, v);
+        return point;
     }
 
     /**

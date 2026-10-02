@@ -402,7 +402,8 @@ public class Mesh3dUtil {
                 || meshMaxX < posSubMin.x()
                 || meshMinZ > posSubMax.z()
                 || meshMaxZ < posSubMin.z()) {
-            return new Mesh3d(new ArrayList<>());
+            // The anti mesh of a shape that misses the tile entirely is the whole tile
+            return finishMesh(new Mesh3d(new ArrayList<>()), cutoutInfo, posSubMin, posSubMax, block, meta);
         }
 
         if (meshMaxY > posSubMax.y()) {
@@ -430,6 +431,18 @@ public class Mesh3dUtil {
             mesh = mesh.cutByPlane(plane);
         }
 
+        return finishMesh(mesh, cutoutInfo, posSubMin, posSubMax, block, meta);
+    }
+
+    /**
+     * Turns a mesh already cut to its tile into the final one. Inverting has to wait until after the cuts, since the
+     * anti mesh can fall apart into several pieces, which {@link Mesh3d#cutByPlane} cannot close.
+     */
+    private static Mesh3d finishMesh(Mesh3d mesh, LittleTileCutoutInfo cutoutInfo, Vector3ic posSubMin,
+            Vector3ic posSubMax, Block block, int meta) {
+        if (cutoutInfo.inverted) {
+            mesh = mesh.invert(GridVector.fromPixels(posSubMin), GridVector.fromPixels(posSubMax));
+        }
         if (block != null) {
             mesh.setTextures(block, meta);
         }

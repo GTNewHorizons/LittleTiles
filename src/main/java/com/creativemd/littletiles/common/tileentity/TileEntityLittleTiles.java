@@ -226,32 +226,32 @@ public class TileEntityLittleTiles extends TileEntity {
 
             Mesh3d meshOldTile = cutoutOldTile == null ? null : Mesh3dUtil.meshFromTile(boxOldTile, cutoutOldTile);
 
-            if (meshOldTile == null) {
-                if (meshNewTile == null) {
-                    // Normal box-box collision
-                    return false;
-                } else {
-                    // Special box-mesh collision
-                    if (TriangleBoundingBoxIntersect.intersect(meshNewTile, boxOldTile)) {
-                        return false;
-                    }
-                }
-            } else {
-                if (meshNewTile == null) {
-                    // Special mesh-box collision
-                    if (TriangleBoundingBoxIntersect.intersect(meshOldTile, boxNewTile)) {
-                        return false;
-                    }
-                } else {
-                    // Special mesh-mesh collision
-                    if (TriangleTriangleIntersect.meshIntersection(meshNewTile, meshOldTile)) {
-                        return false;
-                    }
-                }
+            if (collides(boxNewTile, meshNewTile, boxOldTile, meshOldTile)) {
+                return false;
             }
         }
 
         return true;
+    }
+
+    /**
+     * Whether two tiles whose bounding boxes intersect actually overlap. A null mesh means the tile is a plain box.
+     */
+    public static boolean collides(LittleTileBox boxA, Mesh3d meshA, LittleTileBox boxB, Mesh3d meshB) {
+        if (meshB == null) {
+            if (meshA == null) {
+                // Normal box-box collision
+                return true;
+            }
+            // Special box-mesh collision
+            return TriangleBoundingBoxIntersect.intersect(meshA, boxB);
+        }
+        if (meshA == null) {
+            // Special mesh-box collision
+            return TriangleBoundingBoxIntersect.intersect(meshB, boxA);
+        }
+        // Special mesh-mesh collision
+        return TriangleTriangleIntersect.meshIntersection(meshA, meshB);
     }
 
     /** Used for placing a tile and can be used if a "cable" can connect to a direction */

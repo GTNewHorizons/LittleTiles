@@ -12,7 +12,9 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil.TileCoverage;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.history.LittleTileChangeRecorder;
 import com.creativemd.littletiles.common.history.LittleTilePlacementPlanResult;
@@ -37,11 +39,24 @@ public class LittleTilePlacementPlan {
     private static class PlacementEntry {
 
         public final ChunkCoordinates coord;
-        public final ArrayList<PreviewTile> placeTiles;
+        public final ArrayList<Fragment> fragments;
 
-        public PlacementEntry(ChunkCoordinates coord, ArrayList<PreviewTile> placeTiles) {
+        public PlacementEntry(ChunkCoordinates coord, ArrayList<Fragment> fragments) {
             this.coord = coord;
-            this.placeTiles = placeTiles;
+            this.fragments = fragments;
+        }
+    }
+
+    /** A preview split down to one block, with the shape it carries there. */
+    private static class Fragment {
+
+        public final PreviewTile tile;
+        /** Null where the fragment is a plain box. */
+        public final LittleTileCutoutInfo cutout;
+
+        public Fragment(PreviewTile tile, LittleTileCutoutInfo cutout) {
+            this.tile = tile;
+            this.cutout = cutout;
         }
     }
 
@@ -87,8 +102,8 @@ public class LittleTilePlacementPlan {
             if (tile == null) {
                 continue;
             }
-            for (PreviewTile placeTile : entry.placeTiles) {
-                applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles);
+            for (Fragment fragment : entry.fragments) {
+                applyTile(entry, fragment, tile, player, stack, structure, unplaceableTiles);
             }
             if (structure != null) tile.combineTiles(structure);
         }
@@ -129,13 +144,23 @@ public class LittleTilePlacementPlan {
             // Previews that don't need a collision test are markers/visual-only and never get placed.
             if (placeTiles == null || !needsCollisionTest(placeTiles)) continue;
 
+            ArrayList<Fragment> fragments = new ArrayList<>();
+            for (PreviewTile placeTile : placeTiles) {
+                Fragment fragment = createFragment(coord, placeTile);
+                if (fragment != null) {
+                    fragments.add(fragment);
+                }
+            }
+            // Only mesh-backed fragments the shape misses entirely, nothing to place here.
+            if (fragments.isEmpty()) continue;
+
             // Collision check against an existing LittleTiles TE. Special place mode bypasses this on
             // purpose — overriding collisions is its whole reason to exist.
-            if (!specialPlaceMode && !isSpaceForTiles(tile, placeTiles, coord)) {
+            if (!specialPlaceMode && !isSpaceForTiles(tile, fragments)) {
                 return false;
             }
 
-            entries.add(new PlacementEntry(coord, placeTiles));
+            entries.add(new PlacementEntry(coord, fragments));
         }
         return true;
     }
@@ -165,24 +190,12 @@ public class LittleTilePlacementPlan {
         return null;
     }
 
-    private void applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile, EntityPlayer player,
+    private void applyTile(PlacementEntry entry, Fragment fragment, TileEntityLittleTiles tile, EntityPlayer player,
             ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
-        LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile);
-        if (cutoutInfoCurrent != null) {
-            switch (Mesh3dUtil.classifyTile(placeTile.box, cutoutInfoCurrent)) {
-                // Mesh-backed fragments can clip to empty space when split across blocks.
-                // In that case we skip placement for this fragment instead of placing a full box tile.
-                case EMPTY -> {
-                    return;
-                }
-                // Fragments the shape fills completely look the same as a plain box tile, which is far cheaper.
-                case FULL -> cutoutInfoCurrent = null;
-                default -> {}
-            }
-        }
-
-        List<LittleTile> tiles = placeTile
-                .placeTile(player, stack, tile, structure, unplaceableTiles, placeMode, cutoutInfoCurrent);
+        // Each placed tile gets its own copy, the fragment stays as planned
+        LittleTileCutoutInfo cutout = fragment.cutout == null ? null : new LittleTileCutoutInfo(fragment.cutout);
+        List<LittleTile> tiles = fragment.tile
+                .placeTile(player, stack, tile, structure, unplaceableTiles, placeMode, cutout);
         if (tiles == null) {
             return;
         }
@@ -210,6 +223,34 @@ public class LittleTilePlacementPlan {
             return LittleTileCutoutInfo.loadFromNBT(placeTile.preview.nbt);
         }
         return null;
+    }
+
+    /**
+     * Works out what a preview turns into within the block at {@code coord}. Null when a mesh-backed preview clips to
+     * empty space there, which is skipped instead of being placed as a full box tile.
+     */
+    private Fragment createFragment(ChunkCoordinates coord, PreviewTile placeTile) {
+        LittleTileCutoutInfo cutout = getCutoutInfoCurrent(coord, placeTile);
+        if (cutout == null) {
+            return new Fragment(placeTile, null);
+        }
+
+        TileCoverage coverage = Mesh3dUtil.classifyTile(placeTile.box, cutout);
+        if (coverage == TileCoverage.EMPTY) {
+            return null;
+        }
+        // Fragments the shape fills completely look the same as a plain box tile, which is far cheaper.
+        if (coverage == TileCoverage.FULL) {
+            return new Fragment(placeTile, null);
+        }
+
+        Mesh3d mesh = Mesh3dUtil.meshFromTile(placeTile.box, cutout);
+        if (mesh.getTriangles().isEmpty()) {
+            return null;
+        }
+        // The box is this plan's own copy from splitting the preview, so it can be shrunk in place
+        Mesh3dUtil.fitToMesh(placeTile.box, cutout, mesh);
+        return new Fragment(placeTile, cutout);
     }
 
     private LittleTileCutoutInfo getCutoutInfoCurrent(ChunkCoordinates coord, PreviewTile placeTile) {
@@ -249,25 +290,12 @@ public class LittleTilePlacementPlan {
         return tile;
     }
 
-    private boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles,
-            ChunkCoordinates coord) {
-        for (PreviewTile tile : placeTiles) {
-            if (!tile.needsCollisionTest()) continue;
-
-            LittleTileCutoutInfo perTileCutout = getCutoutInfoCurrent(coord, tile);
-            if (perTileCutout != null) {
-                switch (Mesh3dUtil.classifyTile(tile.box, perTileCutout)) {
-                    // Mesh-backed fragments can clip to empty space when split across blocks.
-                    case EMPTY -> {
-                        continue;
-                    }
-                    case FULL -> perTileCutout = null;
-                    default -> {}
-                }
-            }
+    private static boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<Fragment> fragments) {
+        for (Fragment fragment : fragments) {
+            if (!fragment.tile.needsCollisionTest()) continue;
 
             // Check against already existing tiles in target block.
-            if (mainTile != null && !mainTile.isSpaceForLittleTile(tile.box.copy(), perTileCutout)) {
+            if (mainTile != null && !mainTile.isSpaceForLittleTile(fragment.tile.box.copy(), fragment.cutout)) {
                 return false;
             }
         }

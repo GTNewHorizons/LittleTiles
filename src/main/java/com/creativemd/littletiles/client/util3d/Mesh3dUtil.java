@@ -508,6 +508,40 @@ public class Mesh3dUtil {
         return clipIsBox ? TileCoverage.FULL : TileCoverage.PARTIAL;
     }
 
+    /**
+     * Shrinks {@code box} to the tile pixels {@code mesh} reaches and moves the cutout along, so both still describe
+     * the same shape. A cut can leave a thin sliver of a big shape in a tile, which would otherwise keep the whole box.
+     *
+     * @param mesh the mesh {@link #meshFromTile} builds for the box and cutout, must not be empty
+     */
+    public static void fitToMesh(LittleTileBox box, LittleTileCutoutInfo cutoutInfo, Mesh3d mesh) {
+        int[] min = { Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE };
+        int[] max = { Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE };
+        for (GridVector point : Mesh3d.getPointsForTriangles(mesh.getTriangles())) {
+            for (int axis = 0; axis < 3; axis++) {
+                min[axis] = Math.min(min[axis], point.get(axis));
+                max[axis] = Math.max(max[axis], point.get(axis));
+            }
+        }
+
+        // rounded outwards, as points where the mesh was cut can sit between pixels
+        int minX = Math.max(box.minX, Math.floorDiv(min[0], Grid3d.PIXEL));
+        int minY = Math.max(box.minY, Math.floorDiv(min[1], Grid3d.PIXEL));
+        int minZ = Math.max(box.minZ, Math.floorDiv(min[2], Grid3d.PIXEL));
+        int maxX = Math.min(box.maxX, -Math.floorDiv(-max[0], Grid3d.PIXEL));
+        int maxY = Math.min(box.maxY, -Math.floorDiv(-max[1], Grid3d.PIXEL));
+        int maxZ = Math.min(box.maxZ, -Math.floorDiv(-max[2], Grid3d.PIXEL));
+
+        // the cutout is relative to the box's min corner
+        cutoutInfo.pos.add(box.minX - minX, box.minY - minY, box.minZ - minZ);
+        box.minX = minX;
+        box.minY = minY;
+        box.minZ = minZ;
+        box.maxX = maxX;
+        box.maxY = maxY;
+        box.maxZ = maxZ;
+    }
+
     /** Whether the bounds of the triangle overlap the open interior of the clip box. Exact. */
     private static boolean reachesInterior(Triangle3d triangle, int[] clipMin, int[] clipMax) {
         for (int axis = 0; axis < 3; axis++) {

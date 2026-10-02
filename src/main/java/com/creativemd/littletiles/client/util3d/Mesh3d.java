@@ -101,35 +101,50 @@ public class Mesh3d {
         ArrayList<Edge3d> existingEdges = new ArrayList<>();
 
         for (Triangle3d triangle : triangles) {
-            ArrayList<GridVector> below = new ArrayList<>();
-            ArrayList<GridVector> above = new ArrayList<>();
-            ArrayList<GridVector> on = new ArrayList<>();
-            ArrayList<Triangle3d> addTriangles = new ArrayList<>();
+            GridVector p1 = triangle.getP1();
+            GridVector p2 = triangle.getP2();
+            GridVector p3 = triangle.getP3();
 
-            classifyVertices(triangle, plane, below, above, on);
+            int side1 = plane.getDistance(p1);
+            int side2 = plane.getDistance(p2);
+            int side3 = plane.getDistance(p3);
+            int aboveCount = (side1 > 0 ? 1 : 0) + (side2 > 0 ? 1 : 0) + (side3 > 0 ? 1 : 0);
+            int belowCount = (side1 < 0 ? 1 : 0) + (side2 < 0 ? 1 : 0) + (side3 < 0 ? 1 : 0);
 
-            if (above.isEmpty()) {
-                // Entire triangle is below the plane, keep it
+            if (aboveCount == 0) {
+                // No vertex is above the plane, so keep the triangle
                 if (!triangle.isDegenerate()) {
                     newTriangles.add(triangle);
-                    if (on.size() == 2) {
-                        existingEdges.add(new Edge3d(on.get(0), on.get(1)));
+                    if (belowCount == 1) {
+                        GridVector firstOn = side1 == 0 ? p1 : p2;
+                        GridVector secondOn = side3 == 0 ? p3 : p2;
+                        existingEdges.add(new Edge3d(firstOn, secondOn));
                     }
                 }
-            } else if (below.isEmpty()) {
-                // SKIP
-            } else if (above.size() == 1 && below.size() == 2) {
-                // One vertex above, two below → Split into 2 triangles
-                addTriangles.addAll(clipTriangle(below.get(0), below.get(1), above.get(0), plane, addedEdges));
-            } else if (above.size() == 2 && below.size() == 1) {
-                // Two vertices above, one below → Correct handling of this case
-                addTriangles.addAll(clipTriangleTwoAbove(below.get(0), above.get(0), above.get(1), plane, addedEdges));
-            } else if (on.size() == 1 && above.size() == 1) {
-                // One vertex above, one below, one on → Correct handling of this case
-                addTriangles
-                        .addAll(clipTriangleOneOnOneBelow(on.get(0), below.get(0), above.get(0), plane, addedEdges));
+                continue;
+            }
+            if (belowCount == 0) {
+                // No vertex is below the plane, so discard the triangle
+                continue;
+            }
+
+            ArrayList<Triangle3d> addTriangles;
+            if (aboveCount == 1 && belowCount == 2) {
+                GridVector firstBelow = side1 < 0 ? p1 : p2;
+                GridVector secondBelow = side3 < 0 ? p3 : p2;
+                GridVector above = side1 > 0 ? p1 : side2 > 0 ? p2 : p3;
+                addTriangles = clipTriangle(firstBelow, secondBelow, above, plane, addedEdges);
+            } else if (aboveCount == 2 && belowCount == 1) {
+                GridVector below = side1 < 0 ? p1 : side2 < 0 ? p2 : p3;
+                GridVector firstAbove = side1 > 0 ? p1 : p2;
+                GridVector secondAbove = side3 > 0 ? p3 : p2;
+                addTriangles = clipTriangleTwoAbove(below, firstAbove, secondAbove, plane, addedEdges);
             } else {
-                throw new RuntimeException();
+                // One vertex lies on the plane, with one vertex on each side
+                GridVector on = side1 == 0 ? p1 : side2 == 0 ? p2 : p3;
+                GridVector below = side1 < 0 ? p1 : side2 < 0 ? p2 : p3;
+                GridVector above = side1 > 0 ? p1 : side2 > 0 ? p2 : p3;
+                addTriangles = clipTriangleOneOnOneBelow(on, below, above, plane, addedEdges);
             }
 
             if (!addTriangles.isEmpty()) {
@@ -141,7 +156,6 @@ public class Mesh3d {
             }
 
             newTriangles.addAll(addTriangles);
-            // If all vertices are above, we discard the triangle
         }
 
         /* Close gaps */
@@ -184,23 +198,6 @@ public class Mesh3d {
             }
         }
         return points;
-    }
-
-    /** Exact, as both the points and the plane are on the grid: a point is only on the plane if it really is. */
-    private void classifyVertices(Triangle3d triangle, Plane3d plane, ArrayList<GridVector> below,
-            ArrayList<GridVector> above, ArrayList<GridVector> on) {
-        GridVector[] points = { triangle.getP1(), triangle.getP2(), triangle.getP3() };
-
-        for (GridVector point : points) {
-            long d = plane.getDistance(point);
-            if (d == 0) {
-                on.add(point);
-            } else if (d > 0) {
-                above.add(point);
-            } else {
-                below.add(point);
-            }
-        }
     }
 
     // Handles case when 2 vertices are below the plane, 1 is above

@@ -98,9 +98,9 @@ public class Plane3d {
     }
 
     /** Signed distance in grid units, positive on the side the normal points to. Exact. */
-    public long getDistance(GridVector point) {
-        return (long) normal.x * (point.x - origin.x) + (long) normal.y * (point.y - origin.y)
-                + (long) normal.z * (point.z - origin.z);
+    public int getDistance(GridVector point) {
+        return normal.x * (point.x - origin.x) + normal.y * (point.y - origin.y)
+                + normal.z * (point.z - origin.z);
     }
 
     /**

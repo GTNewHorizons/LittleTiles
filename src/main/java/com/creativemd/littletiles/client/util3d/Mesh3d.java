@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -24,6 +25,10 @@ import com.creativemd.littletiles.client.render.LittleTilesBlockRenderHelper;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.FMLLog;
 
+/**
+ * A triangle mesh. Triangles must not share point objects: transforms move the points in place, so a shared one would
+ * be moved once per triangle.
+ */
 public class Mesh3d {
 
     private static final double DEGENERATE_EPSILON = 1.0E-8;
@@ -59,10 +64,20 @@ public class Mesh3d {
         scale(new Vector3d(vec.x / 16.0, vec.y / 16.0, vec.z / 16.0));
     }
 
-    private static int logCount;
-    private static int dumpCount;
+    private static final AtomicInteger logCount = new AtomicInteger();
+    private static final AtomicInteger dumpCount = new AtomicInteger();
 
     public File dumpMesh() {
+        return dumpMesh("DumpMesh", nextDumpIndex());
+    }
+
+    /** Reserves an index for {@link #dumpMesh(String, int)}, so related dumps can share it. */
+    public static int nextDumpIndex() {
+        return dumpCount.getAndIncrement();
+    }
+
+    /** Dumps into {@code logs/littleTiles<name><index>.obj}. */
+    public File dumpMesh(String name, int index) {
         File mcDir;
         if (FMLCommonHandler.instance().getSide().isClient()) {
             mcDir = Minecraft.getMinecraft().mcDataDir;
@@ -70,8 +85,7 @@ public class Mesh3d {
             mcDir = new File(".");
         }
         File logsFolder = new File(mcDir, "logs");
-        File outFile = new File(logsFolder, "littleTilesDumpMesh" + dumpCount + ".obj");
-        dumpCount++;
+        File outFile = new File(logsFolder, "littleTiles" + name + index + ".obj");
         exportObj(outFile);
         FMLLog.getLogger().info("Dumped mesh into " + outFile.getAbsolutePath());
         return outFile;
@@ -87,8 +101,7 @@ public class Mesh3d {
         }
 
         File logsFolder = new File(mcDir, "logs");
-        File outFile = new File(logsFolder, "littleTilesErrorMesh" + logCount + ".obj");
-        logCount++;
+        File outFile = new File(logsFolder, "littleTilesErrorMesh" + logCount.getAndIncrement() + ".obj");
         exportObj(outFile);
         FMLLog.getLogger().error("Failed to process mesh, dumped into " + outFile.getAbsolutePath());
     }
@@ -133,6 +146,7 @@ public class Mesh3d {
 
             for (Triangle3d t : addTriangles) {
                 t.ensureWindingOrder(triangle.getNormal());
+                t.inheritPlane(triangle);
             }
 
             newTriangles.addAll(addTriangles);
@@ -343,10 +357,18 @@ public class Mesh3d {
 
     }
 
-    public void rotate(int orientation) {
+    /**
+     * Rotates the mesh within the box from the origin to {@code size}, so that afterwards it fills the rotated box from
+     * the origin to {@code size} rotated as well.
+     */
+    public void rotate(int orientation, Vector3d size) {
+        Vector3f rotatedSize = OrientationMapper.fromId(orientation).transform(size.toVector3f());
+        rotatedSize.absolute();
+        translate(new Vector3d(-size.x / 2, -size.y / 2, -size.z / 2));
         for (Triangle3d triangle : triangles) {
             triangle.rotate(orientation);
         }
+        translate(new Vector3d(rotatedSize.x / 2, rotatedSize.y / 2, rotatedSize.z / 2));
     }
 
     public Mesh3d copy() {

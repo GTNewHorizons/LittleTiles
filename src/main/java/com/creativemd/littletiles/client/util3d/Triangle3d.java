@@ -20,6 +20,8 @@ public class Triangle3d {
 
     private Vector3d p1, p2, p3;
     private Vector2d tex1, tex2, tex3;
+    /** See {@link #getPlane}, null until first needed. */
+    private Plane3d plane;
 
     public Triangle3d(Vector3d p1, Vector3d p2, Vector3d p3) {
         this.p1 = p1;
@@ -55,6 +57,30 @@ public class Triangle3d {
         scaleVector(p1, vec);
         scaleVector(p2, vec);
         scaleVector(p3, vec);
+        plane = null;
+    }
+
+    /**
+     * The block plane this triangle is textured from. Worked out from its own normal on first use. A piece cut out of
+     * another triangle takes that triangle's plane instead: the cut tilts the piece slightly, which could tip a face at
+     * 45 degrees to the other of its two planes and break up its texture.
+     * <p>
+     * Kept once known, so the points must not be moved afterwards other than by translating.
+     */
+    public Plane3d getPlane() {
+        if (plane == null) {
+            plane = Plane3d.getPlaneForTriangle(this);
+        }
+        return plane;
+    }
+
+    /** Makes this a piece of {@code parent}, see {@link #getPlane}. */
+    void inheritPlane(Triangle3d parent) {
+        plane = parent.getPlane();
+    }
+
+    void setPlane(Plane3d plane) {
+        this.plane = plane;
     }
 
     private void scaleVector(Vector3d vec, Vector3d scale) {
@@ -154,11 +180,11 @@ public class Triangle3d {
 
     /** The block face this triangle is textured from. */
     public ForgeDirection getFaceDirection() {
-        return Plane3d.getPlaneForTriangle(this).getDirection();
+        return getPlane().getDirection();
     }
 
     public void setTexture(Block block, int meta) {
-        Plane3d plane = Plane3d.getPlaneForTriangle(this);
+        Plane3d plane = getPlane();
         ForgeDirection direction = plane.getDirection();
         IIcon icon = block.getIcon(direction.ordinal(), meta);
         tex1 = mapTexture(plane, p1, icon);
@@ -181,6 +207,7 @@ public class Triangle3d {
         if (matrix.determinant() < 0) {
             flipWindingOrder();
         }
+        plane = null;
     }
 
     /**
@@ -216,7 +243,7 @@ public class Triangle3d {
         for (int i = 0; i < 3 && !inside.isEmpty(); i++) {
             List<Vector3d> outside = new ArrayList<>();
             inside = clip(inside, cutter.get(i), cutter.get((i + 1) % 3), normal, outside);
-            addTriangulated(result, outside, normal);
+            addTriangulated(result, outside, normal, this);
         }
 
         return result;
@@ -335,7 +362,8 @@ public class Triangle3d {
         return inside;
     }
 
-    private static void addTriangulated(List<Triangle3d> triangles, List<Vector3d> polygon, Vector3d normal) {
+    private static void addTriangulated(List<Triangle3d> triangles, List<Vector3d> polygon, Vector3d normal,
+            Triangle3d parent) {
         // the polygon is always convex, since it originates from a triangle cut by straight lines
         for (int i = 1; i < polygon.size() - 1; i++) {
             Triangle3d triangle = new Triangle3d(
@@ -344,12 +372,15 @@ public class Triangle3d {
                     new Vector3d(polygon.get(i + 1)));
             if (triangle.unnormalizedNormal().length() > SPLIT_EPSILON) {
                 triangle.ensureWindingOrder(normal);
+                triangle.inheritPlane(parent);
                 triangles.add(triangle);
             }
         }
     }
 
     public Triangle3d copy() {
-        return new Triangle3d(new Vector3d(p1), new Vector3d(p2), new Vector3d(p3));
+        Triangle3d copy = new Triangle3d(new Vector3d(p1), new Vector3d(p2), new Vector3d(p3));
+        copy.plane = plane;
+        return copy;
     }
 }

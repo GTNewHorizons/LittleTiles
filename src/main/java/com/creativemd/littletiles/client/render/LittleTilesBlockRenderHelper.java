@@ -3,6 +3,7 @@ package com.creativemd.littletiles.client.render;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
@@ -31,6 +32,7 @@ import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTileGeometryCache;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 
@@ -45,8 +47,9 @@ public class LittleTilesBlockRenderHelper {
     /** How far preview overlays are pulled off the grid planes to prevent z-fighting, in blocks. */
     static final double Z_FIGHT_EPSILON = 0.002;
 
+    /** @param cutoutSize in tile pixels, null to make the cutout as big as the shape */
     public static void renderShape(LittleTileShapeMode shape, double centerX, double centerY, double centerZ, Vec3 size,
-            Vector3d cutoutScale, int orientation, Vector3i posCutout, Vec3 color, double alpha,
+            Vector3i cutoutSize, int orientation, Vector3i posCutout, Vec3 color, double alpha,
             LittleTileCutoutInfo cutoutInfo) {
         if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
             // Grown slightly so a side resting on a block face sinks behind it instead of z-fighting with it.
@@ -65,18 +68,18 @@ public class LittleTilesBlockRenderHelper {
                     color.zCoord,
                     alpha);
         } else {
-            if (cutoutScale == null) {
-                cutoutScale = new Vector3d(size.xCoord, size.yCoord, size.zCoord);
-            }
             Vector3i posSubMax = new Vector3i(
                     (int) Math.round(size.xCoord * 16),
                     (int) Math.round(size.yCoord * 16),
                     (int) Math.round(size.zCoord * 16));
+            if (cutoutSize == null) {
+                cutoutSize = posSubMax;
+            }
             renderMesh(
                     centerX - size.xCoord / 2D,
                     centerY - size.yCoord / 2D,
                     centerZ - size.zCoord / 2D,
-                    cutoutScale,
+                    cutoutSize,
                     orientation,
                     color.xCoord,
                     color.yCoord,
@@ -89,19 +92,11 @@ public class LittleTilesBlockRenderHelper {
         }
     }
 
-    public static void renderMesh(double x, double y, double z, Vector3d cutoutScale, int orientation, double red,
+    public static void renderMesh(double x, double y, double z, Vector3i cutoutSize, int orientation, double red,
             double green, double blue, double alpha, Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax,
             LittleTileCutoutInfo cutoutInfo) {
-        Mesh3d mesh = Mesh3dUtil.createMesh(
-                cutoutInfo,
-                cutoutScale,
-                new Vector3d(),
-                posCutout,
-                posSubMin,
-                posSubMax,
-                null,
-                0,
-                orientation);
+        Mesh3d mesh = Mesh3dUtil
+                .createMesh(cutoutInfo, cutoutSize, posCutout, posSubMin, posSubMax, null, 0, orientation);
 
         GL11.glColor4d(red, green, blue, alpha);
 
@@ -114,19 +109,18 @@ public class LittleTilesBlockRenderHelper {
         GL11.glEnd();
     }
 
-    /** Emits a mesh vertex offset by x, y, z, which are relative to the camera sitting at the origin. */
-    private static void vertexFromCamera(double x, double y, double z, Vector3d point) {
-        Vector3d vec = pullTowardsCamera(x + point.x, y + point.y, z + point.z);
-        GL11.glVertex3d(vec.x, vec.y, vec.z);
-    }
-
     /**
-     * A shape that is not axis-aligned cannot simply be grown like a box. Pulling each vertex towards the camera, which
-     * sits at the origin while rendering, lifts it off any face from every angle.
+     * Emits a mesh vertex offset by x, y, z, which are relative to the camera sitting at the origin.
+     * <p>
+     * A shape that is not axis-aligned cannot simply be grown like a box. Pulling each vertex towards the camera lifts
+     * it off any face from every angle.
      */
-    static Vector3d pullTowardsCamera(double x, double y, double z) {
-        double scale = Math.max(0, 1 - Z_FIGHT_EPSILON / Math.sqrt(x * x + y * y + z * z));
-        return new Vector3d(x * scale, y * scale, z * scale);
+    private static void vertexFromCamera(double x, double y, double z, Vector3d point) {
+        double px = x + point.x;
+        double py = y + point.y;
+        double pz = z + point.z;
+        double scale = Math.max(0, 1 - Z_FIGHT_EPSILON / Math.sqrt(px * px + py * py + pz * pz));
+        GL11.glVertex3d(px * scale, py * scale, pz * scale);
     }
 
     /** What became of a cutout tile. */
@@ -153,13 +147,17 @@ public class LittleTilesBlockRenderHelper {
         return block == Blocks.grass;
     }
 
-    private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube, CullingContext culling,
-            IBlockAccess world) {
-        if (!cube.geometryCache.hasValidMesh()) {
+    private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube,
+            Supplier<CullingContext> culling, IBlockAccess world) {
+        // Resolved once and handed to the culler. Asking again inside would be a different question: the tile can
+        // drop its mesh in between, and an empty cut result reads as HIDDEN, which would skip the cube entirely
+        // instead of falling back to drawing it as a plain box.
+        Mesh3d mesh = cube.geometryCache.getOrCreateSimpleMesh();
+        if (mesh == null || mesh.getTriangles().isEmpty()) {
             return CutoutResult.FAILED;
         }
 
-        List<Triangle3d> visible = LittleTilesFaceCuller.visibleCutoutTriangles(culling, cube);
+        List<Triangle3d> visible = LittleTilesFaceCuller.visibleCutoutTriangles(culling, cube, mesh);
         if (visible.isEmpty()) {
             return CutoutResult.HIDDEN;
         }
@@ -169,10 +167,9 @@ public class LittleTilesBlockRenderHelper {
 
     private static void renderTriangles(int x, int y, int z, LittleTilesCubeObject cube, List<Triangle3d> triangles,
             IBlockAccess world) {
-        // cut results are cached on the tile and must not be textured or translated in place
+        // cut results are cached on the tile and must not be textured in place
         Mesh3d mesh = new Mesh3d(triangles).copy();
         mesh.setTextures(cube.block, cube.meta);
-        mesh.translate(new Vector3d(x, y, z));
         Tessellator tess = Tessellator.instance;
 
         int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
@@ -193,6 +190,7 @@ public class LittleTilesBlockRenderHelper {
                 LittleTiles.angelicaCompat.beginAmbientOcclusion(tess);
             }
 
+            // the mesh is relative to its block, so the block position is added on the way out
             for (Triangle3d triangle : mesh.getTriangles()) {
                 Vector3d p1 = triangle.getP1();
                 Vector3d p2 = triangle.getP2();
@@ -202,10 +200,10 @@ public class LittleTilesBlockRenderHelper {
                 Vector2d tex3 = triangle.getTex3();
                 tess.setColorOpaque_I(
                         topTintOnly && triangle.getFaceDirection() != ForgeDirection.UP ? ColorUtils.WHITE : color);
-                tess.addVertexWithUV(p1.x, p1.y, p1.z, tex1.x, tex1.y);
-                tess.addVertexWithUV(p2.x, p2.y, p2.z, tex2.x, tex2.y);
-                tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
-                tess.addVertexWithUV(p3.x, p3.y, p3.z, tex3.x, tex3.y);
+                tess.addVertexWithUV(x + p1.x, y + p1.y, z + p1.z, tex1.x, tex1.y);
+                tess.addVertexWithUV(x + p2.x, y + p2.y, z + p2.z, tex2.x, tex2.y);
+                tess.addVertexWithUV(x + p3.x, y + p3.y, z + p3.z, tex3.x, tex3.y);
+                tess.addVertexWithUV(x + p3.x, y + p3.y, z + p3.z, tex3.x, tex3.y);
             }
         } finally {
             if (useAngelicaAmbientOcclusion) {
@@ -215,29 +213,65 @@ public class LittleTilesBlockRenderHelper {
     }
 
     /**
-     * Whether any cube still has to be culled, rather than being served from its cached cut result. Gathering the
-     * geometry to cull against reaches into the six neighbouring tile entities, which is not worth doing when every
-     * cube of this one already knows what is visible of it.
+     * Gathers the geometry to cull against on first use, at most once per render.
+     * <p>
+     * Preparing it reaches into the six neighbouring tile entities, which is not worth doing when every cube of this
+     * one is already served from its cached cut result. Deciding that up front is not safe though: a cache can be
+     * invalidated between the decision and the calculation, and the calculation would then run without the geometry it
+     * needs. Leaving it to the culler means the context is prepared exactly when something is really recomputed.
+     * <p>
+     * Confined to a single {@link #renderCubes} call on one thread, so it needs no synchronization of its own.
      */
-    private static boolean needsCulling(List<LittleTilesCubeObject> cubes, IFaceClipper[] coverage, int pass) {
+    private static final class LazyCullingContext implements Supplier<CullingContext> {
+
+        private final IBlockAccess world;
+        private final List<LittleTilesCubeObject> cubes;
+        private final int x;
+        private final int y;
+        private final int z;
+        private CullingContext context;
+
+        private LazyCullingContext(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x, int y, int z) {
+            this.world = world;
+            this.cubes = cubes;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        @Override
+        public CullingContext get() {
+            if (context == null) {
+                context = LittleTilesFaceCuller.prepareCulling(world, cubes, x, y, z);
+            }
+            return context;
+        }
+    }
+
+    /**
+     * Whether no two cubes share a geometry cache. A cache holds a single culling result, so two cubes sharing one
+     * would overwrite each other's - and a cutout cube overwriting a box cube's result would also swap which of the two
+     * culling paths the cached value came from. Every tile currently renders as exactly one cube, which is what keeps
+     * this true.
+     */
+    private static boolean haveDistinctGeometryCaches(List<LittleTilesCubeObject> cubes) {
         for (int i = 0; i < cubes.size(); i++) {
-            LittleTilesCubeObject cube = cubes.get(i);
-            if (!cube.block.canRenderInPass(pass)) {
+            LittleTileGeometryCache cache = cubes.get(i).geometryCache;
+            if (cache == null) {
                 continue;
             }
-            if (cube.cutoutInfo != null) {
-                if (cube.geometryCache.hasValidMesh() && cube.geometryCache.getVisibleCutoutTriangles() == null) {
-                    return true;
+            for (int j = i + 1; j < cubes.size(); j++) {
+                if (cubes.get(j).geometryCache == cache) {
+                    return false;
                 }
-            } else if (coverage[i] instanceof FaceClipper && cube.geometryCache.getVisibleBoxTriangles() == null) {
-                return true;
             }
         }
-        return false;
+        return true;
     }
 
     public static boolean renderCubes(IBlockAccess world, ArrayList<LittleTilesCubeObject> cubes, int x, int y, int z,
             Block block, RenderBlocks renderer, ForgeDirection direction) {
+        assert haveDistinctGeometryCaches(cubes) : "Two cubes share one geometry cache, their culling results collide";
 
         final ExtendedRenderBlocks extraRenderer = extraRendererThreadLocal.get();
         extraRenderer.updateRenderer(renderer);
@@ -249,9 +283,7 @@ public class LittleTilesBlockRenderHelper {
         boolean rendered = false;
 
         IFaceClipper[] coverage = LittleTilesFaceCuller.computeCoverage(world, cubes, x, y, z);
-        CullingContext cullingContext = needsCulling(cubes, coverage, pass)
-                ? LittleTilesFaceCuller.prepareCulling(world, cubes, x, y, z)
-                : null;
+        LazyCullingContext cullingContext = new LazyCullingContext(world, cubes, x, y, z);
 
         try {
             for (int i = 0; i < cubes.size(); i++) {
@@ -295,10 +327,15 @@ public class LittleTilesBlockRenderHelper {
                 extraRenderer.faceClipper = coverage[i];
                 extraRenderer.lockBlockBounds = true;
                 extraRenderer.field_152631_f = true;
-                extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
-                extraRenderer.field_152631_f = false;
-                extraRenderer.lockBlockBounds = false;
-                extraRenderer.color = ColorUtils.WHITE;
+
+                try {
+                    extraRenderer.renderBlockAllFaces(cube.block, x, y, z);
+                } finally {
+                    extraRenderer.field_152631_f = false;
+                    extraRenderer.lockBlockBounds = false;
+                    extraRenderer.color = ColorUtils.WHITE;
+                }
+
                 if (!boxTriangles.isEmpty()) {
                     renderTriangles(x, y, z, cube, boxTriangles, fake);
                 }
@@ -334,7 +371,8 @@ public class LittleTilesBlockRenderHelper {
 
             if (cube instanceof LittleTilesCubeObject) {
                 LittleTilesCubeObject littleCube = (LittleTilesCubeObject) cube;
-                Mesh3d mesh = littleCube.geometryCache == null ? null : littleCube.geometryCache.getSimpleMesh();
+                Mesh3d mesh = littleCube.geometryCache == null ? null
+                        : littleCube.geometryCache.getOrCreateSimpleMesh();
                 if (mesh != null) {
                     mesh = mesh.copy();
                     // Recipe meshes retain their multi-block position (for example, x = 1..2 for a tile in the

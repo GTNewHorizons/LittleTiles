@@ -7,19 +7,22 @@ import static com.creativemd.creativecore.common.utils.RotationUtils.Axis.AxisZ;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.creativemd.creativecore.client.rendering.FacePiece;
 import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
 import com.creativemd.creativecore.lib.Vector3d;
+import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
-import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileGeometryCache;
+import com.creativemd.littletiles.common.utils.LittleTileGeometryCache.CullingResult;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 
 import cpw.mods.fml.relauncher.Side;
@@ -130,18 +133,10 @@ public final class LittleTilesFaceCuller {
             return Collections.emptyList();
         }
 
-        List<LittleTile> tiles = little.getTiles();
-        List<LittleTile> snapshot;
-        synchronized (tiles) {
-            snapshot = new ArrayList<>(tiles);
-        }
-
         ArrayList<LittleTilesCubeObject> cubes = new ArrayList<>();
-        for (LittleTile tile : snapshot) {
-            for (LittleTilesCubeObject cube : tile.getRenderingCubes()) {
-                if (!ignoreForCulling(cube) && touchesBorder(cube, border)) {
-                    cubes.add(cube);
-                }
+        for (LittleTilesCubeObject cube : little.getRenderingCubes()) {
+            if (!ignoreForCulling(cube) && touchesBorder(cube, border)) {
+                cubes.add(cube);
             }
         }
         return cubes;
@@ -246,7 +241,11 @@ public final class LittleTilesFaceCuller {
                 // copies, since these get moved and the mesh is the one cached on the neighbouring tile
                 List<Triangle3d> triangles;
                 if (neighbour.cutoutInfo != null) {
-                    triangles = neighbour.geometryCache.getSimpleMesh().copy().getTriangles();
+                    Mesh3d mesh = neighbour.geometryCache.getOrCreateSimpleMesh();
+                    if (mesh == null) {
+                        continue;
+                    }
+                    triangles = mesh.copy().getTriangles();
                 } else {
                     triangles = boxFaceTriangles(neighbour, facingUs);
                 }
@@ -272,64 +271,131 @@ public final class LittleTilesFaceCuller {
      * The triangles of a cutout's mesh that are still visible, after removing what the meshes around it hide - both the
      * ones in the same tile entity and the ones in the six neighbours.
      */
-    public static List<Triangle3d> visibleCutoutTriangles(CullingContext culling, LittleTilesCubeObject cube) {
+    public static List<Triangle3d> visibleCutoutTriangles(Supplier<CullingContext> culling, LittleTilesCubeObject cube,
+            Mesh3d mesh) {
         LittleTileGeometryCache cache = cube.geometryCache;
-        List<Triangle3d> cached = cache.getVisibleCutoutTriangles();
-        if (cached != null) {
-            return cached;
-        }
+        return cache.getOrCreateCullingResult(
+                cube.cutsGeneration,
+                () -> calculateVisibleCutoutTriangles(culling.get(), cube, mesh)).getTriangles();
+    }
+
+    /**
+     * Calculates cutout culling without modifying the retained cache. Cuts the mesh the caller already resolved rather
+     * than fetching it again: the tile can lose its mesh at any moment, and re-reading it here would mean culling a
+     * different mesh than the one the caller decided to draw.
+     */
+    private static CullingResult calculateVisibleCutoutTriangles(CullingContext culling, LittleTilesCubeObject cube,
+            Mesh3d mesh) {
         List<Triangle3d> occludingTriangles = getOccludingTriangles(culling, cube, false);
         List<Triangle3d> visible = new ArrayList<>();
-        for (Triangle3d triangle : cube.geometryCache.getSimpleMesh().getTriangles()) {
+        for (Triangle3d triangle : mesh.getTriangles()) {
             visible.addAll(cutTriangle(triangle, occludingTriangles));
         }
-        cache.setVisibleCutoutTriangles(visible);
-        return visible;
+        return new CullingResult(visible, 0);
     }
 
     /**
      * The counterpart of {@link #visibleCutoutTriangles}: the faces of a box that remain visible after culling against
      * meshes and other boxes.
      */
-    public static List<Triangle3d> visibleBoxTriangles(CullingContext culling, LittleTilesCubeObject cube,
+    public static List<Triangle3d> visibleBoxTriangles(Supplier<CullingContext> culling, LittleTilesCubeObject cube,
             FaceClipper clipper) {
         LittleTileGeometryCache cache = cube.geometryCache;
-        List<Triangle3d> cached = cache.getVisibleBoxTriangles();
-        if (cached != null) {
-            // the clipper is new for every render, so the sides that are drawn as triangles have to be hidden again
-            coverReplacedBoxSides(clipper, cube);
-            return cached;
-        }
+        CullingResult result = cache
+                .getOrCreateCullingResult(cube.cutsGeneration, () -> calculateBoxCulling(culling.get(), cube));
+        // the clipper is new for every render, so cached replaced sides have to be hidden again
+        coverReplacedBoxSides(clipper, cube, result.getReplacedSides());
+        return result.getTriangles();
+    }
+
+    /** Calculates box culling without modifying either the retained cache or the renderer's face clipper. */
+    private static CullingResult calculateBoxCulling(CullingContext culling, LittleTilesCubeObject cube) {
         List<Triangle3d> meshOccludingTriangles = getOccludingTriangles(culling, cube, true);
         if (meshOccludingTriangles.isEmpty()) {
-            cache.setVisibleBoxTriangles(Collections.emptyList());
-            return Collections.emptyList();
+            return new CullingResult(Collections.emptyList(), 0);
         }
         List<Triangle3d> allOccludingTriangles = getOccludingTriangles(culling, cube, false);
         List<Triangle3d> visible = new ArrayList<>();
+        int replacedSides = 0;
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             List<Triangle3d> face = boxFaceTriangles(cube, side);
             if (!overlapsAny(face, meshOccludingTriangles)) {
                 continue; // no mesh in this plane, the rectangle clipping of the box renderer covers this side
             }
-            coverSide(clipper, cube, cube, side);
-            cache.addReplacedBoxSide(side);
+            replacedSides |= 1 << side.ordinal();
             for (Triangle3d triangle : face) {
                 visible.addAll(cutTriangle(triangle, allOccludingTriangles));
             }
         }
-        cache.setVisibleBoxTriangles(visible);
-        return visible;
+        return new CullingResult(visible, replacedSides);
     }
 
     /** Replays onto a fresh clipper which sides were replaced by triangles when the cut result was computed. */
-    private static void coverReplacedBoxSides(FaceClipper clipper, LittleTilesCubeObject cube) {
-        int replacedSides = cube.geometryCache.getReplacedBoxSides();
+    private static void coverReplacedBoxSides(FaceClipper clipper, LittleTilesCubeObject cube, int replacedSides) {
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             if ((replacedSides & 1 << side.ordinal()) != 0) {
                 coverSide(clipper, cube, cube, side);
             }
         }
+    }
+
+    /**
+     * Every triangle world rendering draws for {@code cube}, in block-local coordinates, for debugging culling. Goes
+     * through the same cached path as rendering, so a stale culling result shows up here just as it does on screen.
+     * <p>
+     * A cutout comes back as its culled mesh. A box comes back whole: its untouched sides, the rectangles left over by
+     * {@link FaceClipper} and the sides culling replaced with triangles. Empty when the cube draws nothing. Null when
+     * culling does not apply to the cube at all, when it is a box that culling leaves untouched, or when it has no
+     * geometry to draw: a cutout that lost its mesh falls back to a plain box in world rendering, which this does not
+     * reproduce.
+     *
+     * @param cubes all cubes of the tile entity at the given position, {@code cube} among them
+     */
+    public static List<Triangle3d> renderedTriangles(IBlockAccess world, List<LittleTilesCubeObject> cubes, int x,
+            int y, int z, LittleTilesCubeObject cube) {
+        if (ignoreForCulling(cube)) {
+            return null;
+        }
+        Supplier<CullingContext> culling = () -> prepareCulling(world, cubes, x, y, z);
+        if (cube.cutoutInfo != null) {
+            Mesh3d mesh = cube.geometryCache.getOrCreateSimpleMesh();
+            if (mesh == null || mesh.getTriangles().isEmpty()) {
+                return null;
+            }
+            return visibleCutoutTriangles(culling, cube, mesh);
+        }
+
+        // only cubes ignored for culling are left without a clipper
+        FaceClipper faceClipper = (FaceClipper) computeCoverage(world, cubes, x, y, z)[cubes.indexOf(cube)];
+        // also covers the replaced sides on the clipper, so those come back as no pieces below
+        List<Triangle3d> triangles = new ArrayList<>(visibleBoxTriangles(culling, cube, faceClipper));
+        boolean culled = false;
+        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
+            List<FacePiece> pieces = faceClipper.getFacePieces(side);
+            if (pieces == null) {
+                triangles.addAll(boxFaceTriangles(cube, side));
+                continue;
+            }
+            culled = true;
+            for (FacePiece piece : pieces) {
+                triangles.addAll(boxFaceTriangles(facePieceCube(cube, side, piece), side));
+            }
+        }
+        return culled ? triangles : null;
+    }
+
+    /** The cube shrunk to {@code piece} in the plane of {@code side}, so its face on that side is the piece. */
+    private static LittleTilesCubeObject facePieceCube(LittleTilesCubeObject cube, ForgeDirection side,
+            FacePiece piece) {
+        int[] min = { cube.gridMinX, cube.gridMinY, cube.gridMinZ };
+        int[] max = { cube.gridMaxX, cube.gridMaxY, cube.gridMaxZ };
+        int planeX = PLANE_X_AXIS[side.ordinal()].toInt();
+        int planeY = PLANE_Y_AXIS[side.ordinal()].toInt();
+        min[planeX] = piece.minPlaneX;
+        max[planeX] = piece.maxPlaneX;
+        min[planeY] = piece.minPlaneY;
+        max[planeY] = piece.maxPlaneY;
+        return new LittleTilesCubeObject(min[0], min[1], min[2], max[0], max[1], max[2]);
     }
 
     /** Whether an occluding triangle shares a plane with one of the triangles and could therefore hide part of it. */
@@ -357,7 +423,11 @@ public final class LittleTilesFaceCuller {
                 continue;
             }
             if (occluder.cutoutInfo != null) {
-                occludingTriangles.addAll(occluder.geometryCache.getSimpleMesh().getTriangles());
+                // as in prepareCulling: a tile that lost its mesh simply occludes nothing
+                Mesh3d occluderMesh = occluder.geometryCache.getOrCreateSimpleMesh();
+                if (occluderMesh != null) {
+                    occludingTriangles.addAll(occluderMesh.getTriangles());
+                }
             } else if (!meshOccludersOnly) {
                 for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
                     if (isFlush(cube, occluder, side)) {

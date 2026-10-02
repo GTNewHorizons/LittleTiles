@@ -9,6 +9,7 @@ import net.minecraft.item.ItemStack;
 public class BlockValidator {
 
     public static boolean isBlockValid(Block block) {
+        if (block == null) return false;
         if (block == Blocks.air) return false;
         if (new ItemStack(block).getItem() == null) return false;
         if (block.hasTileEntity(0)) return false;

@@ -25,9 +25,10 @@ import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.CubeObject;
-import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.LittleTilesFaceCuller.CullingContext;
+import com.creativemd.littletiles.client.util3d.Grid3d;
+import com.creativemd.littletiles.client.util3d.GridVector;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
@@ -115,12 +116,16 @@ public class LittleTilesBlockRenderHelper {
      * A shape that is not axis-aligned cannot simply be grown like a box. Pulling each vertex towards the camera lifts
      * it off any face from every angle.
      */
-    private static void vertexFromCamera(double x, double y, double z, Vector3d point) {
-        double px = x + point.x;
-        double py = y + point.y;
-        double pz = z + point.z;
+    private static void vertexFromCamera(double x, double y, double z, GridVector point) {
+        double px = x + point.blockX();
+        double py = y + point.blockY();
+        double pz = z + point.blockZ();
         double scale = Math.max(0, 1 - Z_FIGHT_EPSILON / Math.sqrt(px * px + py * py + pz * pz));
         GL11.glVertex3d(px * scale, py * scale, pz * scale);
+    }
+
+    private static void glVertex(GridVector point) {
+        GL11.glVertex3d(point.blockX(), point.blockY(), point.blockZ());
     }
 
     /** What became of a cutout tile. */
@@ -192,18 +197,18 @@ public class LittleTilesBlockRenderHelper {
 
             // the mesh is relative to its block, so the block position is added on the way out
             for (Triangle3d triangle : mesh.getTriangles()) {
-                Vector3d p1 = triangle.getP1();
-                Vector3d p2 = triangle.getP2();
-                Vector3d p3 = triangle.getP3();
+                GridVector p1 = triangle.getP1();
+                GridVector p2 = triangle.getP2();
+                GridVector p3 = triangle.getP3();
                 Vector2d tex1 = triangle.getTex1();
                 Vector2d tex2 = triangle.getTex2();
                 Vector2d tex3 = triangle.getTex3();
                 tess.setColorOpaque_I(
                         topTintOnly && triangle.getFaceDirection() != ForgeDirection.UP ? ColorUtils.WHITE : color);
-                tess.addVertexWithUV(x + p1.x, y + p1.y, z + p1.z, tex1.x, tex1.y);
-                tess.addVertexWithUV(x + p2.x, y + p2.y, z + p2.z, tex2.x, tex2.y);
-                tess.addVertexWithUV(x + p3.x, y + p3.y, z + p3.z, tex3.x, tex3.y);
-                tess.addVertexWithUV(x + p3.x, y + p3.y, z + p3.z, tex3.x, tex3.y);
+                tess.addVertexWithUV(x + p1.blockX(), y + p1.blockY(), z + p1.blockZ(), tex1.x, tex1.y);
+                tess.addVertexWithUV(x + p2.blockX(), y + p2.blockY(), z + p2.blockZ(), tex2.x, tex2.y);
+                tess.addVertexWithUV(x + p3.blockX(), y + p3.blockY(), z + p3.blockZ(), tex3.x, tex3.y);
+                tess.addVertexWithUV(x + p3.blockX(), y + p3.blockY(), z + p3.blockZ(), tex3.x, tex3.y);
             }
         } finally {
             if (useAngelicaAmbientOcclusion) {
@@ -378,11 +383,11 @@ public class LittleTilesBlockRenderHelper {
                     // Recipe meshes retain their multi-block position (for example, x = 1..2 for a tile in the
                     // second block). Texture projection expects block-local coordinates; feeding those recipe-space
                     // values to IIcon interpolation samples beyond the icon and into unrelated atlas sprites.
-                    Vector3d textureOffset = new Vector3d(
-                            Math.floor(cube.minX),
-                            Math.floor(cube.minY),
-                            Math.floor(cube.minZ));
-                    mesh.translate(new Vector3d(-textureOffset.x, -textureOffset.y, -textureOffset.z));
+                    GridVector textureOffset = new GridVector(
+                            (int) Math.floor(cube.minX) * Grid3d.BLOCK,
+                            (int) Math.floor(cube.minY) * Grid3d.BLOCK,
+                            (int) Math.floor(cube.minZ) * Grid3d.BLOCK);
+                    mesh.translate(-textureOffset.x, -textureOffset.y, -textureOffset.z);
                     mesh.setTextures(block, metadata);
                     mesh.translate(textureOffset);
                     boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
@@ -392,11 +397,11 @@ public class LittleTilesBlockRenderHelper {
                     for (Triangle3d triangle : mesh.getTriangles()) {
                         if (topTintOnly) setGlColor(color, triangle.getFaceDirection() != ForgeDirection.UP);
                         GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);
-                        GL11.glVertex3d(triangle.getP1().x, triangle.getP1().y, triangle.getP1().z);
+                        glVertex(triangle.getP1());
                         GL11.glTexCoord2d(triangle.getTex2().x, triangle.getTex2().y);
-                        GL11.glVertex3d(triangle.getP2().x, triangle.getP2().y, triangle.getP2().z);
+                        glVertex(triangle.getP2());
                         GL11.glTexCoord2d(triangle.getTex3().x, triangle.getTex3().y);
-                        GL11.glVertex3d(triangle.getP3().x, triangle.getP3().y, triangle.getP3().z);
+                        glVertex(triangle.getP3());
                     }
                     GL11.glEnd();
                     GL11.glTranslatef(0.5F, 0.5F, 0.5F);

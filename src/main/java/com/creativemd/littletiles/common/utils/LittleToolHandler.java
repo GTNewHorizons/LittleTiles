@@ -13,7 +13,7 @@ import org.joml.Vector3i;
 
 import com.creativemd.creativecore.common.utils.Rotation;
 import com.creativemd.creativecore.common.utils.RotationUtils;
-import com.creativemd.creativecore.lib.Vector3d;
+import com.creativemd.littletiles.client.util3d.GridNormal;
 import com.creativemd.littletiles.client.util3d.OrientationMapper;
 import com.creativemd.littletiles.client.util3d.Plane3d;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
@@ -148,8 +148,10 @@ public class LittleToolHandler {
         tag.setByte("placeMode", (byte) LittleTilePlaceMode.fromOrdinal(mode).ordinal());
     }
 
-    public static ForgeDirection getDirectionForNormal(Vector3d normal) {
-        return Plane3d.getPlaneForNormal(normal).getDirection();
+    /** The side a normal points to. Only for normals made of quarter turns and mirrors, which are exact axes. */
+    public static ForgeDirection getDirectionForNormal(Vector3f normal) {
+        GridNormal axis = new GridNormal(Math.round(normal.x), Math.round(normal.y), Math.round(normal.z));
+        return Plane3d.getPlaneForNormal(axis).getDirection();
     }
 
     private static Vector3f toVector3f(Vec3 vec) {
@@ -273,11 +275,11 @@ public class LittleToolHandler {
 
             int faceStartI = nbt.getByte("cutoutFaceStart");
             int faceEndI = nbt.getByte("cutoutFaceEnd");
-            Vector3d faceStart = Plane3d.planes[faceStartI].getNormal();
-            Vector3d faceEnd = Plane3d.planes[faceEndI].getNormal();
+            Vector3f faceStart = new Vector3f(Plane3d.planes[faceStartI].getNormal());
+            Vector3f faceEnd = new Vector3f(Plane3d.planes[faceEndI].getNormal());
 
-            faceStart = new Vector3d(transform.transform(faceStart.toVector3f()));
-            faceEnd = new Vector3d(transform.transform(faceEnd.toVector3f()));
+            faceStart = transform.transform(faceStart);
+            faceEnd = transform.transform(faceEnd);
 
             faceStartI = getDirectionForNormal(faceStart).ordinal();
             faceEndI = getDirectionForNormal(faceEnd).ordinal();

@@ -42,44 +42,13 @@ public class Mesh3dUtil {
 
     public static Mesh3d meshFromTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
         return Mesh3dUtil.createMesh(
-                0,
-                0,
-                0,
                 cutoutInfo,
-                box.minX / 16.0,
-                box.minY / 16.0,
-                box.minZ / 16.0,
-                box.maxX / 16.0,
-                box.maxY / 16.0,
-                box.maxZ / 16.0,
-                null,
-                0);
-    }
-
-    public static Mesh3d createMesh(int x, int y, int z, LittleTileCutoutInfo cutoutInfo, double minX, double minY,
-            double minZ, double maxX, double maxY, double maxZ, Block block, int meta) {
-        Vector3d pos = new Vector3d(x, y, z);
-        Vector3d cutoutScale = new Vector3d(
-                cutoutInfo.size.x / 16.0,
-                cutoutInfo.size.y / 16.0,
-                cutoutInfo.size.z / 16.0);
-        Vector3i posSubMin = new Vector3i();
-        posSubMin.x = (int) Math.round(minX * 16);
-        posSubMin.y = (int) Math.round(minY * 16);
-        posSubMin.z = (int) Math.round(minZ * 16);
-        Vector3i posSubMax = new Vector3i();
-        posSubMax.x = (int) Math.round(maxX * 16);
-        posSubMax.y = (int) Math.round(maxY * 16);
-        posSubMax.z = (int) Math.round(maxZ * 16);
-        return Mesh3dUtil.createMesh(
-                cutoutInfo,
-                cutoutScale,
-                pos,
+                cutoutInfo.size,
                 cutoutInfo.pos,
-                posSubMin,
-                posSubMax,
-                block,
-                meta,
+                new Vector3i(box.minX, box.minY, box.minZ),
+                new Vector3i(box.maxX, box.maxY, box.maxZ),
+                null,
+                0,
                 cutoutInfo.orientation);
     }
 
@@ -97,8 +66,9 @@ public class Mesh3dUtil {
         return new Matrix3f().rotation(angle, (float) from.x, (float) from.y, (float) from.z);
     }
 
-    private static Mesh3d createWallMesh(LittleTileCutoutInfo cutoutInfo) {
-        ArrayList<Triangle3d> triangles = new ArrayList<>();
+    /** A box from the origin to (1, 1, 1). */
+    private static List<Triangle3d> createBoxTriangles() {
+        List<Triangle3d> triangles = new ArrayList<>();
 
         // Front face (z = 1)
         triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 0, 1), new Vector3d(1, 1, 1)));
@@ -124,7 +94,11 @@ public class Mesh3dUtil {
         triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 1), new Vector3d(0, 0, 1)));
         triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(1, 0, 1)));
 
-        Mesh3d mesh = new Mesh3d(triangles);
+        return triangles;
+    }
+
+    private static Mesh3d createWallMesh(LittleTileCutoutInfo cutoutInfo) {
+        Mesh3d mesh = new Mesh3d(createBoxTriangles());
 
         mesh.scale(cutoutInfo.thickness / 16f);
         float middle = cutoutInfo.thickness / 16f / 2;
@@ -359,27 +333,13 @@ public class Mesh3dUtil {
     }
 
     public static Mesh3d createBoxMesh() {
-        List<Triangle3d> triangles = new ArrayList<>();
-
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 0, 1), new Vector3d(1, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 1), new Vector3d(1, 1, 1), new Vector3d(0, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 1, 0), new Vector3d(1, 0, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(0, 1, 0), new Vector3d(1, 1, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(0, 0, 1), new Vector3d(0, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(0, 1, 1), new Vector3d(0, 1, 0)));
-        triangles.add(new Triangle3d(new Vector3d(1, 0, 0), new Vector3d(1, 1, 1), new Vector3d(1, 0, 1)));
-        triangles.add(new Triangle3d(new Vector3d(1, 0, 0), new Vector3d(1, 1, 0), new Vector3d(1, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(0, 1, 1), new Vector3d(1, 1, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(1, 1, 1), new Vector3d(1, 1, 0)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 1), new Vector3d(0, 0, 1)));
-        triangles.add(new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(1, 0, 1)));
-
-        Mesh3d mesh = new Mesh3d(triangles);
-        return mesh;
+        return new Mesh3d(createBoxTriangles());
     }
 
-    public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3d cutoutScale, Vector3d pos,
-            Vector3i posCutout, Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
+    /** @param cutoutSize the size of the whole cutout, in tile pixels */
+    public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3i cutoutSize, Vector3i posCutout,
+            Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
+        Vector3d cutoutScale = new Vector3d(cutoutSize.x / 16.0, cutoutSize.y / 16.0, cutoutSize.z / 16.0);
         Mesh3d mesh = switch (cutoutInfo.type) {
             case SLOPE -> MESH_SLOPE.copy();
             case PILLAR -> {
@@ -401,9 +361,7 @@ public class Mesh3dUtil {
         };
 
         if (cutoutInfo.type != LittleTileShapeMode.PILLAR) {
-            mesh.translate(new Vector3d(-0.5, -0.5, -0.5));
-            mesh.rotate(orientation);
-            mesh.translate(new Vector3d(0.5, 0.5, 0.5));
+            mesh.rotate(orientation, new Vector3d(1, 1, 1));
         }
 
         mesh.scale(cutoutScale);
@@ -454,7 +412,6 @@ public class Mesh3dUtil {
         if (block != null) {
             mesh.setTextures(block, meta);
         }
-        mesh.translate(pos);
 
         return mesh;
     }

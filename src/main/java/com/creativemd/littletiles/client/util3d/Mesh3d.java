@@ -25,6 +25,10 @@ import com.creativemd.littletiles.client.render.LittleTilesBlockRenderHelper;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.FMLLog;
 
+/**
+ * A triangle mesh. Triangles must not share point objects: transforms move the points in place, so a shared one would
+ * be moved once per triangle.
+ */
 public class Mesh3d {
 
     private static final double DEGENERATE_EPSILON = 1.0E-8;
@@ -132,6 +136,7 @@ public class Mesh3d {
 
             for (Triangle3d t : addTriangles) {
                 t.ensureWindingOrder(triangle.getNormal());
+                t.inheritPlane(triangle);
             }
 
             newTriangles.addAll(addTriangles);
@@ -342,10 +347,18 @@ public class Mesh3d {
 
     }
 
-    public void rotate(int orientation) {
+    /**
+     * Rotates the mesh within the box from the origin to {@code size}, so that afterwards it fills the rotated box from
+     * the origin to {@code size} rotated as well.
+     */
+    public void rotate(int orientation, Vector3d size) {
+        Vector3f rotatedSize = OrientationMapper.fromId(orientation).transform(size.toVector3f());
+        rotatedSize.absolute();
+        translate(new Vector3d(-size.x / 2, -size.y / 2, -size.z / 2));
         for (Triangle3d triangle : triangles) {
             triangle.rotate(orientation);
         }
+        translate(new Vector3d(rotatedSize.x / 2, rotatedSize.y / 2, rotatedSize.z / 2));
     }
 
     public Mesh3d copy() {

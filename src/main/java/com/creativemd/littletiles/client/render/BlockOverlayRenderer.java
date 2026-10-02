@@ -10,7 +10,6 @@ import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.common.utils.ColorUtils;
-import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
@@ -85,8 +84,7 @@ public class BlockOverlayRenderer implements IItemRenderer {
         try {
             mesh = Mesh3dUtil.createMesh(
                     cutoutInfo,
-                    new Vector3d(1, 1, 1),
-                    new Vector3d(),
+                    cutoutInfo.size,
                     new Vector3i(),
                     new Vector3i(),
                     new Vector3i(16, 16, 16),

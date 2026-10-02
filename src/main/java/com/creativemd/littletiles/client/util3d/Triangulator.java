@@ -33,6 +33,8 @@ public class Triangulator {
                     new Vector3d(secondVertex),
                     new Vector3d(thirdVertex));
             triangle.ensureWindingOrder(plane.getNormal());
+            // the cap lies in the cutting plane, so that is its plane, whatever rounding did to its normal
+            triangle.setPlane(Plane3d.planes[plane.getDirection().ordinal()]);
             triangles.add(triangle);
         }
     }

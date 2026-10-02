@@ -12,7 +12,6 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 
 import com.creativemd.littletiles.LittleTiles;
-import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.history.LittleTileChangeRecorder;
@@ -168,12 +167,18 @@ public class LittleTilePlacementPlan {
 
     private void applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile, EntityPlayer player,
             ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
-        LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile);
         LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile);
-        // Mesh-backed fragments can clip to empty space when split across blocks.
-        // In that case we skip placement for this fragment instead of placing a full box tile.
-        if (baseCutoutInfo != null && cutoutInfoCurrent == null) {
-            return;
+        if (cutoutInfoCurrent != null) {
+            switch (Mesh3dUtil.classifyTile(placeTile.box, cutoutInfoCurrent)) {
+                // Mesh-backed fragments can clip to empty space when split across blocks.
+                // In that case we skip placement for this fragment instead of placing a full box tile.
+                case EMPTY -> {
+                    return;
+                }
+                // Fragments the shape fills completely look the same as a plain box tile, which is far cheaper.
+                case FULL -> cutoutInfoCurrent = null;
+                default -> {}
+            }
         }
 
         List<LittleTile> tiles = placeTile
@@ -219,11 +224,6 @@ public class LittleTilePlacementPlan {
         cutoutInfoCurrent.pos.x += (originX - coord.posX) * 16 + originalBox.minX - currentBox.minX;
         cutoutInfoCurrent.pos.y += (originY - coord.posY) * 16 + originalBox.minY - currentBox.minY;
         cutoutInfoCurrent.pos.z += (originZ - coord.posZ) * 16 + originalBox.minZ - currentBox.minZ;
-
-        Mesh3d mesh = Mesh3dUtil.meshFromTile(currentBox, cutoutInfoCurrent);
-        if (mesh.getTriangles().isEmpty()) {
-            return null;
-        }
         return cutoutInfoCurrent;
     }
 
@@ -254,13 +254,15 @@ public class LittleTilePlacementPlan {
         for (PreviewTile tile : placeTiles) {
             if (!tile.needsCollisionTest()) continue;
 
-            LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(tile);
-            LittleTileCutoutInfo perTileCutout = null;
-            if (baseCutoutInfo != null) {
-                perTileCutout = getCutoutInfoCurrent(coord, tile);
-                // Mesh-backed fragments can clip to empty space when split across blocks.
-                if (perTileCutout == null) {
-                    continue;
+            LittleTileCutoutInfo perTileCutout = getCutoutInfoCurrent(coord, tile);
+            if (perTileCutout != null) {
+                switch (Mesh3dUtil.classifyTile(tile.box, perTileCutout)) {
+                    // Mesh-backed fragments can clip to empty space when split across blocks.
+                    case EMPTY -> {
+                        continue;
+                    }
+                    case FULL -> perTileCutout = null;
+                    default -> {}
                 }
             }
 

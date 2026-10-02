@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.block.Block;
 
+import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 
@@ -406,6 +407,125 @@ public class Mesh3dUtil {
         }
 
         return finishMesh(mesh, cutoutInfo, posSubMin, posSubMax, block, meta);
+    }
+
+    /** How much of its tile box a cutout covers, see {@link #classifyTile}. */
+    public enum TileCoverage {
+        /** Nothing of the shape is inside the box, so there is nothing to place. */
+        EMPTY,
+        /** The shape crosses the box and has to be cut to it. */
+        PARTIAL,
+        /** The shape fills the whole box, so a plain box tile looks the same. */
+        FULL
+    }
+
+    /**
+     * Works out how much of {@code box} the cutout covers, without cutting the mesh. A big shape split across many
+     * blocks leaves most of them either empty or completely filled, and cutting those is wasted work. Whatever the
+     * test cannot rule out counts as {@link TileCoverage#PARTIAL}, so the caller falls back to the cut mesh.
+     */
+    public static TileCoverage classifyTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
+        TileCoverage coverage = classifyShape(box, cutoutInfo);
+        if (!cutoutInfo.inverted) {
+            return coverage;
+        }
+        // the anti mesh covers exactly the rest of the box
+        return switch (coverage) {
+            case EMPTY -> TileCoverage.FULL;
+            case FULL -> TileCoverage.EMPTY;
+            default -> TileCoverage.PARTIAL;
+        };
+    }
+
+    private static TileCoverage classifyShape(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
+        Vector3i posSubMin = new Vector3i(box.minX, box.minY, box.minZ);
+        Mesh3d mesh = buildMesh(cutoutInfo, cutoutInfo.size, cutoutInfo.pos, posSubMin, cutoutInfo.orientation);
+        if (mesh.getTriangles().isEmpty()) {
+            return TileCoverage.EMPTY;
+        }
+
+        // the same bounds createMesh cuts with, in tile pixels
+        int[] subMin = { box.minX, box.minY, box.minZ };
+        int[] subMax = { box.maxX, box.maxY, box.maxZ };
+        int[] meshMin = { cutoutInfo.pos.x + box.minX, cutoutInfo.pos.y + box.minY, cutoutInfo.pos.z + box.minZ };
+        int[] meshMax = { meshMin[0] + cutoutInfo.size.x, meshMin[1] + cutoutInfo.size.y,
+                meshMin[2] + cutoutInfo.size.z };
+
+        // Only a cut can make the shape fill the box. Without one the mesh lies within the box as it is, which also
+        // keeps thin shapes like a curved wall on the regular path.
+        boolean cut = false;
+        // The clip box: the part of the box the shape's bounds reach, in grid units
+        int[] clipMin = new int[3];
+        int[] clipMax = new int[3];
+        boolean clipIsBox = true;
+        for (int axis = 0; axis < 3; axis++) {
+            cut |= meshMin[axis] < subMin[axis] || meshMax[axis] > subMax[axis];
+            clipMin[axis] = Grid3d.fromPixels(Math.max(meshMin[axis], subMin[axis]));
+            clipMax[axis] = Grid3d.fromPixels(Math.min(meshMax[axis], subMax[axis]));
+            // Shapes that miss the box or only touch it
+            if (clipMin[axis] >= clipMax[axis]) {
+                return TileCoverage.EMPTY;
+            }
+            clipIsBox &= meshMin[axis] <= subMin[axis] && meshMax[axis] >= subMax[axis];
+        }
+        if (!cut) {
+            return TileCoverage.PARTIAL;
+        }
+
+        // Relative to the clip box's min corner, so the floats the separating axis test runs on stay small and exact
+        Vector3f extent = new Vector3f(
+                (float) Grid3d.toBlocks(clipMax[0] - clipMin[0]) / 2,
+                (float) Grid3d.toBlocks(clipMax[1] - clipMin[1]) / 2,
+                (float) Grid3d.toBlocks(clipMax[2] - clipMin[2]) / 2);
+        TriangleBoundingBoxIntersect.BoundingBox clip = new TriangleBoundingBoxIntersect.BoundingBox(
+                new Vector3f(extent),
+                extent);
+        for (Triangle3d triangle : mesh.getTriangles()) {
+            // Exact reject against the open interior of the clip box. This also drops every triangle lying on a face
+            // of the cutout's bounds, as those faces are either faces of the clip box or outside of it.
+            if (!reachesInterior(triangle, clipMin, clipMax)) {
+                continue;
+            }
+            if (TriangleBoundingBoxIntersect.intersect(
+                    clip,
+                    relativeBlocks(triangle.getP1(), clipMin),
+                    relativeBlocks(triangle.getP2(), clipMin),
+                    relativeBlocks(triangle.getP3(), clipMin))) {
+                return TileCoverage.PARTIAL;
+            }
+        }
+
+        // The surface misses the clip box, so it is either completely inside the shape or completely outside. The
+        // center is tested since corners can sit on faces flush with the shape.
+        Vector3f center = new Vector3f(
+                (float) Grid3d.toBlocks((long) clipMin[0] + clipMax[0]) / 2,
+                (float) Grid3d.toBlocks((long) clipMin[1] + clipMax[1]) / 2,
+                (float) Grid3d.toBlocks((long) clipMin[2] + clipMax[2]) / 2);
+        if (!mesh.containsPoint(center)) {
+            return TileCoverage.EMPTY;
+        }
+        // A filled clip box smaller than the box would need a smaller box tile, leave that to the cut
+        return clipIsBox ? TileCoverage.FULL : TileCoverage.PARTIAL;
+    }
+
+    /** Whether the bounds of the triangle overlap the open interior of the clip box. Exact. */
+    private static boolean reachesInterior(Triangle3d triangle, int[] clipMin, int[] clipMax) {
+        for (int axis = 0; axis < 3; axis++) {
+            int a = triangle.getP1().get(axis);
+            int b = triangle.getP2().get(axis);
+            int c = triangle.getP3().get(axis);
+            if (max(a, b, c) <= clipMin[axis] || min(a, b, c) >= clipMax[axis]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static Vector3f relativeBlocks(GridVector point, int[] origin) {
+        return new Vector3f(
+                (float) Grid3d.toBlocks((long) point.x - origin[0]),
+                (float) Grid3d.toBlocks((long) point.y - origin[1]),
+                (float) Grid3d.toBlocks((long) point.z - origin[2]));
     }
 
     /** The whole mesh of a cutout, uncut, placed relative to the block in grid units. */

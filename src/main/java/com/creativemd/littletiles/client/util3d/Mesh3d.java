@@ -325,6 +325,11 @@ public class Mesh3d {
         for (int i = 0; i < 3; i++) {
             GridVector a = points[i];
             GridVector b = points[(i + 1) % 3];
+            // Checked before ordering the edge, as afterwards a corner might not start any of the edges
+            if (a.get(uAxis) == u) {
+                low = Math.min(low, a.get(vAxis));
+                high = Math.max(high, a.get(vAxis));
+            }
             if (!a.isBefore(b)) {
                 GridVector temp = a;
                 a = b;
@@ -334,10 +339,6 @@ public class Mesh3d {
             int ub = b.get(uAxis);
             int va = a.get(vAxis);
             int vb = b.get(vAxis);
-            if (ua == u) {
-                low = Math.min(low, va);
-                high = Math.max(high, va);
-            }
             if (ua < u && ub > u || ua > u && ub < u) {
                 int v = (int) (va + Grid3d.divRound(((long) u - ua) * ((long) vb - va), (long) ub - ua));
                 low = Math.min(low, v);

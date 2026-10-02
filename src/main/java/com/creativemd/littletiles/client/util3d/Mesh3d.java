@@ -103,6 +103,7 @@ public class Mesh3d {
 
         ArrayList<Edge3d> addedEdges = new ArrayList<>();
         ArrayList<Edge3d> existingEdges = new ArrayList<>();
+        ArrayList<Triangle3d> onPlane = new ArrayList<>();
 
         for (Triangle3d triangle : triangles) {
             GridVector p1 = triangle.getP1();
@@ -115,6 +116,13 @@ public class Mesh3d {
             int aboveCount = (side1 > 0 ? 1 : 0) + (side2 > 0 ? 1 : 0) + (side3 > 0 ? 1 : 0);
             int belowCount = (side1 < 0 ? 1 : 0) + (side2 < 0 ? 1 : 0) + (side3 < 0 ? 1 : 0);
 
+            if (aboveCount == 0 && belowCount == 0) {
+                // Lies in the plane, decided on once it is known whether a cap gets built
+                if (!triangle.isDegenerate()) {
+                    onPlane.add(triangle);
+                }
+                continue;
+            }
             if (aboveCount == 0) {
                 // No vertex is above the plane, so keep the triangle
                 if (!triangle.isDegenerate()) {
@@ -172,6 +180,10 @@ public class Mesh3d {
                 return new Mesh3d(new ArrayList<>());
             }
             Triangulator.triangulate(newTriangles, plane, removeCollinearPoints(addVertices));
+        } else {
+            // Without a cap the triangles in the plane are still the surface. With one they are not: facing away from
+            // what is kept the cap covers them, and facing towards it, the solid they bounded has been cut away.
+            newTriangles.addAll(onPlane);
         }
 
         return new Mesh3d(newTriangles);

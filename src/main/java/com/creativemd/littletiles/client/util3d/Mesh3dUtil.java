@@ -361,33 +361,7 @@ public class Mesh3dUtil {
      */
     public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3ic cutoutSize, Vector3ic posCutout,
             Vector3ic posSubMin, Vector3ic posSubMax, Block block, int meta, int orientation) {
-        Mesh3d mesh = switch (cutoutInfo.type) {
-            case SLOPE -> MESH_SLOPE.copy();
-            case PILLAR -> createWallMesh(cutoutInfo);
-            case SLOPE_CONCAVE -> MESH_SLOPE_CONCAVE.copy();
-            case SLOPE_CONVEX -> MESH_SLOPE_CONVEX.copy();
-            case SLOPE_CONVEX_INNER_CORNER -> MESH_SLOPE_CONVEX_INNER_CORNER.copy();
-            case SLOPE_CONVEX_OUTER_CORNER -> MESH_SLOPE_CONVEX_OUTER_CORNER.copy();
-            case SLOPE_TRIANGLE -> MESH_SLOPE_TRIANGLE.copy();
-            case SLOPE_TRIANGLE_CORNER -> MESH_SLOPE_TRIANGLE_CORNER.copy();
-            case SLOPE_TRIANGLE_ALT -> MESH_SLOPE_TRIANGLE_ALT.copy();
-            case SLOPE_OUTER_CORNER -> MESH_SLOPE_OUTER_CORNER.copy();
-            case SLOPE_INNER_CORNER -> MESH_SLOPE_INNER_CORNER.copy();
-            case DEFORMED_BOX -> createDeformedBoxMesh(cutoutInfo, cutoutSize, orientation);
-            case BOX -> throw new RuntimeException("Invalid cutout BOX");
-            default -> throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
-        };
-
-        // the deformed box is built at its size and rotated already
-        if (cutoutInfo.type != LittleTileShapeMode.PILLAR && cutoutInfo.type != LittleTileShapeMode.DEFORMED_BOX) {
-            mesh.rotate(orientation, UNIT_SIZE);
-            mesh.scale(cutoutSize);
-        }
-
-        mesh.translate(
-                Grid3d.fromPixels(posCutout.x() + posSubMin.x()),
-                Grid3d.fromPixels(posCutout.y() + posSubMin.y()),
-                Grid3d.fromPixels(posCutout.z() + posSubMin.z()));
+        Mesh3d mesh = buildMesh(cutoutInfo, cutoutSize, posCutout, posSubMin, orientation);
 
         int meshMinX = posCutout.x() + posSubMin.x();
         int meshMaxX = meshMinX + cutoutInfo.size.x;
@@ -432,6 +406,39 @@ public class Mesh3dUtil {
         }
 
         return finishMesh(mesh, cutoutInfo, posSubMin, posSubMax, block, meta);
+    }
+
+    /** The whole mesh of a cutout, uncut, placed relative to the block in grid units. */
+    private static Mesh3d buildMesh(LittleTileCutoutInfo cutoutInfo, Vector3ic cutoutSize, Vector3ic posCutout,
+            Vector3ic posSubMin, int orientation) {
+        Mesh3d mesh = switch (cutoutInfo.type) {
+            case SLOPE -> MESH_SLOPE.copy();
+            case PILLAR -> createWallMesh(cutoutInfo);
+            case SLOPE_CONCAVE -> MESH_SLOPE_CONCAVE.copy();
+            case SLOPE_CONVEX -> MESH_SLOPE_CONVEX.copy();
+            case SLOPE_CONVEX_INNER_CORNER -> MESH_SLOPE_CONVEX_INNER_CORNER.copy();
+            case SLOPE_CONVEX_OUTER_CORNER -> MESH_SLOPE_CONVEX_OUTER_CORNER.copy();
+            case SLOPE_TRIANGLE -> MESH_SLOPE_TRIANGLE.copy();
+            case SLOPE_TRIANGLE_CORNER -> MESH_SLOPE_TRIANGLE_CORNER.copy();
+            case SLOPE_TRIANGLE_ALT -> MESH_SLOPE_TRIANGLE_ALT.copy();
+            case SLOPE_OUTER_CORNER -> MESH_SLOPE_OUTER_CORNER.copy();
+            case SLOPE_INNER_CORNER -> MESH_SLOPE_INNER_CORNER.copy();
+            case DEFORMED_BOX -> createDeformedBoxMesh(cutoutInfo, cutoutSize, orientation);
+            case BOX -> throw new RuntimeException("Invalid cutout BOX");
+            default -> throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
+        };
+
+        // the deformed box is built at its size and rotated already
+        if (cutoutInfo.type != LittleTileShapeMode.PILLAR && cutoutInfo.type != LittleTileShapeMode.DEFORMED_BOX) {
+            mesh.rotate(orientation, UNIT_SIZE);
+            mesh.scale(cutoutSize);
+        }
+
+        mesh.translate(
+                Grid3d.fromPixels(posCutout.x() + posSubMin.x()),
+                Grid3d.fromPixels(posCutout.y() + posSubMin.y()),
+                Grid3d.fromPixels(posCutout.z() + posSubMin.z()));
+        return mesh;
     }
 
     /**

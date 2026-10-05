@@ -1,5 +1,7 @@
 package com.creativemd.littletiles.common.packet;
 
+import java.util.Arrays;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Slot;
@@ -17,7 +19,6 @@ import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
-import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
@@ -28,6 +29,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 
 public class LittlePlacePacket extends CreativeCorePacket {
+
+    private static final double MAX_PLACEMENT_DISTANCE = 32.0;
 
     public LittlePlacePacket() {
         // Used by reflection
@@ -78,6 +81,10 @@ public class LittlePlacePacket extends CreativeCorePacket {
 
     @Override
     public void executeServer(EntityPlayer player) {
+        if (player.getDistance(pos.getPosX(), pos.getPosY(), pos.getPosZ()) > MAX_PLACEMENT_DISTANCE) {
+            return;
+        }
+
         ItemStack heldStack = player.inventory.getCurrentItem();
         ItemStack placementStack = getPlacementStack(heldStack, stack);
         if (placementStack != null) {
@@ -114,6 +121,10 @@ public class LittlePlacePacket extends CreativeCorePacket {
         if (size.sizeX <= 0 || size.sizeY <= 0 || size.sizeZ <= 0) return null;
         int align = requested.getInteger("fromChiselAlign");
 
+        if (!Arrays.asList(1, 2, 4, 8, 16).contains(align)) {
+            return null;
+        }
+
         LittleToolHandler handler = new LittleToolHandler(heldStack);
         if (!BlockValidator.isBlockValid(handler.getBlock())) return null;
         NBTTagCompound tag = new NBTTagCompound();
@@ -125,18 +136,8 @@ public class LittlePlacePacket extends CreativeCorePacket {
         tag.setInteger("fromChiselAlign", align);
 
         if (requested.hasKey("cutoutType")) {
-            // loadFromNBT indexes the direction enum directly; reject invalid indices before loading.
-            int faceStart = requested.getByte("cutoutFaceStart");
-            int faceEnd = requested.getByte("cutoutFaceEnd");
-            if (faceStart < 0 || faceStart >= ForgeDirection.values().length
-                    || faceEnd < 0
-                    || faceEnd >= ForgeDirection.values().length)
-                return null;
             LittleTileCutoutInfo cutout = LittleTileCutoutInfo.loadFromNBT(requested);
-            if (cutout == null || cutout.type == LittleTileShapeMode.BOX
-                    || cutout.orientation < 0
-                    || cutout.orientation >= 48)
-                return null;
+            if (cutout == null || cutout.orientation < 0 || cutout.orientation >= 48) return null;
             cutout.writeToNBT(tag);
         }
 

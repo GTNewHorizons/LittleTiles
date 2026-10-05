@@ -33,18 +33,15 @@ public class LittlePlacePacket extends CreativeCorePacket {
         // Used by reflection
     }
 
-    public LittlePlacePacket(ItemStack stack, LittleTileBlockPos pos, boolean customPlacement,
-            LittleTilePlaceMode placeMode) {
+    public LittlePlacePacket(ItemStack stack, LittleTileBlockPos pos, boolean customPlacement) {
         this.stack = stack;
         this.pos = pos;
         this.customPlacement = customPlacement;
-        this.placeMode = placeMode;
     }
 
     public ItemStack stack;
     public LittleTileBlockPos pos;
     public boolean customPlacement;
-    public LittleTilePlaceMode placeMode;
 
     @Override
     public void writeBytes(ByteBuf buf) {
@@ -57,7 +54,6 @@ public class LittlePlacePacket extends CreativeCorePacket {
         buf.writeInt(pos.getSubZ());
         buf.writeInt(pos.getSide().ordinal());
         buf.writeBoolean(customPlacement);
-        buf.writeByte(placeMode.ordinal());
     }
 
     @Override
@@ -72,7 +68,6 @@ public class LittlePlacePacket extends CreativeCorePacket {
         int side = buf.readInt();
         this.pos = new LittleTileBlockPos(posX, posY, posZ, subX, subY, subZ, ForgeDirection.getOrientation(side));
         this.customPlacement = buf.readBoolean();
-        this.placeMode = LittleTilePlaceMode.fromOrdinal(buf.readByte());
     }
 
     @Override

@@ -75,11 +75,11 @@ public class Triangle3d {
     }
 
     /** Makes this a piece of {@code parent}, see {@link #getPlane}. */
-    void inheritPlane(Triangle3d parent) {
+    public void inheritPlane(Triangle3d parent) {
         plane = parent.getPlane();
     }
 
-    void setPlane(Plane3d plane) {
+    public void setPlane(Plane3d plane) {
         this.plane = plane;
     }
 

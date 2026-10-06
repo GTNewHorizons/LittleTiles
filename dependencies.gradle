@@ -11,7 +11,7 @@ dependencies {
     compileOnly("com.github.GTNewHorizons:Minecraft-Backpack-Mod:2.6.18-GTNH:dev") { transitive = false }
     compileOnly("com.github.GTNewHorizons:Postea:1.2.8:dev") { transitive = false }
     api("com.github.GTNewHorizons:ModularUI2:2.3.92-1.7.10:dev")
-    shadowImplementation("io.github.earcut4j:earcut4j:2.2.2")
     testImplementation('junit:junit:4.13.2')
     testImplementation('org.joml:joml:1.10.8')
+    testImplementation('it.unimi.dsi:fastutil:8.5.15')
 }

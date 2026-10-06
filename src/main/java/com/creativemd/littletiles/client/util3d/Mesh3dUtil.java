@@ -378,7 +378,6 @@ public class Mesh3dUtil {
         int meshMaxY = meshMinY + cutoutInfo.size.y;
         int meshMinZ = posCutout.z + posSubMin.z;
         int meshMaxZ = meshMinZ + cutoutInfo.size.z;
-        Plane3d plane;
 
         // Bounds that only touch the box share no volume with it
         if (meshMinY >= posSubMax.y || meshMaxY <= posSubMin.y
@@ -389,31 +388,14 @@ public class Mesh3dUtil {
             return new Mesh3d(new ArrayList<>());
         }
 
-        if (meshMaxY > posSubMax.y) {
-            plane = Plane3d.UP.moveAlongNormal(-(16 - posSubMax.y) / 16.0);
-            mesh = mesh.cutByPlane(plane);
-        }
-        if (meshMinY < posSubMin.y) {
-            plane = Plane3d.DOWN.moveAlongNormal(-posSubMin.y / 16.0);
-            mesh = mesh.cutByPlane(plane);
-        }
-        if (meshMinX < posSubMin.x) {
-            plane = Plane3d.WEST.moveAlongNormal(-posSubMin.x / 16.0);
-            mesh = mesh.cutByPlane(plane);
-        }
-        if (meshMaxX > posSubMax.x) {
-            plane = Plane3d.EAST.moveAlongNormal(-(16 - posSubMax.x) / 16.0);
-            mesh = mesh.cutByPlane(plane);
-        }
-        if (meshMaxZ > posSubMax.z) {
-            plane = Plane3d.SOUTH.moveAlongNormal(-(16 - posSubMax.z) / 16.0);
-            mesh = mesh.cutByPlane(plane);
-        }
-        if (meshMinZ < posSubMin.z) {
-            plane = Plane3d.NORTH.moveAlongNormal(-posSubMin.z / 16.0);
-            mesh = mesh.cutByPlane(plane);
-        }
-
+        List<Plane3d> planes = new ArrayList<>(6);
+        if (meshMaxY > posSubMax.y) planes.add(Plane3d.UP.moveAlongNormal(-(16 - posSubMax.y) / 16.0));
+        if (meshMinY < posSubMin.y) planes.add(Plane3d.DOWN.moveAlongNormal(-posSubMin.y / 16.0));
+        if (meshMinX < posSubMin.x) planes.add(Plane3d.WEST.moveAlongNormal(-posSubMin.x / 16.0));
+        if (meshMaxX > posSubMax.x) planes.add(Plane3d.EAST.moveAlongNormal(-(16 - posSubMax.x) / 16.0));
+        if (meshMaxZ > posSubMax.z) planes.add(Plane3d.SOUTH.moveAlongNormal(-(16 - posSubMax.z) / 16.0));
+        if (meshMinZ < posSubMin.z) planes.add(Plane3d.NORTH.moveAlongNormal(-posSubMin.z / 16.0));
+        mesh = mesh.cutByPlanes(planes);
         if (block != null) {
             mesh.setTextures(block, meta);
         }

@@ -102,4 +102,39 @@ public class MeshPermutationTest {
             assertCollideEitherWay(trial.input("outer", outer), trial.input("inner", inner));
         });
     }
+
+    /**
+     * Places a box tile inside a slope, possibly touching its faces, and a shape inside a box tile, half of them
+     * filling it exactly. Where faces only touch no surfaces cross, so the collision has to notice that one lies inside
+     * the other. They must collide whichever of the two is placed first.
+     */
+    @Test
+    public void shapesAndBoxesInsideEachOtherCollide() {
+        Sweep.run("TEST_PERMUTATIONS_NESTED_BOXES", "nested boxes", trial -> {
+            Random random = trial.random();
+            Tile outer, inner;
+            switch (trial.inTurn(2)) {
+                case 0 -> {
+                    // A slope crossing the block, and a plain box inside it, possibly touching its faces
+                    LittleTileCutoutInfo slope;
+                    LittleTileBox box;
+                    do {
+                        slope = Draw.unturnedReachingIntoBlock(random, SLOPE, Draw.slopeSize(random));
+                        box = Draw.boxWithin(random, BlockSpace.intersection(BlockSpace.bounds(slope), BLOCK));
+                    } while (!Slopes.contains(slope, box));
+                    int turn = Draw.orientation(random);
+                    outer = Tile.of(slope).turned(turn);
+                    inner = Tile.plainBox(Shapes.turned(box, turn));
+                }
+                default -> {
+                    // A plain box, and any shape filling it or a smaller box inside it
+                    LittleTileBox box = Draw.boxWithin(random, BLOCK);
+                    LittleTileBox shapeBox = random.nextBoolean() ? box : Draw.boxWithin(random, box);
+                    outer = Tile.plainBox(box);
+                    inner = Tile.of(Draw.cutShapeFilling(random, shapeBox), shapeBox);
+                }
+            }
+            assertCollideEitherWay(trial.input("outer", outer), trial.input("inner", inner));
+        });
+    }
 }

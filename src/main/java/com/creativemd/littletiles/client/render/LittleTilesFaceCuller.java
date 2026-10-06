@@ -448,7 +448,7 @@ public final class LittleTilesFaceCuller {
     }
 
     /** Builds the two outward-facing triangles of one box face. */
-    private static List<Triangle3d> boxFaceTriangles(LittleTilesCubeObject cube, ForgeDirection side) {
+    public static List<Triangle3d> boxFaceTriangles(LittleTilesCubeObject cube, ForgeDirection side) {
         double minX = cube.gridMinX / 16.0;
         double minY = cube.gridMinY / 16.0;
         double minZ = cube.gridMinZ / 16.0;

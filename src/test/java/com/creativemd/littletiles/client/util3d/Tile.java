@@ -12,12 +12,12 @@ import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 /**
- * A tile in the block: a box clipping a shape. Its mesh is built once, when first asked for.
+ * A tile in the block: a box, clipping a shape or plain. Its mesh is built once, when first asked for.
  */
 public final class Tile {
 
     public final LittleTileBox box;
-    /** The shape as the game stores it, positioned relative to the box minimum. */
+    /** The shape as the game stores it, positioned relative to the box minimum, or null for a plain box. */
     public final LittleTileCutoutInfo shape;
     private Mesh3d mesh;
 
@@ -38,6 +38,14 @@ public final class Tile {
         return new Tile(box, stored);
     }
 
+    public static Tile plainBox(LittleTileBox box) {
+        return new Tile(box, null);
+    }
+
+    public boolean isPlainBox() {
+        return shape == null;
+    }
+
     /** The shape, positioned relative to the block minimum. */
     public LittleTileCutoutInfo shapeInBlock() {
         LittleTileCutoutInfo inBlock = new LittleTileCutoutInfo(shape);
@@ -55,7 +63,7 @@ public final class Tile {
         return of(Shapes.turned(shapeInBlock(), turn), Shapes.turned(box, turn));
     }
 
-    /** The faces as rendering builds them. Callers must not change it. */
+    /** The faces as rendering builds them, for a plain box the faces culling builds. Callers must not change it. */
     public Mesh3d mesh() {
         if (mesh == null) mesh = buildMesh();
         return mesh;
@@ -93,6 +101,7 @@ public final class Tile {
     }
 
     private Mesh3d buildMesh() {
+        if (isPlainBox()) return MeshGeometry.boxFaces(box);
         try {
             return Mesh3dUtil.meshFromTile(box, shape);
         } catch (RuntimeException exception) {
@@ -102,6 +111,7 @@ public final class Tile {
 
     @Override
     public String toString() {
+        if (isPlainBox()) return "box " + box;
         return Shapes.describe(shape) + " in " + box;
     }
 }

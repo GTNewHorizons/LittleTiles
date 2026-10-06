@@ -148,9 +148,6 @@ public class Mesh3dUtil {
      */
     public static final int DEFORMED_BOX_CORNER_COUNT = 8;
 
-    /** Below this, a face's offset from the box centroid is too short to tell which way the face points. */
-    private static final double OUTWARD_EPSILON_SQUARED = 1.0E-12;
-
     /**
      * Overlap, in square grid units, below which two coplanar triangles only touch. Well above the slivers
      * {@link Triangle3d#split} drops, well below anything the grid can actually produce.
@@ -158,8 +155,8 @@ public class Mesh3dUtil {
     private static final double OVERLAP_AREA_EPSILON = 1.0E-3;
 
     /**
-     * The 4 corners of every box face, in ring order, indexed as described by {@link #DEFORMED_BOX_CORNER_COUNT}. The
-     * order of the faces themselves is the one {@link #nominalFaceNormal(int)} relies on.
+     * The 4 corners of every box face, in ring order, indexed as described by {@link #DEFORMED_BOX_CORNER_COUNT}. All
+     * wound the same way round, so that the faces meet in edges walked once each way.
      */
     public static final int[][] DEFORMED_BOX_FACES = { { 0, 2, 6, 4 }, // west (x = min)
             { 1, 5, 7, 3 }, // east (x = max)
@@ -168,19 +165,6 @@ public class Mesh3dUtil {
             { 0, 1, 3, 2 }, // north (z = min)
             { 4, 6, 7, 5 }, // south (z = max)
     };
-
-    /**
-     * The direction the face at the given index of {@link #DEFORMED_BOX_FACES} points in before any corner has been
-     * dragged: the faces are listed as min/max pairs per axis, so the index encodes both.
-     */
-    private static Vector3d nominalFaceNormal(int face) {
-        double sign = face % 2 == 0 ? -1 : 1;
-        return switch (face / 2) {
-            case 0 -> new Vector3d(sign, 0, 0);
-            case 1 -> new Vector3d(0, sign, 0);
-            default -> new Vector3d(0, 0, sign);
-        };
-    }
 
     /** Normalizes a corner offset into the cutout's own unit cube. A zero-thickness axis collapses to 0. */
     public static Vector3d toLocal(Vector3i corner, Vector3i size) {
@@ -194,8 +178,7 @@ public class Mesh3dUtil {
      * Builds the mesh of a box whose 8 corners have been dragged out of their axis-aligned positions. Each face is a
      * general quad which is split along its shorter diagonal - for a warped (non-planar) face the two possible splits
      * give visibly different silhouettes, and the shorter diagonal is the one that keeps the surface closest to flat.
-     * Windings are fixed up against the centroid so every face ends up pointing outwards, except where the box has been
-     * flattened - see {@link #nominalFaceNormal(int)}.
+     * The mesh is wound outwards as a whole, see {@link #createDeformedBoxTriangles}.
      * <p>
      * Deformed-box corners always remain in orientation-zero space. This method reconstructs and normalizes that
      * original space from the corners; {@link #createMesh} applies the saved orientation to the completed mesh
@@ -218,53 +201,37 @@ public class Mesh3dUtil {
                 cornerBounds.maxZ - cornerBounds.minZ);
     }
 
-    /** The triangles of {@link #createDeformedBoxMesh}, in the cutout's local unit space. */
+    /**
+     * The triangles of {@link #createDeformedBoxMesh}, in the cutout's local unit space. Each face is split along one
+     * of its diagonals, see {@link #splitsAlongFirstDiagonal}. The mesh is closed whatever the corners: where some
+     * coincide, the triangles left without area are left out, which keeps it closed.
+     */
     private static List<Triangle3d> createDeformedBoxTriangles(Vector3i[] cornerOffsets) {
         LittleTileBox cornerBounds = LittleTileBox.fromPoints(cornerOffsets);
         Vector3i originalSize = originalSize(cornerOffsets);
         Vector3d[] corners = new Vector3d[DEFORMED_BOX_CORNER_COUNT];
-        Vector3d centroid = new Vector3d();
         for (int i = 0; i < corners.length; i++) {
             // cutoutInfo.size follows the rotated tile bounds, while the corners remain in orientation-zero space.
             // Recover that space from the corners themselves so a non-cubic box is normalized before mesh rotation.
             Vector3i corner = new Vector3i(cornerOffsets[i]);
             corner.sub(cornerBounds.minX, cornerBounds.minY, cornerBounds.minZ);
             corners[i] = toLocal(corner, originalSize);
-            centroid.add(corners[i]);
         }
-        centroid.scale(1.0 / corners.length);
 
         List<Triangle3d> triangles = new ArrayList<>();
-        for (int f = 0; f < DEFORMED_BOX_FACES.length; f++) {
-            int[] face = DEFORMED_BOX_FACES[f];
-            Vector3d a = corners[face[0]];
-            Vector3d b = corners[face[1]];
-            Vector3d c = corners[face[2]];
-            Vector3d d = corners[face[3]];
-
-            Vector3d faceCenter = new Vector3d(a);
-            faceCenter.add(b);
-            faceCenter.add(c);
-            faceCenter.add(d);
-            faceCenter.scale(0.25);
-
-            Vector3d outward = new Vector3d(faceCenter);
-            outward.sub(centroid);
-            // A box flattened onto a plane has both faces of the collapsed pair sitting on the centroid, which says
-            // nothing about which way either of them points. Fall back to where the face pointed before any corner
-            // was dragged
-            if (outward.lengthSquared() <= OUTWARD_EPSILON_SQUARED) {
-                outward = nominalFaceNormal(f);
-            }
-
+        for (int[] face : DEFORMED_BOX_FACES) {
+            Vector3d a = corners[face[0]], b = corners[face[1]], c = corners[face[2]], d = corners[face[3]];
             if (splitsAlongFirstDiagonal(a, b, c, d)) {
-                addDeformedFaceTriangle(triangles, a, b, c, outward);
-                addDeformedFaceTriangle(triangles, a, c, d, outward);
+                addDeformedFaceTriangle(triangles, a, b, c);
+                addDeformedFaceTriangle(triangles, a, c, d);
             } else {
-                addDeformedFaceTriangle(triangles, b, c, d, outward);
-                addDeformedFaceTriangle(triangles, b, d, a, outward);
+                addDeformedFaceTriangle(triangles, b, c, d);
+                addDeformedFaceTriangle(triangles, b, d, a);
             }
         }
+        // The faces are listed wound inwards for an undragged box. Turned all at once, so they keep fitting together
+        Mesh3d mesh = new Mesh3d(triangles);
+        if (mesh.volume() < 0) mesh.flipWindingOrder();
         return triangles;
     }
 
@@ -319,14 +286,9 @@ public class Mesh3dUtil {
         return Mesh3d.distanceSquared(a, c) <= Mesh3d.distanceSquared(b, d);
     }
 
-    private static void addDeformedFaceTriangle(List<Triangle3d> triangles, Vector3d a, Vector3d b, Vector3d c,
-            Vector3d outward) {
-        if (Mesh3d.isDegenerate(a, b, c)) {
-            return;
-        }
-        Triangle3d triangle = new Triangle3d(new Vector3d(a), new Vector3d(b), new Vector3d(c));
-        triangle.ensureWindingOrder(outward);
-        triangles.add(triangle);
+    private static void addDeformedFaceTriangle(List<Triangle3d> triangles, Vector3d a, Vector3d b, Vector3d c) {
+        if (a.equals(b) || b.equals(c) || c.equals(a)) return;
+        triangles.add(new Triangle3d(new Vector3d(a), new Vector3d(b), new Vector3d(c)));
     }
 
     /** A visibly warped full tile used to preview a deformed box, which has no fixed shape of its own. */

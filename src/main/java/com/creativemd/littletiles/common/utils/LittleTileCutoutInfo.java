@@ -7,6 +7,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.joml.Vector3i;
 
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.OrientationMapper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 public class LittleTileCutoutInfo {
@@ -126,6 +127,8 @@ public class LittleTileCutoutInfo {
         cutoutInfo.pos = new Vector3i(cutoutPosX, cutoutPosY, cutoutPosZ);
         cutoutInfo.orientation = nbt.getByte("cutoutOrientation");
         cutoutInfo.thickness = nbt.getByte("cutoutThickness");
+
+        if (cutoutInfo.orientation < 0 || cutoutInfo.orientation >= OrientationMapper.NUM_ORIENTATIONS) return null;
 
         ForgeDirection[] directions = ForgeDirection.values();
         int faceStart = nbt.getByte("cutoutFaceStart");

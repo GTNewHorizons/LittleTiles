@@ -137,7 +137,7 @@ public class LittlePlacePacket extends CreativeCorePacket {
 
         if (requested.hasKey("cutoutType")) {
             LittleTileCutoutInfo cutout = LittleTileCutoutInfo.loadFromNBT(requested);
-            if (cutout == null || cutout.orientation < 0 || cutout.orientation >= 48) return null;
+            if (cutout == null) return null;
             cutout.writeToNBT(tag);
         }
 

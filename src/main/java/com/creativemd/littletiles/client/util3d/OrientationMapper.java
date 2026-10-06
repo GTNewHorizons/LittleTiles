@@ -10,7 +10,7 @@ import org.joml.Matrix3f;
 public class OrientationMapper {
 
     /** The 24 proper rotations plus their 24 mirrored counterparts, covering every flipped/rotated cube orientation. */
-    private static final int NUM_ORIENTATIONS = 48;
+    public static final int NUM_ORIENTATIONS = 48;
     private static final List<Matrix3f> ORIENTATIONS = new ArrayList<>();
     private static final Map<String, Integer> LOOKUP = new HashMap<>();
 

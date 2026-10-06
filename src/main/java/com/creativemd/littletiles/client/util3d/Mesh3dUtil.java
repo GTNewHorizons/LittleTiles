@@ -405,6 +405,34 @@ public class Mesh3dUtil {
                 : TileCoverage.PARTIAL;
     }
 
+    /**
+     * Shrinks {@code box} to the tile pixels {@code mesh} reaches and moves the cutout along, so both still describe
+     * the same shape. A cut can leave a thin sliver of a big shape in a tile, which would otherwise keep the whole box.
+     *
+     * @param mesh the mesh {@link #meshFromTile} builds for the box and cutout, must not be empty
+     */
+    public static void fitToMesh(LittleTileBox box, LittleTileCutoutInfo cutoutInfo, Mesh3d mesh) {
+        double[] min = new double[3], max = new double[3];
+        pixelBounds(mesh, min, max);
+
+        // rounded outwards, as points where the mesh was cut can sit between pixels
+        int minX = Math.max(box.minX, (int) Math.floor(min[0]));
+        int minY = Math.max(box.minY, (int) Math.floor(min[1]));
+        int minZ = Math.max(box.minZ, (int) Math.floor(min[2]));
+        int maxX = Math.min(box.maxX, (int) Math.ceil(max[0]));
+        int maxY = Math.min(box.maxY, (int) Math.ceil(max[1]));
+        int maxZ = Math.min(box.maxZ, (int) Math.ceil(max[2]));
+
+        // the cutout is relative to the box's min corner
+        cutoutInfo.pos.add(box.minX - minX, box.minY - minY, box.minZ - minZ);
+        box.minX = minX;
+        box.minY = minY;
+        box.minZ = minZ;
+        box.maxX = maxX;
+        box.maxY = maxY;
+        box.maxZ = maxZ;
+    }
+
     /** The bounds of the points of the mesh, in pixels. */
     private static void pixelBounds(Mesh3d mesh, double[] min, double[] max) {
         Arrays.fill(min, Double.POSITIVE_INFINITY);

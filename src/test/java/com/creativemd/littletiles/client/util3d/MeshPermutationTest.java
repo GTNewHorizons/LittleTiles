@@ -16,6 +16,7 @@ import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertNotE
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertOnlySharedFacesHideEachOther;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertStayVisible;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertVisibleArea;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.EXACT_VOLUME;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.ROUNDING_VOLUME;
 import static com.creativemd.littletiles.client.util3d.MeshGeometry.area;
 import static com.creativemd.littletiles.client.util3d.Message.check;
@@ -526,7 +527,7 @@ public class MeshPermutationTest {
     /**
      * Places every shape in turn, pillars and deformed boxes included, into a random box in the block, the way placing
      * splits it into fragments. A fragment the shape misses must have no mesh, one it fills must have the whole box as
-     * its mesh, and the others the volume they share with the shape.
+     * its mesh, and the others the volume they share with the shape, which shrinking them to their mesh must keep.
      */
     @Test
     public void placedFragmentsKeepTheirShape() {
@@ -549,6 +550,10 @@ public class MeshPermutationTest {
                     check(
                             Math.abs(meshVolume - volume) <= ROUNDING_VOLUME,
                             Message.of("mesh volume=", meshVolume, " expected=", volume));
+                    Tile fitted = fragment.fittedToMesh();
+                    check(
+                            Math.abs(fitted.volume() - volume) <= EXACT_VOLUME,
+                            Message.of("fitted=", fitted, " volume=", fitted.volume(), " expected=", volume));
                 }
             }
         });

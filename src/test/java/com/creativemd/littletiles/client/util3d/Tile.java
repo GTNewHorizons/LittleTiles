@@ -75,6 +75,16 @@ public final class Tile {
         return mesh().getTriangles().isEmpty();
     }
 
+    /** Whether some faces are tilted, so the shape's surface crosses the box. */
+    public boolean hasTiltedFaces() {
+        return tiltedFaceArea() > 0;
+    }
+
+    /** The area of the faces not parallel to a block face, in square pixels. */
+    public double tiltedFaceArea() {
+        return MeshGeometry.area(MeshGeometry.FaceFilter.TILTED.of(mesh()));
+    }
+
     /**
      * The tiles with shapes of {@code kind} filling the rest of this shape's bounds, in the same box, see
      * {@link Shapes#COMPLEMENTS_OF_UNTURNED}.

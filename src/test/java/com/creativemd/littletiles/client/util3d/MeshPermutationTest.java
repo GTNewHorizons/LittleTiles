@@ -6,6 +6,7 @@ import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertColl
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertEmpty;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFit;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFitsExactlyWhen;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertHasTiltedFaces;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertNotEmpty;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE;
 
@@ -200,6 +201,28 @@ public class MeshPermutationTest {
             for (LittleTileBox bar : bars) {
                 assertFitsExactlyWhen(!Slopes.overlaps(unturned, bar), slope, Tile.plainBox(bar).turned(turn));
             }
+        });
+    }
+
+    /**
+     * Places a small slope in a random one of the complementing orientations on a stretch of a big slope's face, see
+     * {@link Draw#slopeOnStretchOf}. Its face lies in the big slope's plane, so the two only touch, even though their
+     * faces are triangulated and clipped differently.
+     */
+    @Test
+    public void differentlySizedCoplanarSlopesOnlyTouch() {
+        Sweep.run("TEST_PERMUTATIONS_COPLANAR_SLOPES", "coplanar slopes", trial -> {
+            Random random = trial.random();
+            LittleTileCutoutInfo big = Draw.until(() -> Draw.steppedSlope(random), Slopes::faceCrossesBlock);
+            int complement = Draw.oneOf(random, Shapes.COMPLEMENTS_OF_UNTURNED);
+            LittleTileCutoutInfo small = Draw
+                    .until(() -> Draw.slopeOnStretchOf(random, big, complement), Slopes::faceCrossesBlock);
+            int turn = Draw.orientation(random);
+            Tile bigSlope = trial.input("big", Tile.of(big).turned(turn));
+            Tile smallSlope = trial.input("small", Tile.of(small).turned(turn));
+            assertHasTiltedFaces(bigSlope);
+            assertHasTiltedFaces(smallSlope);
+            assertFit(bigSlope, smallSlope);
         });
     }
 }

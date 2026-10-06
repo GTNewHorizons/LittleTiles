@@ -17,6 +17,10 @@ public final class MeshAssertions {
         check(tile.isEmpty(), Message.of(tile.mesh().getTriangles().size(), " faces left: ", tile));
     }
 
+    public static void assertHasTiltedFaces(Tile tile) {
+        check(tile.hasTiltedFaces(), Message.of("no tilted faces: ", tile));
+    }
+
     /** Checks that the game lets {@code candidate} be placed into a block holding {@code placed}. */
     public static void assertFit(Tile placed, Tile candidate) {
         assertFitsExactlyWhen(true, placed, candidate);

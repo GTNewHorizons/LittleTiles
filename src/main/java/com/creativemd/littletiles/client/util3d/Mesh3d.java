@@ -460,14 +460,19 @@ public class Mesh3d {
         return Math.abs(solidAngle) > 2.0 * Math.PI;
     }
 
-    public Vector3f[] getVertices() {
-        Vector3f[] ret = new Vector3f[triangles.size() * 3];
+    /** The corners of all triangles, three in a row per triangle. */
+    public org.joml.Vector3d[] getVertices() {
+        org.joml.Vector3d[] ret = new org.joml.Vector3d[triangles.size() * 3];
         for (int i = 0; i < triangles.size(); i++) {
             Triangle3d triangle = triangles.get(i);
-            ret[i * 3] = triangle.getP1().toVector3f();
-            ret[i * 3 + 1] = triangle.getP2().toVector3f();
-            ret[i * 3 + 2] = triangle.getP3().toVector3f();
+            ret[i * 3] = toJoml(triangle.getP1());
+            ret[i * 3 + 1] = toJoml(triangle.getP2());
+            ret[i * 3 + 2] = toJoml(triangle.getP3());
         }
         return ret;
+    }
+
+    private static org.joml.Vector3d toJoml(Vector3d point) {
+        return new org.joml.Vector3d(point.x, point.y, point.z);
     }
 }

@@ -1,11 +1,13 @@
 package com.creativemd.littletiles.common.packet;
 
+import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.common.BlockValidator;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -45,6 +47,9 @@ public class LittleItemUpdatePacket extends CreativeCorePacket {
         if (current == null || current.getItem() != LittleTiles.chisel) {
             return;
         }
+        if (nbt != null && nbt.hasKey("block")
+                && !BlockValidator.isBlockValid(Block.getBlockById(nbt.getInteger("block"))))
+            return;
         player.inventory.getCurrentItem().setTagCompound(nbt);
     }
 

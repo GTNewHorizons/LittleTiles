@@ -38,6 +38,9 @@ public class MeshPermutationTest {
     /** Each trial places 768 bars, so fewer trials take about as long as the other sweeps. */
     private static final int ONE_PIXEL_BAR_TRIALS = 10_000;
 
+    /** Large cuts span more than two blocks and up to sixteen, so the coordinates of the cuts get large. */
+    private static final int MIN_LARGE_CUT_SIZE = 2 * PIXELS + 1, MAX_LARGE_CUT_SIZE = 16 * PIXELS;
+
     /** Checks slopes crossing the block against all four complements, in every orientation. */
     @Test
     public void complementarySlopesOnlyTouchInWholeBoxes() {
@@ -417,6 +420,23 @@ public class MeshPermutationTest {
         Sweep.run("TEST_PERMUTATIONS_CLOSE_MESH", "closed meshes", trial -> {
             Random random = trial.random();
             Tile shape = trial.input("shape", Draw.cutShapeClippedToSubBox(random));
+            assertClosedAndVolumesAddUp(random, shape);
+        });
+    }
+
+    /**
+     * Clips large random shapes to the block where their surface crosses it. Every resulting mesh must be closed, and
+     * its volume must add up across a split, also where the coordinates of the cuts get large.
+     */
+    @Test
+    public void largeRandomCutsClose() {
+        Sweep.run("TEST_PERMUTATIONS_LARGE_CUTS", "large cuts", trial -> {
+            Random random = trial.random();
+            // The block can lie wholly inside the shape or outside it, where its surface does not cross the block
+            Tile shape = trial.input("shape", Draw.until(() -> {
+                Vector3i size = Draw.size(random, MIN_LARGE_CUT_SIZE, MAX_LARGE_CUT_SIZE);
+                return Tile.of(Draw.cutShape(random, size, Draw.posReachingIntoBlock(random, size)));
+            }, Tile::hasTiltedFaces));
             assertClosedAndVolumesAddUp(random, shape);
         });
     }

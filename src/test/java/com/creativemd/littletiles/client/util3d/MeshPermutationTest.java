@@ -371,6 +371,7 @@ public class MeshPermutationTest {
             trial.input("neighbour", neighbour);
 
             Mesh3d neighbourBesideHere = MeshGeometry.besideThisBlock(neighbour.mesh(), axis);
+            trial.show("neighbour", neighbourBesideHere);
             assertOnlySharedFacesHideEachOther(here.mesh(), neighbourBesideHere, blockFace);
         });
     }
@@ -512,6 +513,8 @@ public class MeshPermutationTest {
     public void neighbouringDeformedBoxesOnlyTouch() {
         Sweep.run("TEST_PERMUTATIONS_DEFORMED_NEIGHBOURS", "deformed neighbours", trial -> {
             DeformedBoxes.Neighbours boxes = trial.input("boxes", DeformedBoxes.neighbours(trial.random()));
+            trial.show("low", boxes.low);
+            trial.show("high", boxes.high);
             check(boxes.splitSharedFaceAlike(), "warped shared face split along different diagonals");
             assertFit(boxes.low, boxes.high);
             assertCollide(boxes.low, boxes.highMovedIntoLow());

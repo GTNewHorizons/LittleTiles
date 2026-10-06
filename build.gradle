@@ -41,8 +41,9 @@ tasks.register('listOptionalPermutationTests') {
 
 tasks.named('test') {
     dependsOn(tasks.named('listOptionalPermutationTests'))
-    // Headless tests must not initialize FML or write OBJ files from mesh diagnostics.
+    // Disable Mesh3d's FML-dependent dumps; sweep failures export OBJ files without FML.
     systemProperty 'littletiles.disableMeshDumps', 'true'
+    systemProperty 'littletiles.meshFailureDir', layout.buildDirectory.dir('test-mesh-dumps').get().asFile.path
     testLogging.showStandardStreams = optionalPermutationTests.any { System.getenv(it) == '1' }
     // Selected sweeps generate fresh cases, so run them even when inputs have not changed.
     outputs.upToDateWhen { !optionalPermutationTests.any { System.getenv(it) == '1' } }

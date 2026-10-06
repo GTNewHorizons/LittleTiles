@@ -1,5 +1,6 @@
 package com.creativemd.littletiles.client.util3d;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +38,10 @@ public final class Sweep {
             try {
                 trial.accept(current);
             } catch (AssertionError | RuntimeException failure) {
+                String dump = current.dumpFailure(name, seed, failure);
                 throw new AssertionError(
-                        "seed=" + seed + " trial=" + index + current.describeInputs() + ": " + failure.getMessage(),
+                        "seed=" + seed + " trial=" + index + current.describeInputs() + ": " + failure.getMessage()
+                                + dump,
                         failure);
             }
             progress.update(index + 1);
@@ -61,6 +64,7 @@ public final class Sweep {
         private final Random random;
         private final int index;
         private final List<Object> inputs = new ArrayList<>();
+        private final List<MeshFailureObj.Group> meshes = new ArrayList<>();
 
         private Trial(Random random, int index) {
             this.random = random;
@@ -85,7 +89,35 @@ public final class Sweep {
         public <T> T input(String name, T value) {
             inputs.add(" " + name + "=");
             inputs.add(value);
+            if (value instanceof Tile) show(name, (Tile) value);
             return value;
+        }
+
+        /** Writes the tile out with the trial's meshes when it fails, replacing a mesh of the same name. */
+        public void show(String name, Tile tile) {
+            show(new MeshFailureObj.Group(name, tile));
+        }
+
+        /** Writes the mesh out with the trial's meshes when it fails, replacing a mesh of the same name. */
+        public void show(String name, Mesh3d mesh) {
+            show(new MeshFailureObj.Group(name, () -> mesh));
+        }
+
+        private void show(MeshFailureObj.Group group) {
+            meshes.removeIf(other -> other.name.equals(group.name));
+            meshes.add(group);
+        }
+
+        /** Writes the meshes the failure shows, or else the trial's, to an OBJ, and says where. */
+        private String dumpFailure(String sweep, long seed, Throwable failure) {
+            List<MeshFailureObj.Group> toDump = meshes;
+            if (failure instanceof MeshAssertions.MeshFailure) toDump = ((MeshAssertions.MeshFailure) failure).meshes;
+            if (toDump.isEmpty()) return "";
+            try {
+                return "\nOBJ: " + MeshFailureObj.dump(sweep, seed, index, toDump);
+            } catch (IOException dumpFailure) {
+                return "\nOBJ dump failed: " + dumpFailure;
+            }
         }
 
         private String describeInputs() {

@@ -4,6 +4,9 @@ import static com.creativemd.littletiles.client.util3d.MeshGeometry.area;
 import static com.creativemd.littletiles.client.util3d.MeshGeometry.volume;
 import static com.creativemd.littletiles.client.util3d.Message.check;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 import com.creativemd.littletiles.client.util3d.BlockSpace.Split;
@@ -61,9 +64,12 @@ public final class MeshAssertions {
     }
 
     public static void assertFitsExactlyWhen(boolean fits, Tile placed, Tile candidate) {
-        check(
+        checkShowing(
                 placed.leavesRoomFor(candidate) == fits,
-                Message.of(fits ? "false collision" : "missed collision", " placing ", candidate, " beside ", placed));
+                Message.of(fits ? "false collision" : "missed collision", " placing ", candidate, " beside ", placed),
+                Arrays.asList(
+                        new MeshFailureObj.Group("placed", placed),
+                        new MeshFailureObj.Group("candidate", candidate)));
     }
 
     /** Checks that every edge is shared by two faces walking it in opposite directions. */
@@ -86,20 +92,30 @@ public final class MeshAssertions {
                 Message.of("volume=", whole, " of ", tile));
 
         Split split = Split.random(random, tile.box);
-        double halves = 0;
+        List<MeshFailureObj.Group> meshes = new ArrayList<>();
+        meshes.add(new MeshFailureObj.Group("whole", tile));
+        List<Tile> halves = new ArrayList<>();
         for (LittleTileBox halfBox : split.halves()) {
             Tile half = tile.clippedTo(halfBox);
+            meshes.add(new MeshFailureObj.Group(halfBox == split.low ? "low" : "high", half));
+            halves.add(half);
+        }
+
+        double halvesVolume = 0;
+        for (Tile half : halves) {
             // The shape can miss one half
             if (half.isEmpty()) continue;
 
-            assertClosed(half);
+            String openEdge = MeshGeometry.findOpenEdge(half.mesh());
+            checkShowing(openEdge == null, Message.of(openEdge, " in ", half, " ", split), meshes);
             double halfVolume = volume(half.mesh());
-            check(halfVolume > 0, Message.of("volume=", halfVolume, " of ", half));
-            halves += halfVolume;
+            checkShowing(halfVolume > 0, Message.of("volume=", halfVolume, " of ", half, " ", split), meshes);
+            halvesVolume += halfVolume;
         }
-        check(
-                Math.abs(halves - whole) <= ROUNDING_VOLUME,
-                Message.of("halves volume=", halves, " whole volume=", whole, " ", split));
+        checkShowing(
+                Math.abs(halvesVolume - whole) <= ROUNDING_VOLUME,
+                Message.of("halves volume=", halvesVolume, " whole volume=", whole, " ", split),
+                meshes);
     }
 
     /** Checks that culling against {@code occluder} hides the faces, up to slivers rounding leaves. */
@@ -151,5 +167,22 @@ public final class MeshAssertions {
         assertHidden("second shared faces", secondShared, first);
         assertStayVisible("first faces off the shared face", shared.notOf(first), second);
         assertStayVisible("second faces off the shared face", shared.notOf(second), first);
+    }
+
+    /** As {@link Message#check}, keeping the meshes for the sweep to write out when the condition fails. */
+    private static void checkShowing(boolean condition, Object message, List<MeshFailureObj.Group> meshes) {
+        if (!condition) throw new MeshFailure(String.valueOf(message), meshes);
+    }
+
+    /** A failed check together with the meshes that show it, which may differ from the trial's inputs. */
+    static final class MeshFailure extends AssertionError {
+
+        /** Not sent along when the test runner serializes the failure. */
+        final transient List<MeshFailureObj.Group> meshes;
+
+        MeshFailure(String message, List<MeshFailureObj.Group> meshes) {
+            super(message);
+            this.meshes = meshes;
+        }
     }
 }

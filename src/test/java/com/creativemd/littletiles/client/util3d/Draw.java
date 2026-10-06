@@ -1,5 +1,6 @@
 package com.creativemd.littletiles.client.util3d;
 
+import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
 import static com.creativemd.littletiles.client.util3d.BlockSpace.PIXELS;
 
 import java.util.List;
@@ -100,6 +101,16 @@ public final class Draw {
         return BlockSpace.vector(axis -> between(random, 1 - size.get(axis), PIXELS - 1));
     }
 
+    /**
+     * Where bounds of the size start so they overlap the box by at least a pixel on every axis: from reaching a pixel
+     * past the box minimum to starting a pixel before the box maximum.
+     */
+    public static Vector3i posOverlapping(Random random, Vector3i size, LittleTileBox box) {
+        Vector3i boxMin = BlockSpace.min(box), boxSize = BlockSpace.size(box);
+        return BlockSpace.vector(
+                axis -> boxMin.get(axis) - size.get(axis) + 1 + upTo(random, size.get(axis) + boxSize.get(axis) - 2));
+    }
+
     /** Where bounds of {@code size} pixels along an axis start to cross {@code plane}: before it, ending after it. */
     public static int startAcross(Random random, int plane, int size) {
         return plane - 1 - upTo(random, size - 2);
@@ -121,6 +132,12 @@ public final class Draw {
     /** Any cut shape in any orientation, spanning exactly the box. */
     public static LittleTileCutoutInfo cutShapeFilling(Random random, LittleTileBox box) {
         return cutShape(random, BlockSpace.size(box), BlockSpace.min(box));
+    }
+
+    /** Any cut shape whose bounds overlap the box by at least a pixel on every axis. */
+    public static LittleTileCutoutInfo cutShapeOverlapping(Random random, LittleTileBox box) {
+        Vector3i size = size(random, 1, MAX_SHAPE_SIZE);
+        return cutShape(random, size, posOverlapping(random, size, box));
     }
 
     /** Any cut shape keeping some volume in the block. */
@@ -197,5 +214,20 @@ public final class Draw {
 
     private static int greatestCommonDivisor(int a, int b) {
         return b == 0 ? a : greatestCommonDivisor(b, a % b);
+    }
+
+    /**
+     * Any cut shape placed anywhere it overlaps a random box in the block, clipped to that box. It keeps some volume,
+     * and the box is longer than a pixel along some axis, so it can be split.
+     */
+    public static Tile cutShapeClippedToSubBox(Random random) {
+        return clippedToSubBox(random, box -> cutShapeOverlapping(random, box));
+    }
+
+    private static Tile clippedToSubBox(Random random, Function<LittleTileBox, LittleTileCutoutInfo> shapeOverlapping) {
+        return until(() -> {
+            LittleTileBox box = boxWithin(random, BLOCK);
+            return Tile.of(shapeOverlapping.apply(box), box);
+        }, tile -> !tile.isEmpty() && BlockSpace.volume(tile.box) > 1);
     }
 }

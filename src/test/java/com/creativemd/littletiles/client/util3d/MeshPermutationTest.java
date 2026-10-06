@@ -2,6 +2,7 @@ package com.creativemd.littletiles.client.util3d;
 
 import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
 import static com.creativemd.littletiles.client.util3d.BlockSpace.PIXELS;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertClosedAndVolumesAddUp;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollide;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollideEitherWay;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCulled;
@@ -402,6 +403,21 @@ public class MeshPermutationTest {
             assertHidden("cap", cap, boxFace);
             assertVisibleArea("box face", boxFace, shape.mesh(), area(boxFace) - area(cap));
             assertStayVisible("box faces off the split", splitPlane.notOf(box.mesh()), shape.mesh());
+        });
+    }
+
+    /**
+     * Clips random shapes, placed anywhere they overlap the box, to random sub-boxes of the block, and to both halves
+     * of the sub-box split at a random pixel plane. Every resulting mesh must be closed and enclose positive volume, no
+     * more than its box, and the volumes of the halves must add up to the whole, catching meshes turned inside out and
+     * pieces the cuts lose or double. Shapes that only touch their box are left to their own sweep.
+     */
+    @Test
+    public void randomlyClippedShapeMeshesClose() {
+        Sweep.run("TEST_PERMUTATIONS_CLOSE_MESH", "closed meshes", trial -> {
+            Random random = trial.random();
+            Tile shape = trial.input("shape", Draw.cutShapeClippedToSubBox(random));
+            assertClosedAndVolumesAddUp(random, shape);
         });
     }
 }

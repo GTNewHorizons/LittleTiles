@@ -60,6 +60,11 @@ public final class BlockSpace {
         return max(box).sub(min(box));
     }
 
+    public static long volume(LittleTileBox box) {
+        Vector3i size = size(box);
+        return (long) size.x * size.y * size.z;
+    }
+
     /** The box the shape spans before anything clips it. */
     public static LittleTileBox bounds(LittleTileCutoutInfo shape) {
         return box(shape.pos, new Vector3i(shape.pos).add(shape.size));

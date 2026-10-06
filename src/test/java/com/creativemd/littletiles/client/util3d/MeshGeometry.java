@@ -3,7 +3,10 @@ package com.creativemd.littletiles.client.util3d;
 import static com.creativemd.littletiles.client.util3d.BlockSpace.PIXELS;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 import net.minecraftforge.common.util.ForgeDirection;
@@ -39,9 +42,119 @@ public final class MeshGeometry {
         return area * PIXELS * PIXELS;
     }
 
+    /** The volume the faces enclose, in cubic pixels, negative when they face inwards. The mesh must be closed. */
+    public static double volume(Mesh3d mesh) {
+        Vector3d[] vertices = mesh.getVertices();
+        double sixTimesVolume = 0;
+        for (int first = 0; first < vertices.length; first += TRIANGLE_CORNERS) {
+            sixTimesVolume += vertices[first].dot(new Vector3d(vertices[first + 1]).cross(vertices[first + 2]));
+        }
+        return sixTimesVolume / 6 * PIXELS * PIXELS * PIXELS;
+    }
+
     /** The normal of the triangle, as long as twice its area. */
     public static Vector3d normal(Vector3d a, Vector3d b, Vector3d c) {
         return new Vector3d(b).sub(a).cross(new Vector3d(c).sub(a));
+    }
+
+    /**
+     * Looks for an edge of the mesh that leaves it open: every edge of a closed mesh is walked once in each direction,
+     * by the two triangles meeting there. A cap that does not fit its outline, or a piece left out, leaves an edge
+     * without its counterpart.
+     * <p>
+     * A point of the mesh lying inside an edge splits it first. The triangles on one side can have a point there that
+     * the other side runs past in a single edge, as triangulating leaves out points in line with their neighbours. That
+     * leaves no gap, so it counts as closed.
+     *
+     * @return a description of an open edge, in pixels, or null when the mesh is closed
+     */
+    public static String findOpenEdge(Mesh3d mesh) {
+        List<Vector3d> points = new ArrayList<>();
+        int[] cornerPoints = weldCorners(mesh.getVertices(), points);
+        Map<List<Integer>, Integer> timesWalked = new HashMap<>();
+        for (int first = 0; first < cornerPoints.length; first += TRIANGLE_CORNERS) {
+            for (int corner = 0; corner < TRIANGLE_CORNERS; corner++) {
+                int from = cornerPoints[first + corner];
+                int to = cornerPoints[first + (corner + 1) % TRIANGLE_CORNERS];
+                if (from == to) return "zero-length edge at " + toPixels(points.get(from));
+
+                walkEdge(from, to, points, timesWalked);
+            }
+        }
+        return describeUnmatchedEdge(timesWalked, points);
+    }
+
+    /** Merges the corners lying at the same point, returning the index in {@code points} of each corner's point. */
+    private static int[] weldCorners(Vector3d[] corners, List<Vector3d> points) {
+        int[] cornerPoints = new int[corners.length];
+        for (int corner = 0; corner < corners.length; corner++) {
+            cornerPoints[corner] = pointIndex(points, corners[corner]);
+        }
+        return cornerPoints;
+    }
+
+    /** The index of the point in {@code points}, added if it is not there yet. */
+    private static int pointIndex(List<Vector3d> points, Vector3d point) {
+        for (int index = 0; index < points.size(); index++) {
+            if (points.get(index).distance(point) <= EPSILON) return index;
+        }
+        points.add(point);
+        return points.size() - 1;
+    }
+
+    /** Counts the edge as walked once, piece by piece between the points lying inside it. */
+    private static void walkEdge(int from, int to, List<Vector3d> points, Map<List<Integer>, Integer> timesWalked) {
+        Vector3d start = points.get(from), end = points.get(to);
+        List<Integer> inside = new ArrayList<>();
+        for (int point = 0; point < points.size(); point++) {
+            if (point != from && point != to && liesInside(start, end, points.get(point))) inside.add(point);
+        }
+        inside.sort((a, b) -> Double.compare(along(start, end, points.get(a)), along(start, end, points.get(b))));
+        int previous = from;
+        for (int point : inside) {
+            timesWalked.merge(Arrays.asList(previous, point), 1, Integer::sum);
+            previous = point;
+        }
+        timesWalked.merge(Arrays.asList(previous, to), 1, Integer::sum);
+    }
+
+    /** An edge walked a different number of times one way than back, or null if there is none. */
+    private static String describeUnmatchedEdge(Map<List<Integer>, Integer> timesWalked, List<Vector3d> points) {
+        for (Map.Entry<List<Integer>, Integer> edge : timesWalked.entrySet()) {
+            int from = edge.getKey().get(0), to = edge.getKey().get(1);
+            int back = timesWalked.getOrDefault(Arrays.asList(to, from), 0);
+            if (back != edge.getValue()) {
+                return "edge " + toPixels(points.get(from))
+                        + " -> "
+                        + toPixels(points.get(to))
+                        + " walked "
+                        + edge.getValue()
+                        + " times, back "
+                        + back
+                        + " times";
+            }
+        }
+        return null;
+    }
+
+    /** The point's projected distance along the edge, multiplied by the edge length. */
+    private static double along(Vector3d start, Vector3d end, Vector3d point) {
+        return new Vector3d(point).sub(start).dot(new Vector3d(end).sub(start));
+    }
+
+    /** Whether the point lies on the edge between its ends. */
+    private static boolean liesInside(Vector3d start, Vector3d end, Vector3d point) {
+        Vector3d edge = new Vector3d(end).sub(start);
+        Vector3d offset = new Vector3d(point).sub(start);
+        double lengthSquared = edge.lengthSquared();
+        double along = offset.dot(edge);
+        if (along <= 0 || along >= lengthSquared) return false;
+
+        return edge.cross(offset).lengthSquared() <= EPSILON * EPSILON * lengthSquared;
+    }
+
+    private static String toPixels(Vector3d point) {
+        return "(" + point.x * PIXELS + ", " + point.y * PIXELS + ", " + point.z * PIXELS + ")";
     }
 
     /** What stays visible of the faces once the faces of {@code occluder} lying in the same planes are culled away. */

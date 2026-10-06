@@ -17,8 +17,8 @@ import com.creativemd.littletiles.client.util3d.MeshGeometry.FaceFilter;
 
 /**
  * Random corners of deformed boxes, in pixels. The eight corners of a box are indexed by one bit per axis, set where
- * the corner lies at the maximum along that axis. The four corners of a box face across an axis are indexed by the
- * bits of the two other axes, in the order x, y, z, x, y: the first as bit 0, the second as bit 1.
+ * the corner lies at the maximum along that axis. The four corners of a box face across an axis are indexed by the bits
+ * of the two other axes, in the order x, y, z, x, y: the first as bit 0, the second as bit 1.
  */
 public final class DeformedBoxes {
 
@@ -61,8 +61,8 @@ public final class DeformedBoxes {
     public static Vector3i[] warped(Random random) {
         if (random.nextBoolean()) {
             return boxCorners(
-                    corner -> blockCorner(corner).add(
-                            BlockSpace.vector(axis -> Draw.between(random, -MAX_CORNER_SHIFT, MAX_CORNER_SHIFT))));
+                    corner -> blockCorner(corner)
+                            .add(BlockSpace.vector(axis -> Draw.between(random, -MAX_CORNER_SHIFT, MAX_CORNER_SHIFT))));
         }
         Vector3i[] corners = boxCorners(
                 corner -> BlockSpace.vector(
@@ -110,8 +110,8 @@ public final class DeformedBoxes {
     }
 
     /**
-     * A corner at {@code along} on the axis, near the block edge along that axis through the face corner, moved
-     * inwards by up to {@link #MAX_CORNER_SHIFT} pixels on the other two axes.
+     * A corner at {@code along} on the axis, near the block edge along that axis through the face corner, moved inwards
+     * by up to {@link #MAX_CORNER_SHIFT} pixels on the other two axes.
      */
     public static Vector3i nearBlockEdge(Random random, int axis, int faceCorner, int along) {
         Vector3i edgeCorner = blockCorner(boxCornerAtMin(faceCorner, axis));
@@ -244,8 +244,8 @@ public final class DeformedBoxes {
     }
 
     /**
-     * Whether the triangles meeting in the edge run along it in turns one way and the other, going round it. Always
-     * so for two: those of a closed surface run along their shared edge both ways.
+     * Whether the triangles meeting in the edge run along it in turns one way and the other, going round it. Always so
+     * for two: those of a closed surface run along their shared edge both ways.
      */
     private static boolean alternateAround(Vector3i from, Vector3i to, List<Vector3i[]> triangles) {
         // The corner of each triangle off the edge, and whether it runs from the edge's start to its end
@@ -298,8 +298,8 @@ public final class DeformedBoxes {
     }
 
     /**
-     * The block split near a pixel plane into two deformed boxes sharing the face between them, with every corner
-     * moved by up to {@link #MAX_CORNER_SHIFT} pixels. The low box lies towards the minimum along the axis. Both boxes
+     * The block split near a pixel plane into two deformed boxes sharing the face between them, with every corner moved
+     * by up to {@link #MAX_CORNER_SHIFT} pixels. The low box lies towards the minimum along the axis. Both boxes
      * enclose volume and lie on opposite sides of the shared face, however it is split.
      */
     public static final class Neighbours {
@@ -350,8 +350,8 @@ public final class DeformedBoxes {
         }
 
         /**
-         * Whether both boxes enclose volume, and lie strictly on opposite sides of the shared face split either way.
-         * A corner moved past the shared face would fold its box over into the neighbour.
+         * Whether both boxes enclose volume, and lie strictly on opposite sides of the shared face split either way. A
+         * corner moved past the shared face would fold its box over into the neighbour.
          */
         private boolean onlyTouch() {
             return Mesh3dUtil.enclosesVolume(lowCorners) && Mesh3dUtil.enclosesVolume(highCorners)

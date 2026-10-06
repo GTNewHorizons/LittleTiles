@@ -40,7 +40,12 @@ public final class Sweep {
             } catch (AssertionError | RuntimeException failure) {
                 String dump = current.dumpFailure(name, seed, failure);
                 throw new AssertionError(
-                        "seed=" + seed + " trial=" + index + current.describeInputs() + ": " + failure.getMessage()
+                        "seed=" + seed
+                                + " trial="
+                                + index
+                                + current.describeInputs()
+                                + ": "
+                                + failure.getMessage()
                                 + dump,
                         failure);
             }

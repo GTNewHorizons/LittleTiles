@@ -23,10 +23,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
-import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
-import com.creativemd.littletiles.client.util3d.TriangleBoundingBoxIntersect;
+import com.creativemd.littletiles.client.util3d.MeshCollision;
 import com.creativemd.littletiles.client.util3d.TriangleRayIntersect;
-import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
@@ -236,53 +234,15 @@ public class TileEntityLittleTiles extends TileEntity {
     }
 
     public boolean isSpaceForLittleTile(LittleTileBox boxNewTile, LittleTileCutoutInfo cutoutNewTile) {
-        AxisAlignedBB aabbNewTile = boxNewTile.getBox();
-        Mesh3d meshNewTile = null;
-        if (!tiles.isEmpty() && cutoutNewTile != null) {
-            meshNewTile = Mesh3dUtil.meshFromTile(boxNewTile, cutoutNewTile);
-        }
-
         for (LittleTile tile : tiles) {
             // read once: both can be reassigned while this runs, and the mesh has to describe the box it is tested
             // against rather than a later revision of it
             LittleTileBox boxOldTile = tile.boundingBox;
             LittleTileCutoutInfo cutoutOldTile = tile.getCutoutInfo();
-            if (boxOldTile == null) {
-                continue;
-            }
-
-            // Skip all checks if bounding boxes don't even collide
-            if (!aabbNewTile.intersectsWith(boxOldTile.getBox())) {
-                continue;
-            }
-
-            Mesh3d meshOldTile = cutoutOldTile == null ? null : Mesh3dUtil.meshFromTile(boxOldTile, cutoutOldTile);
-
-            if (meshOldTile == null) {
-                if (meshNewTile == null) {
-                    // Normal box-box collision
-                    return false;
-                } else {
-                    // Special box-mesh collision
-                    if (TriangleBoundingBoxIntersect.intersect(meshNewTile, boxOldTile)) {
-                        return false;
-                    }
-                }
-            } else {
-                if (meshNewTile == null) {
-                    // Special mesh-box collision
-                    if (TriangleBoundingBoxIntersect.intersect(meshOldTile, boxNewTile)) {
-                        return false;
-                    }
-                } else {
-                    // Special mesh-mesh collision
-                    if (TriangleTriangleIntersect.meshIntersection(meshNewTile, meshOldTile)) {
-                        return false;
-                    }
-                }
+            if (boxOldTile != null && MeshCollision.intersects(boxNewTile, cutoutNewTile, boxOldTile, cutoutOldTile)) {
+                return false;
             }
         }
-
         return true;
     }
 

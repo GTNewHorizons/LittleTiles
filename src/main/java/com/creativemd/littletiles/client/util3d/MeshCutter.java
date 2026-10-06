@@ -42,6 +42,8 @@ public final class MeshCutter {
         }
     }
 
+    private MeshCutter() {}
+
     /** @param mesh a closed mesh */
     public MeshCutter(List<Triangle3d> mesh) {
         // Corners at the same position are the same point: the triangles of a mesh get them from the same vertex
@@ -66,6 +68,19 @@ public final class MeshCutter {
             indices.put(key, index);
         }
         return index;
+    }
+
+    /** A copy to cut on its own. */
+    public MeshCutter copy() {
+        MeshCutter copy = new MeshCutter();
+        copy.points.addAll(points);
+        copy.faces.addAll(faces);
+        return copy;
+    }
+
+    /** Whether nothing is left of the mesh. */
+    public boolean isEmpty() {
+        return faces.isEmpty();
     }
 
     /**
@@ -254,6 +269,27 @@ public final class MeshCutter {
                 return false;
         }
         return true;
+    }
+
+    /** Six times the enclosed volume. */
+    public double volumeTimesSix() {
+        double volume = 0;
+        for (Face polygon : faces) {
+            int[] face = polygon.corners;
+            Vector3d a = points.get(face[0]);
+            for (int i = 1; i < face.length - 1; i++) {
+                volume += det(a, points.get(face[i]), points.get(face[i + 1]), points.get(0));
+            }
+        }
+        return volume;
+    }
+
+    /** Six times the signed volume of the tetrahedron from {@code origin} to the triangle. */
+    public static double det(Vector3d a, Vector3d b, Vector3d c, Vector3d origin) {
+        double ax = a.x - origin.x, ay = a.y - origin.y, az = a.z - origin.z;
+        double bx = b.x - origin.x, by = b.y - origin.y, bz = b.z - origin.z;
+        double cx = c.x - origin.x, cy = c.y - origin.y, cz = c.z - origin.z;
+        return ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx);
     }
 
     /** The faces as triangles, with the points rounded to {@link #RENDER_GRID}. */

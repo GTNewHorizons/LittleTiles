@@ -20,6 +20,7 @@ def optionalPermutationTests = [
     'TEST_PERMUTATIONS_CULLING_ROUND_SLOPES',
     'TEST_PERMUTATIONS_CULLING_COPLANAR_SLOPES',
     'TEST_PERMUTATIONS_CAP_REMNANTS',
+    'TEST_PERMUTATIONS_BOX_CAPS',
 ]
 
 tasks.register('listOptionalPermutationTests') {

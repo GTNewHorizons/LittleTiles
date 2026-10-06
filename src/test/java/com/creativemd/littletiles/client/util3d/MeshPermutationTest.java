@@ -10,8 +10,11 @@ import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertEmpt
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFit;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFitsExactlyWhen;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertHasTiltedFaces;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertHidden;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertNotEmpty;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertOnlySharedFacesHideEachOther;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertStayVisible;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertVisibleArea;
 import static com.creativemd.littletiles.client.util3d.MeshGeometry.area;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE_CONCAVE;
@@ -364,6 +367,41 @@ public class MeshPermutationTest {
 
             Mesh3d neighbourBesideHere = MeshGeometry.besideThisBlock(neighbour.mesh(), axis);
             assertOnlySharedFacesHideEachOther(here.mesh(), neighbourBesideHere, blockFace);
+        });
+    }
+
+    /**
+     * Splits the block at a random pixel plane into a cut shape and a plain box, with the box's faces as culling builds
+     * them. The box face on the split plane covers the shape's cap there, so the cap must be hidden completely, and
+     * the face must stay visible exactly where the cap does not cover it. The box's other faces only meet the shape's
+     * along the seam, so they must stay visible.
+     */
+    @Test
+    public void boxFacesAndCutCapsCullEachOther() {
+        Sweep.run("TEST_PERMUTATIONS_BOX_CAPS", "box caps", trial -> {
+            Random random = trial.random();
+            FaceFilter splitPlane;
+            Tile shape, box;
+            do {
+                Split split = Split.random(random, BLOCK);
+                splitPlane = FaceFilter.onPlane(split.axis, split.at);
+                Vector3i size = Draw.size(random, 1, Draw.MAX_SHAPE_SIZE);
+                // At least two pixels long across the plane, to reach a pixel past it on both sides
+                size.setComponent(split.axis, Draw.between(random, 2, Draw.MAX_SHAPE_SIZE));
+                Vector3i pos = Draw.posReachingIntoBlock(random, size);
+                pos.setComponent(split.axis, Draw.startAcross(random, split.at, size.get(split.axis)));
+                boolean shapeInLowHalf = random.nextBoolean();
+                shape = Tile.of(Draw.cutShape(random, size, pos), shapeInLowHalf ? split.low : split.high);
+                box = Tile.plainBox(shapeInLowHalf ? split.high : split.low);
+                // Shapes without volume at the split plane have no cap there
+            } while (area(splitPlane.of(shape.mesh())) == 0);
+            trial.input("shape", shape);
+            trial.input("box", box);
+
+            Mesh3d cap = splitPlane.of(shape.mesh()), boxFace = splitPlane.of(box.mesh());
+            assertHidden("cap", cap, boxFace);
+            assertVisibleArea("box face", boxFace, shape.mesh(), area(boxFace) - area(cap));
+            assertStayVisible("box faces off the split", splitPlane.notOf(box.mesh()), shape.mesh());
         });
     }
 }

@@ -25,6 +25,10 @@ public final class BlockSpace {
 
     private BlockSpace() {}
 
+    public static double toBlocks(int pixels) {
+        return pixels / (double) PIXELS;
+    }
+
     /** The vector with each component given by {@code component} of its axis. */
     public static Vector3i vector(IntUnaryOperator component) {
         return new Vector3i(component.applyAsInt(X), component.applyAsInt(Y), component.applyAsInt(Z));

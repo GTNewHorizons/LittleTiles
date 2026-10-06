@@ -52,6 +52,12 @@ public final class MeshAssertions {
                 Message.of(fits ? "false collision" : "missed collision", " placing ", candidate, " beside ", placed));
     }
 
+    /** Checks that culling against {@code occluder} hides the faces completely. */
+    public static void assertHidden(String faces, Mesh3d mesh, Mesh3d occluder) {
+        double visible = area(MeshGeometry.visiblePart(mesh, occluder));
+        check(visible == 0, Message.of(faces, " visible=", visible));
+    }
+
     /** Checks that culling against {@code occluder} leaves {@code expected} square pixels visible, up to slivers. */
     public static void assertVisibleArea(String faces, Mesh3d mesh, Mesh3d occluder, double expected) {
         double visible = area(MeshGeometry.visiblePart(mesh, occluder));
@@ -78,5 +84,22 @@ public final class MeshAssertions {
     /** As {@link #assertCulled}, for a complement covering all tilted faces of the tile. */
     public static void assertCulledByComplement(Tile tile, Tile complement) {
         assertCulled(tile, complement, 0);
+    }
+
+    /**
+     * Checks that two meshes meeting in a shared face, picked by {@code shared}, each cover the same area there and
+     * hide the other's faces there completely, and keep their other faces, which only meet along the seam.
+     */
+    public static void assertOnlySharedFacesHideEachOther(Mesh3d first, Mesh3d second, FaceFilter shared) {
+        Mesh3d firstShared = shared.of(first), secondShared = shared.of(second);
+        double firstArea = area(firstShared), secondArea = area(secondShared);
+        check(firstArea > 0 && secondArea > 0, Message.of("no shared faces: ", firstArea, " and ", secondArea));
+        check(
+                Math.abs(firstArea - secondArea) <= SLIVER_AREA,
+                Message.of("shared face areas differ: ", firstArea, " and ", secondArea));
+        assertHidden("first shared faces", firstShared, second);
+        assertHidden("second shared faces", secondShared, first);
+        assertStayVisible("first faces off the shared face", shared.notOf(first), second);
+        assertStayVisible("second faces off the shared face", shared.notOf(second), first);
     }
 }

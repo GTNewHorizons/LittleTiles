@@ -19,6 +19,12 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
  */
 public final class MeshGeometry {
 
+    /**
+     * Distance in blocks within which two points are the same, or a point lies on a plane or line. Far below a pixel,
+     * far above the rounding of the cuts.
+     */
+    public static final double EPSILON = 5.0E-6;
+
     private static final int TRIANGLE_CORNERS = 3;
 
     private MeshGeometry() {}
@@ -50,6 +56,16 @@ public final class MeshGeometry {
     /** How much of the faces, in square pixels, culling them against {@code occluder} takes away. */
     public static double culledArea(Mesh3d faces, Mesh3d occluder) {
         return area(faces) - area(visiblePart(faces, occluder));
+    }
+
+    /**
+     * A copy of the mesh of a tile in the neighbouring block along the axis, towards the maximum, moved next to this
+     * block as rendering moves the neighbour's faces.
+     */
+    public static Mesh3d besideThisBlock(Mesh3d neighbourMesh, int axis) {
+        Mesh3d moved = neighbourMesh.copy();
+        moved.translate(BlockSpace.unit(axis).mul(PIXELS));
+        return moved;
     }
 
     /** The faces of a plain box tile, as culling builds them. */
@@ -85,15 +101,40 @@ public final class MeshGeometry {
             this.accepts = accepts;
         }
 
+        /**
+         * The faces lying in the plane {@code pixel} pixels along the axis from the block minimum, facing either way.
+         */
+        public static FaceFilter onPlane(int axis, int pixel) {
+            double plane = BlockSpace.toBlocks(pixel);
+            return new FaceFilter(
+                    corners -> allMatch(corners, corner -> Math.abs(corner.get(axis) - plane) <= EPSILON));
+        }
+
         /** The faces this filter picks, copied into a mesh of their own. */
         public Mesh3d of(Mesh3d mesh) {
+            return select(mesh, true);
+        }
+
+        /** The faces this filter leaves out, copied into a mesh of their own. */
+        public Mesh3d notOf(Mesh3d mesh) {
+            return select(mesh, false);
+        }
+
+        private Mesh3d select(Mesh3d mesh, boolean picked) {
             Vector3d[] vertices = mesh.getVertices();
             List<Triangle3d> faces = new ArrayList<>();
             for (int face = 0; face < mesh.getTriangles().size(); face++) {
                 Vector3d[] corners = { vertices[face * 3], vertices[face * 3 + 1], vertices[face * 3 + 2] };
-                if (accepts.test(corners)) faces.add(mesh.getTriangles().get(face).copy());
+                if (accepts.test(corners) == picked) faces.add(mesh.getTriangles().get(face).copy());
             }
             return new Mesh3d(faces);
+        }
+
+        private static boolean allMatch(Vector3d[] corners, Predicate<Vector3d> condition) {
+            for (Vector3d corner : corners) {
+                if (!condition.test(corner)) return false;
+            }
+            return true;
         }
 
         /** Whether the face's normal points along an axis: it leans towards at most one. */

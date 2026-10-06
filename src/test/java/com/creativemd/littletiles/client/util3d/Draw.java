@@ -100,6 +100,11 @@ public final class Draw {
         return BlockSpace.vector(axis -> between(random, 1 - size.get(axis), PIXELS - 1));
     }
 
+    /** Where bounds of {@code size} pixels along an axis start to cross {@code plane}: before it, ending after it. */
+    public static int startAcross(Random random, int plane, int size) {
+        return plane - 1 - upTo(random, size - 2);
+    }
+
     /** A box inside {@code bounds}, at least a pixel long on every axis. */
     public static LittleTileBox boxWithin(Random random, LittleTileBox bounds) {
         Vector3i boundsMin = BlockSpace.min(bounds), boundsMax = BlockSpace.max(bounds);

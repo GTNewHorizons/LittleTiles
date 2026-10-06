@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.client.util3d;
 
 import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
+import static com.creativemd.littletiles.client.util3d.BlockSpace.PIXELS;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollide;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollideEitherWay;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCulled;
@@ -10,6 +11,8 @@ import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFit;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFitsExactlyWhen;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertHasTiltedFaces;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertNotEmpty;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertOnlySharedFacesHideEachOther;
+import static com.creativemd.littletiles.client.util3d.MeshGeometry.area;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE_CONCAVE;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE_CONVEX;
@@ -17,9 +20,11 @@ import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE_
 import java.util.List;
 import java.util.Random;
 
+import org.joml.Vector3i;
 import org.junit.Test;
 
 import com.creativemd.littletiles.client.util3d.BlockSpace.Split;
+import com.creativemd.littletiles.client.util3d.MeshGeometry.FaceFilter;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
@@ -326,6 +331,39 @@ public class MeshPermutationTest {
             assertHasTiltedFaces(smallSlope);
             assertCulledByComplement(smallSlope, bigSlope);
             assertCulled(bigSlope, smallSlope, bigSlope.tiltedFaceArea() - smallSlope.tiltedFaceArea());
+        });
+    }
+
+    /**
+     * Places a shape across the face between the block and its neighbour, as one tile in each, the neighbour built in
+     * its own block and moved next to this one as rendering does. Both are cut at that face into caps of the same
+     * cross-section, so each cap must hide the other completely. The faces off that face only meet the other tile's
+     * along the seam, so they must stay visible.
+     */
+    @Test
+    public void adjacentCutCapsLeaveNoVisibleRemnants() {
+        Sweep.run("TEST_PERMUTATIONS_CAP_REMNANTS", "cap remnants", trial -> {
+            Random random = trial.random();
+            int axis;
+            FaceFilter blockFace;
+            Tile here, neighbour;
+            do {
+                axis = Draw.axis(random);
+                blockFace = FaceFilter.onPlane(axis, PIXELS);
+                // Longer than a block, starting in this block and ending in the neighbour along the axis
+                Vector3i size = Draw.size(random, PIXELS + 1, Draw.MAX_SHAPE_SIZE);
+                Vector3i pos = Draw.posReachingIntoBlock(random, size);
+                pos.setComponent(axis, Draw.startAcross(random, PIXELS, size.get(axis)));
+                here = Tile.of(Draw.cutShape(random, size, pos));
+                neighbour = Tile.of(Shapes.movedAlong(here.shapeInBlock(), axis, -PIXELS));
+                // Shapes without volume at the block face have no caps there, and a sliver past it is no tile at all
+            } while (area(blockFace.of(here.mesh())) == 0 || neighbour.isEmpty());
+            trial.input("axis", axis);
+            trial.input("here", here);
+            trial.input("neighbour", neighbour);
+
+            Mesh3d neighbourBesideHere = MeshGeometry.besideThisBlock(neighbour.mesh(), axis);
+            assertOnlySharedFacesHideEachOther(here.mesh(), neighbourBesideHere, blockFace);
         });
     }
 }

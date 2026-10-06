@@ -38,6 +38,20 @@ public final class MeshGeometry {
         return new Vector3d(b).sub(a).cross(new Vector3d(c).sub(a));
     }
 
+    /** What stays visible of the faces once the faces of {@code occluder} lying in the same planes are culled away. */
+    public static Mesh3d visiblePart(Mesh3d faces, Mesh3d occluder) {
+        List<Triangle3d> visible = new ArrayList<>();
+        for (Triangle3d triangle : faces.getTriangles()) {
+            visible.addAll(LittleTilesFaceCuller.cutTriangle(triangle, occluder.getTriangles()));
+        }
+        return new Mesh3d(visible);
+    }
+
+    /** How much of the faces, in square pixels, culling them against {@code occluder} takes away. */
+    public static double culledArea(Mesh3d faces, Mesh3d occluder) {
+        return area(faces) - area(visiblePart(faces, occluder));
+    }
+
     /** The faces of a plain box tile, as culling builds them. */
     public static Mesh3d boxFaces(LittleTileBox box) {
         List<Triangle3d> faces = new ArrayList<>();
@@ -57,9 +71,12 @@ public final class MeshGeometry {
         private static final double TILT_EPSILON = 1.0E-7;
 
         /**
-         * The faces not parallel to any block face. Unlike how far the corners spread, the normal stays exact however
-         * thin a face is, so a long sliver of a barely tilted face still counts as tilted.
+         * The faces parallel to a block face. Unlike how far the corners spread, the normal stays exact however thin a
+         * face is, so a long sliver of a barely tilted face still counts as tilted.
          */
+        public static final FaceFilter FLAT = new FaceFilter(FaceFilter::isFlat);
+
+        /** The faces not parallel to any block face, see {@link #FLAT}. */
         public static final FaceFilter TILTED = new FaceFilter(corners -> !isFlat(corners));
 
         private final Predicate<Vector3d[]> accepts;

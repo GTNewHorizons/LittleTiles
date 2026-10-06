@@ -2,6 +2,7 @@ package com.creativemd.littletiles.client.util3d;
 
 import static com.creativemd.littletiles.client.util3d.BlockSpace.PIXELS;
 
+import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -53,6 +54,10 @@ public final class Draw {
 
     public static <T> T oneOf(Random random, T[] options) {
         return options[random.nextInt(options.length)];
+    }
+
+    public static <T> T oneOf(Random random, List<T> options) {
+        return options.get(random.nextInt(options.size()));
     }
 
     public static int oneOf(Random random, int[] options) {

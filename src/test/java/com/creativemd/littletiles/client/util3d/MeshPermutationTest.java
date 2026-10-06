@@ -3,6 +3,7 @@ package com.creativemd.littletiles.client.util3d;
 import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollide;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollideEitherWay;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCulledByComplement;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertEmpty;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFit;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFitsExactlyWhen;
@@ -264,6 +265,24 @@ public class MeshPermutationTest {
             for (Tile moved : Tile.of(Shapes.movedAlong(unturned, axis, -1)).complements(SLOPE_CONVEX)) {
                 assertCollide(concave, moved.turned(turn));
             }
+        });
+    }
+
+    /**
+     * Culls the slope face of a slope against a complement with the same bounds, and the other way around. Both faces
+     * cover each other exactly, so nothing but slivers may stay visible. The flat faces only lie next to each other, so
+     * they must stay visible.
+     */
+    @Test
+    public void matchingSlopeFacesLeaveNoLargeVisibleArea() {
+        Sweep.run("TEST_PERMUTATIONS_CULLING_SLOPES", "culling slopes", trial -> {
+            Random random = trial.random();
+            LittleTileCutoutInfo unturned = Draw
+                    .unturnedMeetingComplementsInBlock(random, SLOPE, SLOPE, Draw::slopeSize);
+            Tile slope = trial.input("slope", Tile.of(unturned).turned(Draw.orientation(random)));
+            Tile complement = trial.input("complement", Draw.oneOf(random, slope.complements(SLOPE)));
+            assertCulledByComplement(slope, complement);
+            assertCulledByComplement(complement, slope);
         });
     }
 }

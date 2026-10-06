@@ -1,11 +1,20 @@
 package com.creativemd.littletiles.client.util3d;
 
+import static com.creativemd.littletiles.client.util3d.MeshGeometry.area;
 import static com.creativemd.littletiles.client.util3d.Message.check;
+
+import com.creativemd.littletiles.client.util3d.MeshGeometry.FaceFilter;
 
 /**
  * Checks on tiles and their meshes. Failures describe what went wrong; the sweep adds the trial's inputs.
  */
 public final class MeshAssertions {
+
+    /**
+     * Area in square pixels that faces matching exactly may differ by after culling. Far above floating point slivers,
+     * far below anything visible.
+     */
+    public static final double SLIVER_AREA = 1.0E-3;
 
     private MeshAssertions() {}
 
@@ -41,5 +50,33 @@ public final class MeshAssertions {
         check(
                 placed.leavesRoomFor(candidate) == fits,
                 Message.of(fits ? "false collision" : "missed collision", " placing ", candidate, " beside ", placed));
+    }
+
+    /** Checks that culling against {@code occluder} leaves {@code expected} square pixels visible, up to slivers. */
+    public static void assertVisibleArea(String faces, Mesh3d mesh, Mesh3d occluder, double expected) {
+        double visible = area(MeshGeometry.visiblePart(mesh, occluder));
+        check(
+                Math.abs(visible - expected) <= SLIVER_AREA,
+                Message.of(faces, " visible=", visible, " expected=", expected));
+    }
+
+    /** Checks that culling against {@code occluder} takes nothing but slivers away from the faces. */
+    public static void assertStayVisible(String faces, Mesh3d mesh, Mesh3d occluder) {
+        double culled = MeshGeometry.culledArea(mesh, occluder);
+        check(culled <= SLIVER_AREA, Message.of(faces, " culled=", culled));
+    }
+
+    /**
+     * Checks that culling the tile against the occluder leaves {@code tiltedVisible} square pixels of its tilted faces
+     * visible, up to slivers, and keeps its flat faces, which only lie next to faces of the occluder.
+     */
+    public static void assertCulled(Tile tile, Tile occluder, double tiltedVisible) {
+        assertVisibleArea("tilted faces", FaceFilter.TILTED.of(tile.mesh()), occluder.mesh(), tiltedVisible);
+        assertStayVisible("flat faces", FaceFilter.FLAT.of(tile.mesh()), occluder.mesh());
+    }
+
+    /** As {@link #assertCulled}, for a complement covering all tilted faces of the tile. */
+    public static void assertCulledByComplement(Tile tile, Tile complement) {
+        assertCulled(tile, complement, 0);
     }
 }

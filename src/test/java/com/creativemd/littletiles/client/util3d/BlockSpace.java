@@ -25,6 +25,16 @@ public final class BlockSpace {
         return new Vector3i(component.applyAsInt(X), component.applyAsInt(Y), component.applyAsInt(Z));
     }
 
+    /** One pixel along the axis. */
+    public static Vector3i unit(int axis) {
+        return vector(other -> other == axis ? 1 : 0);
+    }
+
+    /** A copy of the vector moved by {@code pixels} along the axis. */
+    public static Vector3i movedAlong(Vector3i vector, int axis, int pixels) {
+        return new Vector3i(vector).add(unit(axis).mul(pixels));
+    }
+
     public static LittleTileBox box(Vector3i min, Vector3i max) {
         return new LittleTileBox(min.x, min.y, min.z, max.x, max.y, max.z);
     }

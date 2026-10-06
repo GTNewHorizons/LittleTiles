@@ -18,6 +18,11 @@ public final class MeshAssertions {
         assertFitsExactlyWhen(true, placed, candidate);
     }
 
+    /** Checks that the game refuses to place {@code candidate} into a block holding {@code placed}. */
+    public static void assertCollide(Tile placed, Tile candidate) {
+        assertFitsExactlyWhen(false, placed, candidate);
+    }
+
     public static void assertFitsExactlyWhen(boolean fits, Tile placed, Tile candidate) {
         check(
                 placed.leavesRoomFor(candidate) == fits,

@@ -41,6 +41,13 @@ public final class Shapes {
         return shape;
     }
 
+    /** The same shape with its bounds moved by {@code pixels} along the axis. */
+    public static LittleTileCutoutInfo movedAlong(LittleTileCutoutInfo shape, int axis, int pixels) {
+        LittleTileCutoutInfo moved = new LittleTileCutoutInfo(shape);
+        moved.pos = BlockSpace.movedAlong(shape.pos, axis, pixels);
+        return moved;
+    }
+
     /**
      * The four shapes of {@code kind} with the same bounds filling the rest of them, see
      * {@link #COMPLEMENTS_OF_UNTURNED}.

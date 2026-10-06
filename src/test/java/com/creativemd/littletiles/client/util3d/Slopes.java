@@ -2,6 +2,8 @@ package com.creativemd.littletiles.client.util3d;
 
 import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
 
+import org.joml.Vector3i;
+
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
@@ -20,6 +22,21 @@ public final class Slopes {
         LittleTileBox inBlock = BlockSpace.intersection(BlockSpace.bounds(slope), BLOCK);
         return inBlock != null && lowestLevel(slope, inBlock) < faceLevel(slope)
                 && highestLevel(slope, inBlock) > faceLevel(slope);
+    }
+
+    /**
+     * Whether the slope shares volume inside the block with its complements moved one pixel towards the minimum along
+     * {@code axis}, y or z: they share the pixel-thin layer right below the slope's face.
+     */
+    public static boolean overlapsMovedComplementInBlock(LittleTileCutoutInfo slope, int axis) {
+        LittleTileCutoutInfo moved = Shapes.movedAlong(slope, axis, -1);
+        LittleTileBox shared = BlockSpace.intersection(BlockSpace.bounds(slope), BlockSpace.bounds(moved), BLOCK);
+        if (shared == null) return false;
+
+        // The moved complement holds the points that lie above the face once moved back by the pixel
+        Vector3i highestMovedBack = BlockSpace.movedAlong(BlockSpace.max(shared), axis, 1);
+        return lowestLevel(slope, shared) < faceLevel(slope)
+                && level(slope, highestMovedBack.y, highestMovedBack.z) > faceLevel(slope);
     }
 
     /**

@@ -45,6 +45,11 @@ public final class Tile {
         return inBlock;
     }
 
+    /** The tile with the block turned about its center, see {@link Shapes#turned}. */
+    public Tile turned(int turn) {
+        return of(Shapes.turned(shapeInBlock(), turn), Shapes.turned(box, turn));
+    }
+
     /** The faces as rendering builds them. Callers must not change it. */
     public Mesh3d mesh() {
         if (mesh == null) mesh = buildMesh();

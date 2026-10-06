@@ -53,6 +53,11 @@ public final class Draw {
         return size(random, 1, random.nextBoolean() ? MAX_LARGE_SLOPE_SIZE : MAX_SMALL_SLOPE_SIZE);
     }
 
+    /** Y or z: moving a slope's complement along x would keep it beside the slope. */
+    public static int axisAcrossSlopeFace(Random random) {
+        return random.nextBoolean() ? BlockSpace.Y : BlockSpace.Z;
+    }
+
     /**
      * Where bounds of the size start so they reach into the block on every axis: before the block minimum by less than
      * the size, or anywhere inside the block, so short bounds can also lie inside it without touching its faces.

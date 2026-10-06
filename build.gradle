@@ -8,6 +8,7 @@ def optionalPermutationTests = [
     // Runs every sweep below
     'TEST_PERMUTATIONS_ALL',
     'TEST_PERMUTATIONS_COMPLEMENTARY_SLOPES',
+    'TEST_PERMUTATIONS_OVERLAPPING_SLOPES',
 ]
 
 tasks.register('listOptionalPermutationTests') {

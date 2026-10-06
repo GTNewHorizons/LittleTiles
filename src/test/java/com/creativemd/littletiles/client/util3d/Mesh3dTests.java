@@ -234,4 +234,48 @@ public class Mesh3dTests {
                 new LittleTileBox(12, 8, 0, 13, 9, 16),
                 null);
     }
+
+    // Deformed boxes sharing a face can be placed next to each other
+
+    private static void assertNeighboursFit(Vector3i[] low, Vector3i[] high) {
+        LittleTileBox lowBox = LittleTileBox.fromPoints(low), highBox = LittleTileBox.fromPoints(high);
+        assertFits(
+                lowBox,
+                LittleTileCutoutInfo.fromDeformedCorners(lowBox, low),
+                highBox,
+                LittleTileCutoutInfo.fromDeformedCorners(highBox, high));
+    }
+
+    @Test
+    public void deformedNeighboursAlongZFit() {
+        assertNeighboursFit(
+                new Vector3i[] { new Vector3i(1, 0, 1), new Vector3i(15, 2, 1), new Vector3i(1, 14, 0),
+                        new Vector3i(15, 14, 2), new Vector3i(2, 2, 14), new Vector3i(14, 0, 13),
+                        new Vector3i(1, 14, 12), new Vector3i(16, 16, 14) },
+                new Vector3i[] { new Vector3i(2, 2, 14), new Vector3i(14, 0, 13), new Vector3i(1, 14, 12),
+                        new Vector3i(16, 16, 14), new Vector3i(1, 1, 16), new Vector3i(15, 0, 15),
+                        new Vector3i(0, 15, 15), new Vector3i(15, 16, 14) });
+    }
+
+    @Test
+    public void deformedNeighboursSharingASlantedFaceAlongZFit() {
+        assertNeighboursFit(
+                new Vector3i[] { new Vector3i(0, 0, 1), new Vector3i(14, 1, 1), new Vector3i(1, 15, 0),
+                        new Vector3i(15, 15, 0), new Vector3i(1, 1, 10), new Vector3i(16, 0, 13),
+                        new Vector3i(1, 16, 14), new Vector3i(14, 16, 12) },
+                new Vector3i[] { new Vector3i(1, 1, 10), new Vector3i(16, 0, 13), new Vector3i(1, 16, 14),
+                        new Vector3i(14, 16, 12), new Vector3i(0, 1, 15), new Vector3i(14, 2, 15),
+                        new Vector3i(2, 16, 14), new Vector3i(15, 16, 14) });
+    }
+
+    @Test
+    public void deformedNeighboursAlongYFit() {
+        assertNeighboursFit(
+                new Vector3i[] { new Vector3i(0, 2, 2), new Vector3i(16, 2, 2), new Vector3i(0, 10, 2),
+                        new Vector3i(16, 14, 1), new Vector3i(2, 1, 15), new Vector3i(14, 1, 14),
+                        new Vector3i(2, 11, 16), new Vector3i(15, 12, 14) },
+                new Vector3i[] { new Vector3i(0, 10, 2), new Vector3i(16, 14, 1), new Vector3i(1, 14, 2),
+                        new Vector3i(15, 14, 0), new Vector3i(2, 11, 16), new Vector3i(15, 12, 14),
+                        new Vector3i(1, 15, 15), new Vector3i(14, 16, 15) });
+    }
 }

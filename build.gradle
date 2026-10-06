@@ -3,3 +3,32 @@
 plugins {
     id 'com.gtnewhorizons.gtnhconvention'
 }
+
+def optionalPermutationTests = [
+    // Runs every sweep below
+    'TEST_PERMUTATIONS_ALL',
+    'TEST_PERMUTATIONS_COMPLEMENTARY_SLOPES',
+]
+
+tasks.register('listOptionalPermutationTests') {
+    group = 'verification'
+    description = 'Print the opt-in permutation tests.'
+    doLast {
+        logger.lifecycle('Optional permutation tests:')
+        optionalPermutationTests.each { option ->
+            logger.lifecycle("  ${option}=1 ./gradlew test")
+        }
+    }
+}
+
+tasks.named('test') {
+    dependsOn(tasks.named('listOptionalPermutationTests'))
+    // Headless tests must not initialize FML or write OBJ files from mesh diagnostics.
+    systemProperty 'littletiles.disableMeshDumps', 'true'
+    testLogging.showStandardStreams = optionalPermutationTests.any { System.getenv(it) == '1' }
+    // Selected sweeps generate fresh cases, so run them even when inputs have not changed.
+    outputs.upToDateWhen { !optionalPermutationTests.any { System.getenv(it) == '1' } }
+    outputs.doNotCacheIf('optional permutation tests use fresh inputs') {
+        optionalPermutationTests.any { System.getenv(it) == '1' }
+    }
+}

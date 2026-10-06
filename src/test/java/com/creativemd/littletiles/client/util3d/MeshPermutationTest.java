@@ -440,4 +440,30 @@ public class MeshPermutationTest {
             assertClosedAndVolumesAddUp(random, shape);
         });
     }
+
+    /**
+     * Places random shapes so their bounds meet a random sub-box of the block from outside in a face, an edge or a
+     * corner, overlapping it anywhere on the other axes. They share no volume with the box, so nothing of them may be
+     * left after clipping.
+     */
+    @Test
+    public void meshesThatOnlyTouchTheSubboxAreEmpty() {
+        Sweep.run("TEST_PERMUTATIONS_TOUCHING_SUBBOX", "touching sub-boxes", trial -> {
+            Random random = trial.random();
+            LittleTileBox box = Draw.boxWithin(random, BLOCK);
+            LittleTileCutoutInfo shape = Draw.cutShapeOverlapping(random, box);
+            // One bit per axis along which the bounds only touch the box: one for a face, two for an edge, three for a
+            // corner
+            int touching = Draw.between(random, 1, 7);
+            for (int axis = 0; axis < BlockSpace.AXES; axis++) {
+                if ((touching & (1 << axis)) == 0) continue;
+
+                // Starting where the box ends, or ending where it starts
+                int start = random.nextBoolean() ? BlockSpace.max(box).get(axis)
+                        : BlockSpace.min(box).get(axis) - shape.size.get(axis);
+                shape.pos.setComponent(axis, start);
+            }
+            assertEmpty(trial.input("shape", Tile.of(shape, box)));
+        });
+    }
 }

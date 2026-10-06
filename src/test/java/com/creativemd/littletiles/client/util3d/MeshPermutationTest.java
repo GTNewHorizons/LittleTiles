@@ -116,9 +116,8 @@ public class MeshPermutationTest {
                 default -> {
                     // A slope, and a smaller one on a stretch of its face, as a part of it
                     LittleTileCutoutInfo big = Draw.until(() -> Draw.steppedSlope(random), Slopes::faceCrossesBlock);
-                    LittleTileCutoutInfo part = Draw.until(
-                            () -> Draw.slopeOnStretchOf(random, big, Shapes.UNTURNED),
-                            Slopes::faceCrossesBlock);
+                    LittleTileCutoutInfo part = Draw
+                            .until(() -> Draw.slopeOnStretchOf(random, big, Shapes.UNTURNED), Slopes::faceCrossesBlock);
                     int turn = Draw.orientation(random);
                     outer = Tile.of(big).turned(turn);
                     inner = Tile.of(part).turned(turn);
@@ -301,9 +300,9 @@ public class MeshPermutationTest {
     }
 
     /**
-     * Culls the curved face of a concave round slope against a convex one complementing it, and the other way
-     * around. Each facet covers its counterpart exactly, so nothing but slivers may stay visible. The flat faces only
-     * lie next to each other, so they must stay visible.
+     * Culls the curved face of a concave round slope against a convex one complementing it, and the other way around.
+     * Each facet covers its counterpart exactly, so nothing but slivers may stay visible. The flat faces only lie next
+     * to each other, so they must stay visible.
      */
     @Test
     public void matchingRoundFacesLeaveNoLargeVisibleArea() {

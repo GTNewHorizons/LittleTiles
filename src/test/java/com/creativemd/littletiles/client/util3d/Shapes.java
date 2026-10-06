@@ -33,8 +33,8 @@ public final class Shapes {
     public static final int UNTURNED = 0;
 
     /**
-     * The orientations whose slope fills the rest of the bounds of an unturned slope, for any sizes, and likewise for
-     * a convex round slope and an unturned concave one. Orientations 6 and 25 look alike but can overlap.
+     * The orientations whose slope fills the rest of the bounds of an unturned slope, for any sizes, and likewise for a
+     * convex round slope and an unturned concave one. Orientations 6 and 25 look alike but can overlap.
      */
     public static final int[] COMPLEMENTS_OF_UNTURNED = { 10, 18, 34, 42 };
 

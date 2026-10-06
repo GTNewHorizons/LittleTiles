@@ -3,6 +3,7 @@ package com.creativemd.littletiles.client.util3d;
 import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollide;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollideEitherWay;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCulled;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCulledByComplement;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertEmpty;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFit;
@@ -301,6 +302,30 @@ public class MeshPermutationTest {
             Tile convex = trial.input("convex", Draw.oneOf(random, concave.complements(SLOPE_CONVEX)));
             assertCulledByComplement(concave, convex);
             assertCulledByComplement(convex, concave);
+        });
+    }
+
+    /**
+     * Culls a small slope in a random one of the complementing orientations on a stretch of a big slope's face, see
+     * {@link Draw#slopeOnStretchOf}, and the big slope against each other. The big face covers the small one entirely,
+     * so nothing but slivers of the small face may stay visible, and exactly the small face's area of the big face may
+     * go. The flat faces only lie next to each other, so they must stay visible.
+     */
+    @Test
+    public void differentlySizedCoplanarFacesLeaveNoLargeVisibleArea() {
+        Sweep.run("TEST_PERMUTATIONS_CULLING_COPLANAR_SLOPES", "culling coplanar slopes", trial -> {
+            Random random = trial.random();
+            LittleTileCutoutInfo big = Draw.until(() -> Draw.steppedSlope(random), Slopes::faceCrossesBlock);
+            int complement = Draw.oneOf(random, Shapes.COMPLEMENTS_OF_UNTURNED);
+            LittleTileCutoutInfo small = Draw
+                    .until(() -> Draw.slopeOnStretchOf(random, big, complement), Slopes::faceCrossesBlock);
+            int turn = Draw.orientation(random);
+            Tile bigSlope = trial.input("big", Tile.of(big).turned(turn));
+            Tile smallSlope = trial.input("small", Tile.of(small).turned(turn));
+            assertHasTiltedFaces(bigSlope);
+            assertHasTiltedFaces(smallSlope);
+            assertCulledByComplement(smallSlope, bigSlope);
+            assertCulled(bigSlope, smallSlope, bigSlope.tiltedFaceArea() - smallSlope.tiltedFaceArea());
         });
     }
 }

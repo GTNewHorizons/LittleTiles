@@ -3,3 +3,51 @@
 plugins {
     id 'com.gtnewhorizons.gtnhconvention'
 }
+
+def optionalPermutationTests = [
+    // Runs every sweep below
+    'TEST_PERMUTATIONS_ALL',
+    'TEST_PERMUTATIONS_COMPLEMENTARY_SLOPES',
+    'TEST_PERMUTATIONS_OVERLAPPING_SLOPES',
+    'TEST_PERMUTATIONS_NESTED_SHAPES',
+    'TEST_PERMUTATIONS_NESTED_BOXES',
+    'TEST_PERMUTATIONS_SPLIT_SLOPES',
+    'TEST_PERMUTATIONS_MESH_BOX',
+    'TEST_PERMUTATIONS_COPLANAR_SLOPES',
+    'TEST_PERMUTATIONS_ROUND_SLOPES',
+    'TEST_PERMUTATIONS_OVERLAPPING_ROUND_SLOPES',
+    'TEST_PERMUTATIONS_CULLING_SLOPES',
+    'TEST_PERMUTATIONS_CULLING_ROUND_SLOPES',
+    'TEST_PERMUTATIONS_CULLING_COPLANAR_SLOPES',
+    'TEST_PERMUTATIONS_CAP_REMNANTS',
+    'TEST_PERMUTATIONS_CLOSE_MESH',
+    'TEST_PERMUTATIONS_LARGE_CUTS',
+    'TEST_PERMUTATIONS_TOUCHING_SUBBOX',
+    'TEST_PERMUTATIONS_DEFORMED_CAPS',
+    'TEST_PERMUTATIONS_DEFORMED_NEIGHBOURS',
+    'TEST_PERMUTATIONS_BOX_CAPS',
+]
+
+tasks.register('listOptionalPermutationTests') {
+    group = 'verification'
+    description = 'Print the opt-in permutation tests.'
+    doLast {
+        logger.lifecycle('Optional permutation tests:')
+        optionalPermutationTests.each { option ->
+            logger.lifecycle("  ${option}=1 ./gradlew test")
+        }
+    }
+}
+
+tasks.named('test') {
+    dependsOn(tasks.named('listOptionalPermutationTests'))
+    // Disable Mesh3d's FML-dependent dumps; sweep failures export OBJ files without FML.
+    systemProperty 'littletiles.disableMeshDumps', 'true'
+    systemProperty 'littletiles.meshFailureDir', layout.buildDirectory.dir('test-mesh-dumps').get().asFile.path
+    testLogging.showStandardStreams = optionalPermutationTests.any { System.getenv(it) == '1' }
+    // Selected sweeps generate fresh cases, so run them even when inputs have not changed.
+    outputs.upToDateWhen { !optionalPermutationTests.any { System.getenv(it) == '1' } }
+    outputs.doNotCacheIf('optional permutation tests use fresh inputs') {
+        optionalPermutationTests.any { System.getenv(it) == '1' }
+    }
+}

@@ -33,6 +33,8 @@ public class Mesh3d {
 
     private static final double DEGENERATE_EPSILON = 1.0E-8;
     private static final double DEGENERATE_EPSILON_SQUARED = DEGENERATE_EPSILON * DEGENERATE_EPSILON;
+    /** Set in headless tests, where dumping a mesh would initialize FML. A failed cut throws instead. */
+    private static final String DISABLE_MESH_DUMPS_PROPERTY = "littletiles.disableMeshDumps";
 
     private final List<Triangle3d> triangles;
 
@@ -78,6 +80,7 @@ public class Mesh3d {
 
     /** Dumps into {@code logs/littleTiles<name><index>.obj}. */
     public File dumpMesh(String name, int index) {
+        if (Boolean.getBoolean(DISABLE_MESH_DUMPS_PROPERTY)) return null;
         File mcDir;
         if (FMLCommonHandler.instance().getSide().isClient()) {
             mcDir = Minecraft.getMinecraft().mcDataDir;
@@ -92,6 +95,7 @@ public class Mesh3d {
     }
 
     private void dumpFailingMesh() {
+        if (Boolean.getBoolean(DISABLE_MESH_DUMPS_PROPERTY)) return;
         File mcDir;
 
         if (FMLCommonHandler.instance().getSide().isClient()) {
@@ -159,6 +163,9 @@ public class Mesh3d {
             List<Vector3d> addVertices = Edge3d.orderEdgesToVertexList(addedEdges);
             if (addVertices == null) {
                 // Something went wrong trying to close the edges, log error and bail
+                if (Boolean.getBoolean(DISABLE_MESH_DUMPS_PROPERTY)) {
+                    throw new IllegalStateException("Could not close mesh cut");
+                }
                 dumpFailingMesh();
                 return new Mesh3d(new ArrayList<>());
             }
@@ -453,14 +460,19 @@ public class Mesh3d {
         return Math.abs(solidAngle) > 2.0 * Math.PI;
     }
 
-    public Vector3f[] getVertices() {
-        Vector3f[] ret = new Vector3f[triangles.size() * 3];
+    /** The corners of all triangles, three in a row per triangle. */
+    public org.joml.Vector3d[] getVertices() {
+        org.joml.Vector3d[] ret = new org.joml.Vector3d[triangles.size() * 3];
         for (int i = 0; i < triangles.size(); i++) {
             Triangle3d triangle = triangles.get(i);
-            ret[i * 3] = triangle.getP1().toVector3f();
-            ret[i * 3 + 1] = triangle.getP2().toVector3f();
-            ret[i * 3 + 2] = triangle.getP3().toVector3f();
+            ret[i * 3] = toJoml(triangle.getP1());
+            ret[i * 3 + 1] = toJoml(triangle.getP2());
+            ret[i * 3 + 2] = toJoml(triangle.getP3());
         }
         return ret;
+    }
+
+    private static org.joml.Vector3d toJoml(Vector3d point) {
+        return new org.joml.Vector3d(point.x, point.y, point.z);
     }
 }

@@ -1,5 +1,7 @@
 package com.creativemd.littletiles.client.util3d;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.function.IntUnaryOperator;
 
@@ -67,6 +69,22 @@ public final class BlockSpace {
             max.min(max(box));
         }
         return min.x < max.x && min.y < max.y && min.z < max.z ? box(min, max) : null;
+    }
+
+    /** Every bar through the block a pixel thick, along each axis. */
+    public static List<LittleTileBox> onePixelBars() {
+        List<LittleTileBox> bars = new ArrayList<>();
+        for (int axis = 0; axis < AXES; axis++) {
+            int first = (axis + 1) % AXES, second = (axis + 2) % AXES;
+            for (int u = 0; u < PIXELS; u++) {
+                for (int v = 0; v < PIXELS; v++) {
+                    Vector3i min = new Vector3i().setComponent(first, u).setComponent(second, v);
+                    Vector3i max = new Vector3i(min).add(1, 1, 1).setComponent(axis, PIXELS);
+                    bars.add(box(min, max));
+                }
+            }
+        }
+        return bars;
     }
 
     /** A box cut in two at a pixel plane across one axis. */

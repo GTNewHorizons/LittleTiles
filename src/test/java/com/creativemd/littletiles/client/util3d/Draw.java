@@ -72,6 +72,11 @@ public final class Draw {
         return size(random, 1, random.nextBoolean() ? MAX_LARGE_SLOPE_SIZE : MAX_SMALL_SLOPE_SIZE);
     }
 
+    /** Sizes up to {@link #MAX_SMALL_SLOPE_SIZE}. */
+    public static Vector3i smallSlopeSize(Random random) {
+        return size(random, 1, MAX_SMALL_SLOPE_SIZE);
+    }
+
     /** Y or z: moving a slope's complement along x would keep it beside the slope. */
     public static int axisAcrossSlopeFace(Random random) {
         return random.nextBoolean() ? BlockSpace.Y : BlockSpace.Z;

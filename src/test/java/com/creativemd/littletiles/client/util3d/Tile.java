@@ -60,7 +60,8 @@ public final class Tile {
 
     /** The tile with the block turned about its center, see {@link Shapes#turned}. */
     public Tile turned(int turn) {
-        return of(Shapes.turned(shapeInBlock(), turn), Shapes.turned(box, turn));
+        LittleTileBox turnedBox = Shapes.turned(box, turn);
+        return isPlainBox() ? plainBox(turnedBox) : of(Shapes.turned(shapeInBlock(), turn), turnedBox);
     }
 
     /** The faces as rendering builds them, for a plain box the faces culling builds. Callers must not change it. */

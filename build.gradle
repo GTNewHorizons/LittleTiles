@@ -12,6 +12,7 @@ def optionalPermutationTests = [
     'TEST_PERMUTATIONS_NESTED_SHAPES',
     'TEST_PERMUTATIONS_NESTED_BOXES',
     'TEST_PERMUTATIONS_SPLIT_SLOPES',
+    'TEST_PERMUTATIONS_MESH_BOX',
 ]
 
 tasks.register('listOptionalPermutationTests') {

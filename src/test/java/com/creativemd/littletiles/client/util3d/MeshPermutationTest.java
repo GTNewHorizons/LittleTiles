@@ -5,9 +5,11 @@ import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertColl
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollideEitherWay;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertEmpty;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFit;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFitsExactlyWhen;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertNotEmpty;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE;
 
+import java.util.List;
 import java.util.Random;
 
 import org.junit.Test;
@@ -18,6 +20,9 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 /** Opt-in mesh permutation tests, see {@link Sweep}. Failures include the seed and generated inputs. */
 public class MeshPermutationTest {
+
+    /** Each trial places 768 bars, so fewer trials take about as long as the other sweeps. */
+    private static final int ONE_PIXEL_BAR_TRIALS = 10_000;
 
     /** Checks slopes crossing the block against all four complements, in every orientation. */
     @Test
@@ -171,6 +176,29 @@ public class MeshPermutationTest {
                 if (piece.isEmpty()) continue;
 
                 for (Tile complement : slope.complements(SLOPE)) assertFit(piece, complement);
+            }
+        });
+    }
+
+    /**
+     * Places every one-pixel bar through the block along each axis next to a slope filling the block, with both turned
+     * into a random orientation. Bars sharing volume with the slope must collide and the others must fit, catching
+     * missed and false collisions of a mesh against a plain box, along the slope's ridge and across its face.
+     */
+    @Test
+    public void onePixelBarsCollideExactlyWhenOverlapping() {
+        List<LittleTileBox> bars = BlockSpace.onePixelBars();
+        Sweep.run("TEST_PERMUTATIONS_MESH_BOX", "one-pixel bars", ONE_PIXEL_BAR_TRIALS, trial -> {
+            Random random = trial.random();
+            LittleTileCutoutInfo unturned = trial.input(
+                    "unturned slope",
+                    Draw.until(
+                            () -> Draw.unturnedReachingIntoBlock(random, SLOPE, Draw.smallSlopeSize(random)),
+                            Slopes::faceCrossesBlock));
+            int turn = trial.input("turn", Draw.orientation(random));
+            Tile slope = Tile.of(unturned).turned(turn);
+            for (LittleTileBox bar : bars) {
+                assertFitsExactlyWhen(!Slopes.overlaps(unturned, bar), slope, Tile.plainBox(bar).turned(turn));
             }
         });
     }

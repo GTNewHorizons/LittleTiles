@@ -306,6 +306,7 @@ public final class MeshCutter {
         }
 
         List<Triangle3d> triangles = new ArrayList<>(faces.size() * 2);
+        boolean hasArea = false;
         for (Face polygon : faces) {
             int[] face = polygon.corners;
             for (int i = 1; i < face.length - 1; i++) {
@@ -319,9 +320,12 @@ public final class MeshCutter {
                         new Vector3d(points.get(c)));
                 triangle.setPlane(polygon.plane);
                 triangles.add(triangle);
+                // Exact for points on the grid
+                hasArea |= triangle.getArea() > 0;
             }
         }
-        return triangles;
+        // Cuts through the line or corner where the mesh only touches a plane leave faces rounded onto it
+        return hasArea ? triangles : new ArrayList<>();
     }
 
     private static Vector3d round(Vector3d point) {

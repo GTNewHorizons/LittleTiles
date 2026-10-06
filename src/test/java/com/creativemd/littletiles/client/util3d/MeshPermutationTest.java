@@ -466,4 +466,18 @@ public class MeshPermutationTest {
             assertEmpty(trial.input("shape", Tile.of(shape, box)));
         });
     }
+
+    /**
+     * Shears a cube by up to two pixels per pair of axes, which keeps its faces flat, and clips it to a random sub-box
+     * as {@link #randomlyClippedShapeMeshesClose} does: the mesh must be closed and its volume add up.
+     */
+    @Test
+    public void shearedDeformedBoxesClipClosed() {
+        Sweep.run("TEST_PERMUTATIONS_DEFORMED_CAPS", "sheared deformed boxes", trial -> {
+            Random random = trial.random();
+            Vector3i[] corners = trial.input("corners", DeformedBoxes.sheared(random));
+            Tile box = trial.input("box", Draw.deformedBoxClippedToSubBox(random, corners));
+            assertClosedAndVolumesAddUp(random, box);
+        });
+    }
 }

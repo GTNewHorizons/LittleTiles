@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.client.util3d;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.joml.Vector3i;
@@ -123,6 +124,7 @@ public final class Tile {
     @Override
     public String toString() {
         if (isPlainBox()) return "box " + box;
-        return Shapes.describe(shape) + " in " + box;
+        String corners = shape.corners == null ? "" : " corners=" + Arrays.toString(shape.corners);
+        return Shapes.describe(shape) + corners + " in " + box;
     }
 }

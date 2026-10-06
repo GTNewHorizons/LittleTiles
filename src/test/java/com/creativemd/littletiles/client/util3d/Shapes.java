@@ -49,6 +49,13 @@ public final class Shapes {
         return shape;
     }
 
+    /** A deformed box with the corners, relative to the shape's position. */
+    public static LittleTileCutoutInfo deformedBox(Vector3i size, Vector3i pos, int orientation, Vector3i[] corners) {
+        LittleTileCutoutInfo shape = shape(LittleTileShapeMode.DEFORMED_BOX, size, pos, orientation);
+        shape.corners = LittleTileCutoutInfo.copyCorners(corners);
+        return shape;
+    }
+
     /** The same shape with its bounds moved by {@code pixels} along the axis. */
     public static LittleTileCutoutInfo movedAlong(LittleTileCutoutInfo shape, int axis, int pixels) {
         LittleTileCutoutInfo moved = new LittleTileCutoutInfo(shape);

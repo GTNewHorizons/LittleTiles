@@ -224,6 +224,14 @@ public final class Draw {
         return clippedToSubBox(random, box -> cutShapeOverlapping(random, box));
     }
 
+    /** As {@link #cutShapeClippedToSubBox}, with a deformed box with the corners, stretched to a random size. */
+    public static Tile deformedBoxClippedToSubBox(Random random, Vector3i[] corners) {
+        return clippedToSubBox(random, box -> {
+            Vector3i size = size(random, 1, MAX_SHAPE_SIZE);
+            return Shapes.deformedBox(size, posOverlapping(random, size, box), orientation(random), corners);
+        });
+    }
+
     private static Tile clippedToSubBox(Random random, Function<LittleTileBox, LittleTileCutoutInfo> shapeOverlapping) {
         return until(() -> {
             LittleTileBox box = boxWithin(random, BLOCK);

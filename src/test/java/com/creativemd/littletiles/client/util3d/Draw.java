@@ -54,6 +54,10 @@ public final class Draw {
         return options[random.nextInt(options.length)];
     }
 
+    public static int axis(Random random) {
+        return random.nextInt(BlockSpace.AXES);
+    }
+
     public static int orientation(Random random) {
         return random.nextInt(Shapes.ORIENTATIONS);
     }

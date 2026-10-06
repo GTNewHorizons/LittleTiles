@@ -1,5 +1,6 @@
 package com.creativemd.littletiles.client.util3d;
 
+import java.util.Random;
 import java.util.function.IntUnaryOperator;
 
 import org.joml.Vector3i;
@@ -17,6 +18,8 @@ public final class BlockSpace {
     public static final LittleTileBox BLOCK = new LittleTileBox(0, 0, 0, PIXELS, PIXELS, PIXELS);
 
     public static final int X = 0, Y = 1, Z = 2;
+
+    public static final int AXES = 3;
 
     private BlockSpace() {}
 
@@ -64,5 +67,37 @@ public final class BlockSpace {
             max.min(max(box));
         }
         return min.x < max.x && min.y < max.y && min.z < max.z ? box(min, max) : null;
+    }
+
+    /** A box cut in two at a pixel plane across one axis. */
+    public static final class Split {
+
+        public final int axis;
+        /** The plane's position along the axis, in pixels from the block minimum. */
+        public final int at;
+        public final LittleTileBox low, high;
+
+        private Split(LittleTileBox box, int axis, int at) {
+            this.axis = axis;
+            this.at = at;
+            low = box(min(box), max(box).setComponent(axis, at));
+            high = box(min(box).setComponent(axis, at), max(box));
+        }
+
+        /** At a random pixel plane inside the box, which must be longer than a pixel along some axis. */
+        public static Split random(Random random, LittleTileBox box) {
+            Vector3i size = size(box);
+            int axis = Draw.until(() -> Draw.axis(random), candidate -> size.get(candidate) > 1);
+            return new Split(box, axis, min(box).get(axis) + Draw.between(random, 1, size.get(axis) - 1));
+        }
+
+        public LittleTileBox[] halves() {
+            return new LittleTileBox[] { low, high };
+        }
+
+        @Override
+        public String toString() {
+            return "split at " + at + " along axis " + axis;
+        }
     }
 }

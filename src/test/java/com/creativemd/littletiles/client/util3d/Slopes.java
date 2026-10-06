@@ -24,6 +24,12 @@ public final class Slopes {
                 && highestLevel(slope, inBlock) > faceLevel(slope);
     }
 
+    /** Whether the slope shares volume with the box. */
+    public static boolean overlaps(LittleTileCutoutInfo slope, LittleTileBox box) {
+        LittleTileBox shared = BlockSpace.intersection(BlockSpace.bounds(slope), box);
+        return shared != null && lowestLevel(slope, shared) < faceLevel(slope);
+    }
+
     /** Whether the box lies inside the slope, possibly touching its faces. */
     public static boolean contains(LittleTileCutoutInfo slope, LittleTileBox box) {
         return box.equals(BlockSpace.intersection(BlockSpace.bounds(slope), box))

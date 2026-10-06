@@ -3,6 +3,7 @@ package com.creativemd.littletiles.client.util3d;
 import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollide;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollideEitherWay;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertEmpty;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFit;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertNotEmpty;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE;
@@ -11,6 +12,7 @@ import java.util.Random;
 
 import org.junit.Test;
 
+import com.creativemd.littletiles.client.util3d.BlockSpace.Split;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
@@ -135,6 +137,41 @@ public class MeshPermutationTest {
                 }
             }
             assertCollideEitherWay(trial.input("outer", outer), trial.input("inner", inner));
+        });
+    }
+
+    /**
+     * Splits the block of each slope crossing it at a random interior pixel plane, before turning both into one of the
+     * orientations. Exactly the pieces sharing volume with the slope must keep some of it, catching pieces the cuts
+     * lose. The two pieces must fit beside each other, and every piece keeping some of the slope beside each of the
+     * four unsplit complements, catching false collisions from clipping the same surface in different boxes.
+     */
+    @Test
+    public void complementarySlopesOnlyTouchAcrossSplitBoxes() {
+        Sweep.run("TEST_PERMUTATIONS_SPLIT_SLOPES", "split slopes", trial -> {
+            Random random = trial.random();
+            LittleTileCutoutInfo unturned = trial.input(
+                    "unturned slope",
+                    Draw.until(
+                            () -> Draw.unturnedReachingIntoBlock(random, SLOPE, Draw.slopeSize(random)),
+                            Slopes::faceCrossesBlock));
+            Split split = trial.input("unturned split", Split.random(random, BLOCK));
+            int turn = trial.orientationInTurn();
+            Tile slope = trial.input("slope", Tile.of(unturned).turned(turn));
+            LittleTileBox[] halves = split.halves();
+            Tile[] pieces = new Tile[halves.length];
+            for (int half = 0; half < halves.length; half++) {
+                pieces[half] = slope.clippedTo(Shapes.turned(halves[half], turn));
+                if (Slopes.overlaps(unturned, halves[half])) assertNotEmpty(pieces[half]);
+                else assertEmpty(pieces[half]);
+            }
+            assertFit(pieces[0], pieces[1]);
+            for (Tile piece : pieces) {
+                // A piece the slope misses has no mesh, so it would fit beside anything
+                if (piece.isEmpty()) continue;
+
+                for (Tile complement : slope.complements(SLOPE)) assertFit(piece, complement);
+            }
         });
     }
 }

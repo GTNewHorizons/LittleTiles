@@ -17,9 +17,6 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
  */
 public final class MeshCollision {
 
-    /** Shared volume up to this, in cubic blocks, is rounding: a millionth of a cubic pixel. */
-    private static final double VOLUME_EPSILON = 1.0E-6 / (16 * 16 * 16);
-
     private MeshCollision() {}
 
     /**
@@ -45,7 +42,7 @@ public final class MeshCollision {
         for (Plane3d plane : facePlanes(common)) {
             withinA.cut(plane);
         }
-        if (cutoutB == null) return withinA.volumeTimesSix() / 6 > VOLUME_EPSILON;
+        if (cutoutB == null) return withinA.volumeTimesSix() / 6 > MeshCutter.VOLUME_EPSILON;
 
         double sixTimesVolume = 0;
         for (Mesh3d tetrahedron : Mesh3dUtil.tetrahedra(Mesh3dUtil.solid(boxB, cutoutB))) {
@@ -63,7 +60,7 @@ public final class MeshCollision {
             }
             sixTimesVolume += insideOut ? -shared.volumeTimesSix() : shared.volumeTimesSix();
         }
-        return sixTimesVolume / 6 > VOLUME_EPSILON;
+        return sixTimesVolume / 6 > MeshCutter.VOLUME_EPSILON;
     }
 
     /** The planes of the box's faces, facing out of it. */

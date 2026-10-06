@@ -25,6 +25,12 @@ public final class MeshCutter {
      */
     public static final double RENDER_GRID = 0x1p-17;
 
+    /**
+     * Volume up to which, in cubic blocks, a mesh or what two meshes share counts as none: a millionth of a cubic
+     * pixel. Far above rounding, far below anything a player could see or aim at.
+     */
+    public static final double VOLUME_EPSILON = 1.0E-6 / (16 * 16 * 16);
+
     private final List<Vector3d> points = new ArrayList<>();
     /** Convex polygons wound counterclockwise around their outward normal. */
     private List<Face> faces = new ArrayList<>();
@@ -310,9 +316,10 @@ public final class MeshCutter {
             merged[i] = first;
         }
 
-        // Cuts through a corner, edge or face where the mesh barely reaches past a plane leave it rounded flat onto it
+        // Cuts where the mesh barely reaches past a plane leave a sliver too thin to see or aim at, or, through a
+        // corner, edge or face, nothing but faces rounded flat onto the plane
         List<Triangle3d> triangles = new ArrayList<>(faces.size() * 2);
-        if (volumeTimesSix() == 0) return triangles;
+        if (volumeTimesSix() <= 6 * VOLUME_EPSILON) return triangles;
         for (Face polygon : faces) {
             int[] face = polygon.corners;
             for (int i = 1; i < face.length - 1; i++) {

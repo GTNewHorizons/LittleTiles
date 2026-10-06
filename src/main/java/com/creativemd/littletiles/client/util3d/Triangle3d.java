@@ -224,6 +224,11 @@ public class Triangle3d {
         if (cutterWinding < 0) {
             Collections.reverse(cutter);
         }
+        // Touching the cutter is no reason to cut: re-triangulating would drop thin pieces of long slivers
+        if (liesOutside(cutter, normal)) {
+            result.add(copy());
+            return result;
+        }
 
         List<Vector3d> inside = corners();
         for (int i = 0; i < 3 && !inside.isEmpty(); i++) {
@@ -233,6 +238,22 @@ public class Triangle3d {
         }
 
         return result;
+    }
+
+    /**
+     * Whether the triangle lies right of one of the cutter's edges, its corners on the edge within
+     * {@link #SPLIT_EPSILON} at most, so that the two share no area.
+     */
+    private boolean liesOutside(List<Vector3d> cutter, Vector3d normal) {
+        for (int i = 0; i < 3; i++) {
+            Vector3d edgeStart = cutter.get(i), edgeEnd = cutter.get((i + 1) % 3);
+            if (distanceLeftOf(edgeStart, edgeEnd, p1, normal) <= SPLIT_EPSILON
+                    && distanceLeftOf(edgeStart, edgeEnd, p2, normal) <= SPLIT_EPSILON
+                    && distanceLeftOf(edgeStart, edgeEnd, p3, normal) <= SPLIT_EPSILON) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<Vector3d> corners() {

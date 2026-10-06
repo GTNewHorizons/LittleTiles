@@ -480,4 +480,20 @@ public class MeshPermutationTest {
             assertClosedAndVolumesAddUp(random, box);
         });
     }
+
+    /**
+     * Moves the corners of a cube on their own, from slightly to collapsing edges and faces, see
+     * {@link DeformedBoxes#warped}, and clips the boxes the game accepts to a random sub-box as
+     * {@link #randomlyClippedShapeMeshesClose} does: the mesh must be closed and its volume add up.
+     */
+    @Test
+    public void warpedDeformedBoxesClipClosed() {
+        Sweep.run("TEST_PERMUTATIONS_DEFORMED_CAPS", "warped deformed boxes", trial -> {
+            Random random = trial.random();
+            Vector3i[] corners = trial
+                    .input("corners", Draw.until(() -> DeformedBoxes.warped(random), Mesh3dUtil::enclosesVolume));
+            Tile box = trial.input("box", Draw.deformedBoxClippedToSubBox(random, corners));
+            assertClosedAndVolumesAddUp(random, box);
+        });
+    }
 }

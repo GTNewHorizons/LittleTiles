@@ -3,6 +3,7 @@ package com.creativemd.littletiles.client.util3d;
 import static com.creativemd.littletiles.client.util3d.BlockSpace.PIXELS;
 
 import java.util.Random;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -124,6 +125,18 @@ public final class Draw {
     public static LittleTileCutoutInfo unturnedReachingIntoBlock(Random random, LittleTileShapeMode kind,
             Vector3i size) {
         return Shapes.shape(kind, size, posReachingIntoBlock(random, size), Shapes.UNTURNED);
+    }
+
+    /**
+     * An unturned shape of {@code kind} reaching into the block, whose face matching its complements of
+     * {@code complementKind} crosses the block: the shape and its complements each keep volume in it.
+     */
+    public static LittleTileCutoutInfo unturnedMeetingComplementsInBlock(Random random, LittleTileShapeMode kind,
+            LittleTileShapeMode complementKind, Function<Random, Vector3i> size) {
+        return until(() -> unturnedReachingIntoBlock(random, kind, size.apply(random)), shape -> {
+            Tile tile = Tile.of(shape);
+            return !tile.isEmpty() && !tile.complements(complementKind).get(0).isEmpty();
+        });
     }
 
     /** A slope of {@link #slopeSize} whose face crosses the block, turned into the orientation. */

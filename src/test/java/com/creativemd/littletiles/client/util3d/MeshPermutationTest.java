@@ -9,6 +9,8 @@ import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFits
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertHasTiltedFaces;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertNotEmpty;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE;
+import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE_CONCAVE;
+import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE_CONVEX;
 
 import java.util.List;
 import java.util.Random;
@@ -223,6 +225,22 @@ public class MeshPermutationTest {
             assertHasTiltedFaces(bigSlope);
             assertHasTiltedFaces(smallSlope);
             assertFit(bigSlope, smallSlope);
+        });
+    }
+
+    /**
+     * Places the four convex round slopes complementing a concave one with the same bounds, all turned into a random
+     * orientation, with the curved face crossing the block. Their curved faces are the same facets facing opposite
+     * ways, so the two only touch.
+     */
+    @Test
+    public void roundSlopeComplementsOnlyTouch() {
+        Sweep.run("TEST_PERMUTATIONS_ROUND_SLOPES", "round slopes", trial -> {
+            Random random = trial.random();
+            LittleTileCutoutInfo unturned = Draw
+                    .unturnedMeetingComplementsInBlock(random, SLOPE_CONCAVE, SLOPE_CONVEX, Draw::smallSlopeSize);
+            Tile concave = trial.input("concave", Tile.of(unturned).turned(Draw.orientation(random)));
+            for (Tile convex : concave.complements(SLOPE_CONVEX)) assertFit(concave, convex);
         });
     }
 }

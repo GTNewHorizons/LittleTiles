@@ -67,11 +67,16 @@ public final class MeshCollision {
         return (box.maxX - box.minX) * (box.maxY - box.minY) * (box.maxZ - box.minZ) / (16.0 * 16 * 16);
     }
 
-    /** The pieces of the tile, see {@link Mesh3dUtil#convexPieces}, less those sharing no volume with the box. */
+    /**
+     * The pieces of the tile, see {@link Mesh3dUtil#convexPieces}, less those sharing no volume with the box. An
+     * inverted tile is its box less those of its shape.
+     */
     private static List<Piece> pieces(LittleTileBox box, LittleTileCutoutInfo cutout, LittleTileBox common) {
         List<Piece> pieces = new ArrayList<>();
+        boolean inverted = cutout != null && cutout.inverted;
+        if (inverted) pieces.add(new Piece(new Mesh3d(new ArrayList<>()), 1));
         for (Mesh3d mesh : Mesh3dUtil.convexPieces(box, cutout)) {
-            if (reachesInto(mesh, common)) pieces.add(new Piece(mesh));
+            if (reachesInto(mesh, common)) pieces.add(new Piece(mesh, inverted ? -1 : 1));
         }
         return pieces;
     }
@@ -107,10 +112,12 @@ public final class MeshCollision {
         final List<Plane3d> planes = new ArrayList<>();
         final int sign;
 
-        Piece(Mesh3d mesh) {
-            sign = mesh.volume() < 0 ? -1 : 1;
+        /** @param sign -1 if the piece is taken away rather than added */
+        Piece(Mesh3d mesh, int sign) {
+            boolean insideOut = mesh.volume() < 0;
+            this.sign = insideOut ? -sign : sign;
             // Turned outwards, so that its planes face out
-            if (sign < 0) mesh.flipWindingOrder();
+            if (insideOut) mesh.flipWindingOrder();
             Object polygon = null;
             for (Triangle3d triangle : mesh.getTriangles()) {
                 // The triangles of a polygon come one after another, and one plane does for all of them

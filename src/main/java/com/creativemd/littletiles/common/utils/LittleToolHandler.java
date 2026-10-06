@@ -89,7 +89,16 @@ public class LittleToolHandler {
         tag.setByte("grid", (byte) grid);
     }
 
+    /** The shape to place. {@link LittleTilePlaceMode#ANTI_FILL} only places boxes, whatever shape is selected. */
     public LittleTileShapeMode getShape() {
+        if (getPlaceMode() == LittleTilePlaceMode.ANTI_FILL) {
+            return LittleTileShapeMode.BOX;
+        }
+        return getSelectedShape();
+    }
+
+    /** The shape selected in the gui, kept while a place mode overrides it. */
+    public LittleTileShapeMode getSelectedShape() {
         NBTTagCompound tag = getTag(false);
         LittleTileCutoutInfo cutout = LittleTileCutoutInfo.loadFromNBT(tag);
         if (cutout != null) {

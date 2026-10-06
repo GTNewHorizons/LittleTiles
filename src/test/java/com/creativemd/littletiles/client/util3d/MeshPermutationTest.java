@@ -4,6 +4,7 @@ import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
 import static com.creativemd.littletiles.client.util3d.BlockSpace.PIXELS;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.EXACT_VOLUME;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.ROUNDING_VOLUME;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertClosed;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertClosedAndVolumesAddUp;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollide;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollideEitherWay;
@@ -31,7 +32,10 @@ import org.joml.Vector3i;
 import org.junit.Test;
 
 import com.creativemd.littletiles.client.util3d.BlockSpace.Split;
+import com.creativemd.littletiles.client.util3d.Mesh3dUtil.TileCoverage;
 import com.creativemd.littletiles.client.util3d.MeshGeometry.FaceFilter;
+import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -556,6 +560,64 @@ public class MeshPermutationTest {
                             Message.of("fitted=", fitted, " volume=", fitted.volume(), " expected=", volume));
                 }
             }
+        });
+    }
+
+    /**
+     * Fills a random box in the block against every shape in turn, pillars and deformed boxes included, the way anti
+     * fill does: with the anti mesh of the shape. The shape and its anti mesh must add up to the box exactly and must
+     * not collide, the anti mesh must be closed and enclose that volume, shrinking either to its mesh must keep it, and
+     * the surfaces the two share must hide each other. The anti tile the game makes must not collide with the shape.
+     */
+    @Test
+    public void antiMeshesFillTheRestOfTheirBox() {
+        Sweep.run("TEST_PERMUTATIONS_ANTI_MESH", "anti meshes", trial -> {
+            Random random = trial.random();
+            LittleTileShapeMode kind = Shapes.ALL_SHAPES[trial.inTurn(Shapes.ALL_SHAPES.length)];
+            Tile existing = trial.input("existing", Tile.of(Draw.shapeReachingIntoBlock(random, kind)));
+            Tile shape = existing.clippedTo(Draw.boxWithin(random, BLOCK));
+            Tile anti = trial.input("anti", shape.inverted());
+
+            double shapeVolume = shape.volume(), antiVolume = anti.volume(), boxVolume = BlockSpace.volume(shape.box);
+            check(
+                    Math.abs(shapeVolume + antiVolume - boxVolume) <= EXACT_VOLUME,
+                    Message.of("shape=", shapeVolume, " anti=", antiVolume, " box=", boxVolume));
+            assertFit(existing, anti);
+
+            TileCoverage shapeCoverage = Mesh3dUtil.classifyTile(shape.box, shape.shape);
+            TileCoverage antiCoverage = Mesh3dUtil.classifyTile(anti.box, anti.shape);
+            check(
+                    (shapeCoverage == TileCoverage.EMPTY) == (antiCoverage == TileCoverage.FULL)
+                            && (shapeCoverage == TileCoverage.FULL) == (antiCoverage == TileCoverage.EMPTY),
+                    Message.of("coverage ", shapeCoverage, " vs ", antiCoverage));
+            if (antiCoverage == TileCoverage.EMPTY) return;
+
+            assertNotEmpty(anti);
+            assertClosed(anti);
+            double antiMeshVolume = MeshGeometry.volume(anti.mesh());
+            check(
+                    Math.abs(antiMeshVolume - antiVolume) <= ROUNDING_VOLUME,
+                    Message.of("anti mesh volume=", antiMeshVolume, " expected=", antiVolume));
+            if (shapeCoverage == TileCoverage.EMPTY) return;
+
+            for (Tile tile : new Tile[] { shape, anti }) {
+                Tile fitted = tile.fittedToMesh();
+                check(
+                        Math.abs(fitted.volume() - tile.volume()) <= EXACT_VOLUME,
+                        Message.of("fitted=", fitted, " volume=", fitted.volume(), " expected=", tile.volume()));
+            }
+            assertHidden("shape tilted faces", FaceFilter.TILTED.of(shape.mesh()), anti.mesh());
+            assertHidden("anti tilted faces", FaceFilter.TILTED.of(anti.mesh()), shape.mesh());
+
+            LittleTileBlock placed = new LittleTileBlock();
+            placed.boundingBox = existing.box.copy();
+            placed.setCutoutInfo(existing.shape);
+            LittleTileBlock filling = new LittleTileBlock();
+            filling.boundingBox = shape.box.copy();
+            filling.updateCorner();
+            LittleTile antiTile = filling.antiTileAgainst(placed);
+            check(antiTile != null, "no anti tile");
+            check(!antiTile.collidesWith(placed), "anti tile collides");
         });
     }
 }

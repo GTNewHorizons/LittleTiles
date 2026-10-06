@@ -25,6 +25,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.MeshCollision;
 import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -565,6 +566,37 @@ public abstract class LittleTile {
             ret.add(tile);
         }
         return ret;
+    }
+
+    /** Whether this tile actually overlaps the other one, taking both of their shapes into account. */
+    public boolean collidesWith(LittleTile other) {
+        return MeshCollision.intersects(boundingBox, cutoutInfo, other.boundingBox, other.cutoutInfo);
+    }
+
+    /**
+     * A copy of this tile filling the part of its box the other tile's shape leaves free: it is cut to the box both
+     * tiles share and carries the other tile's shape inverted. Null if there is nothing left to fill.
+     */
+    public LittleTile antiTileAgainst(LittleTile other) {
+        LittleTileBox box = boundingBox.intersection(other.boundingBox);
+        if (box == null || other.cutoutInfo == null) {
+            return null;
+        }
+
+        LittleTileCutoutInfo antiCutout = new LittleTileCutoutInfo(other.cutoutInfo);
+        antiCutout.inverted = !antiCutout.inverted;
+        antiCutout.pos.x += other.boundingBox.minX - box.minX;
+        antiCutout.pos.y += other.boundingBox.minY - box.minY;
+        antiCutout.pos.z += other.boundingBox.minZ - box.minZ;
+        if (Mesh3dUtil.classifyTile(box, antiCutout) == Mesh3dUtil.TileCoverage.EMPTY) {
+            return null;
+        }
+
+        LittleTile tile = copy();
+        tile.boundingBox = box;
+        tile.setCutoutInfo(antiCutout);
+        tile.updateCorner();
+        return tile;
     }
 
     @Deprecated

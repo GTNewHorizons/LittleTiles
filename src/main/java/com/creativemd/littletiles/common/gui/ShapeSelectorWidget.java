@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
+import net.minecraft.client.gui.Gui;
 import net.minecraft.init.Blocks;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -41,10 +43,14 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
     private static final Vector3i FULL_TILE = new Vector3i(16, 16, 16);
     private static final Vector3i ZERO = new Vector3i();
     private static final Map<LittleTileShapeMode, Mesh3d> PREVIEW_MESHES = new EnumMap<>(LittleTileShapeMode.class);
+    /** Laid over the selector while it is locked, to gray it out. */
+    private static final int LOCKED_OVERLAY = 0xA0505050;
 
     private IDrawable arrowClosed;
     private IDrawable arrowOpened;
     private final DropDownWrapper menu = new DropDownWrapper();
+    private BooleanSupplier locked = () -> false;
+    private int lockedIndex = -1;
 
     public ShapeSelectorWidget() {
         menu.setEnabled(false);
@@ -60,6 +66,20 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
     public ShapeSelectorWidget setSelectedIndex(int index) {
         menu.setCurrentIndex(index);
         return getThis();
+    }
+
+    /**
+     * While {@code when} holds, the selector shows the choice at {@code index} grayed out and cannot be opened. The
+     * selected index is kept, so it shows again once the lock is lifted.
+     */
+    public ShapeSelectorWidget lockTo(int index, BooleanSupplier when) {
+        this.lockedIndex = index;
+        this.locked = when;
+        return getThis();
+    }
+
+    private boolean isLocked() {
+        return locked.getAsBoolean();
     }
 
     public ShapeSelectorWidget setArrows(IDrawable closed, IDrawable opened) {
@@ -91,6 +111,9 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
 
     @Override
     public Result onMousePressed(int mouseButton) {
+        if (isLocked()) {
+            return Result.STOP;
+        }
         if (!menu.isOpen()) {
             menu.setOpened(true);
             menu.setEnabled(true);
@@ -102,11 +125,22 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
     }
 
     @Override
+    public void onUpdate() {
+        super.onUpdate();
+        // the lock can come on while the menu is open, through another widget
+        if (isLocked() && menu.isOpen()) {
+            menu.setOpened(false);
+            menu.setEnabled(false);
+        }
+    }
+
+    @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry widgetTheme) {
         super.draw(context, widgetTheme);
         Area area = getArea();
         int smallerSide = Math.min(area.width, area.height);
-        IWidget selectedItem = menu.getSelectedItem();
+        boolean locked = isLocked();
+        IWidget selectedItem = locked ? menu.getItem(lockedIndex) : menu.getSelectedItem();
         if (selectedItem != null) {
             IWidget child = selectedItem.getChildren().get(0);
             boolean oldEnabled = selectedItem.isEnabled();
@@ -126,6 +160,10 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
                 arrowSize,
                 arrowSize,
                 getWidgetTheme(context.getTheme()).getTheme());
+
+        if (locked) {
+            Gui.drawRect(0, 0, area.width, area.height, LOCKED_OVERLAY);
+        }
     }
 
     @Override
@@ -256,10 +294,14 @@ public class ShapeSelectorWidget extends SingleChildWidget<ShapeSelectorWidget> 
         }
 
         public IWidget getSelectedItem() {
-            if (currentIndex < 0 || currentIndex >= count) {
+            return getItem(currentIndex);
+        }
+
+        public IWidget getItem(int index) {
+            if (index < 0 || index >= count) {
                 return null;
             }
-            return children.get(currentIndex);
+            return children.get(index);
         }
 
         @Override

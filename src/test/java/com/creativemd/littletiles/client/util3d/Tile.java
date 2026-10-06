@@ -45,6 +45,11 @@ public final class Tile {
         return inBlock;
     }
 
+    /** The same shape, where it is in the block, clipped to another box. */
+    public Tile clippedTo(LittleTileBox other) {
+        return of(shapeInBlock(), other);
+    }
+
     /** The tile with the block turned about its center, see {@link Shapes#turned}. */
     public Tile turned(int turn) {
         return of(Shapes.turned(shapeInBlock(), turn), Shapes.turned(box, turn));

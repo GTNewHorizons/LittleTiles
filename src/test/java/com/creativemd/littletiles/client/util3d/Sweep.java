@@ -71,9 +71,14 @@ public final class Sweep {
             return random;
         }
 
-        /** Every orientation in turn from trial to trial, so the sweep covers each of them equally. */
+        /** Which of {@code cases} to take, in turn from trial to trial, so the sweep covers each of them equally. */
+        public int inTurn(int cases) {
+            return index % cases;
+        }
+
+        /** Every orientation in turn, see {@link #inTurn}. */
         public int orientationInTurn() {
-            return index % Shapes.ORIENTATIONS;
+            return inTurn(Shapes.ORIENTATIONS);
         }
 
         /** Records an input for the failure message, described only if the trial fails, and returns it. */

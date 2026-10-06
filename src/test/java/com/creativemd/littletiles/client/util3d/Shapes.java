@@ -20,6 +20,14 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
  */
 public final class Shapes {
 
+    /** Every shape made from a fixed mesh, so everything but pillars and deformed boxes. */
+    public static final LittleTileShapeMode[] CUT_SHAPES = { LittleTileShapeMode.SLOPE,
+            LittleTileShapeMode.SLOPE_CONCAVE, LittleTileShapeMode.SLOPE_CONVEX,
+            LittleTileShapeMode.SLOPE_CONVEX_INNER_CORNER, LittleTileShapeMode.SLOPE_CONVEX_OUTER_CORNER,
+            LittleTileShapeMode.SLOPE_TRIANGLE, LittleTileShapeMode.SLOPE_TRIANGLE_CORNER,
+            LittleTileShapeMode.SLOPE_TRIANGLE_ALT, LittleTileShapeMode.SLOPE_OUTER_CORNER,
+            LittleTileShapeMode.SLOPE_INNER_CORNER };
+
     public static final int ORIENTATIONS = 48;
 
     public static final int UNTURNED = 0;

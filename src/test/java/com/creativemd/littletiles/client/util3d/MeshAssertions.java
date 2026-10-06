@@ -23,6 +23,12 @@ public final class MeshAssertions {
         assertFitsExactlyWhen(false, placed, candidate);
     }
 
+    /** Checks that the tiles collide, whichever of them is placed first. */
+    public static void assertCollideEitherWay(Tile first, Tile second) {
+        assertCollide(first, second);
+        assertCollide(second, first);
+    }
+
     public static void assertFitsExactlyWhen(boolean fits, Tile placed, Tile candidate) {
         check(
                 placed.leavesRoomFor(candidate) == fits,

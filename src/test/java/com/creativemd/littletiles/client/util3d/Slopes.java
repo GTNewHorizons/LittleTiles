@@ -24,6 +24,12 @@ public final class Slopes {
                 && highestLevel(slope, inBlock) > faceLevel(slope);
     }
 
+    /** Whether the box lies inside the slope, possibly touching its faces. */
+    public static boolean contains(LittleTileCutoutInfo slope, LittleTileBox box) {
+        return box.equals(BlockSpace.intersection(BlockSpace.bounds(slope), box))
+                && highestLevel(slope, box) <= faceLevel(slope);
+    }
+
     /**
      * Whether the slope shares volume inside the block with its complements moved one pixel towards the minimum along
      * {@code axis}, y or z: they share the pixel-thin layer right below the slope's face.

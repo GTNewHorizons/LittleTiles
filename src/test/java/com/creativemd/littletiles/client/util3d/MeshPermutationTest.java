@@ -1,6 +1,8 @@
 package com.creativemd.littletiles.client.util3d;
 
+import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollide;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollideEitherWay;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertFit;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertNotEmpty;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE;
@@ -10,6 +12,7 @@ import java.util.Random;
 import org.junit.Test;
 
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 /** Opt-in mesh permutation tests, see {@link Sweep}. Failures include the seed and generated inputs. */
 public class MeshPermutationTest {
@@ -48,6 +51,55 @@ public class MeshPermutationTest {
             for (Tile moved : Tile.of(Shapes.movedAlong(unturned, axis, -1)).complements(SLOPE)) {
                 assertCollide(slope, moved.turned(turn));
             }
+        });
+    }
+
+    /**
+     * Places a shape inside another, taking turns between the same shape twice, a part of a shape clipped to a smaller
+     * box, any shape inside a box inside a slope, and a slope inside a bigger one with its face in the same plane.
+     * Where faces only touch no surfaces cross, so the collision has to notice that one lies inside the other. They
+     * must collide whichever of the two is placed first.
+     */
+    @Test
+    public void nestedShapesCollide() {
+        Sweep.run("TEST_PERMUTATIONS_NESTED_SHAPES", "nested shapes", trial -> {
+            Random random = trial.random();
+            Tile outer, inner;
+            switch (trial.inTurn(4)) {
+                case 0 -> {
+                    // The same shape twice
+                    outer = inner = Draw.cutShapeInBlock(random);
+                }
+                case 1 -> {
+                    // A shape, and the part of it in a smaller box
+                    Tile shape = Draw.cutShapeInBlock(random);
+                    outer = shape;
+                    inner = Draw.until(() -> shape.clippedTo(Draw.boxWithin(random, BLOCK)), part -> !part.isEmpty());
+                }
+                case 2 -> {
+                    // A slope crossing the block, and any shape filling a box inside it, possibly touching its faces
+                    LittleTileCutoutInfo slope;
+                    LittleTileBox box;
+                    do {
+                        slope = Draw.unturnedReachingIntoBlock(random, SLOPE, Draw.slopeSize(random));
+                        box = Draw.boxWithin(random, BlockSpace.intersection(BlockSpace.bounds(slope), BLOCK));
+                    } while (!Slopes.contains(slope, box));
+                    int turn = Draw.orientation(random);
+                    outer = Tile.of(slope).turned(turn);
+                    inner = Tile.of(Draw.cutShapeFilling(random, Shapes.turned(box, turn)));
+                }
+                default -> {
+                    // A slope, and a smaller one on a stretch of its face, as a part of it
+                    LittleTileCutoutInfo big = Draw.until(() -> Draw.steppedSlope(random), Slopes::faceCrossesBlock);
+                    LittleTileCutoutInfo part = Draw.until(
+                            () -> Draw.slopeOnStretchOf(random, big, Shapes.UNTURNED),
+                            Slopes::faceCrossesBlock);
+                    int turn = Draw.orientation(random);
+                    outer = Tile.of(big).turned(turn);
+                    inner = Tile.of(part).turned(turn);
+                }
+            }
+            assertCollideEitherWay(trial.input("outer", outer), trial.input("inner", inner));
         });
     }
 }

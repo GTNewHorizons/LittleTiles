@@ -285,4 +285,22 @@ public class MeshPermutationTest {
             assertCulledByComplement(complement, slope);
         });
     }
+
+    /**
+     * Culls the curved face of a concave round slope against a convex one complementing it, and the other way
+     * around. Each facet covers its counterpart exactly, so nothing but slivers may stay visible. The flat faces only
+     * lie next to each other, so they must stay visible.
+     */
+    @Test
+    public void matchingRoundFacesLeaveNoLargeVisibleArea() {
+        Sweep.run("TEST_PERMUTATIONS_CULLING_ROUND_SLOPES", "culling round slopes", trial -> {
+            Random random = trial.random();
+            LittleTileCutoutInfo unturned = Draw
+                    .unturnedMeetingComplementsInBlock(random, SLOPE_CONCAVE, SLOPE_CONVEX, Draw::slopeSize);
+            Tile concave = trial.input("concave", Tile.of(unturned).turned(Draw.orientation(random)));
+            Tile convex = trial.input("convex", Draw.oneOf(random, concave.complements(SLOPE_CONVEX)));
+            assertCulledByComplement(concave, convex);
+            assertCulledByComplement(convex, concave);
+        });
+    }
 }

@@ -16,10 +16,12 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 public final class MeshAssertions {
 
     /**
-     * Area in square pixels that faces matching exactly may differ by after culling. Far above floating point slivers,
-     * far below anything visible.
+     * Area in square pixels that faces matching exactly may differ by after culling. Rounding points to a render grid
+     * of 2^-17 blocks moves them by up to 1.1E-4 pixels, so faces meeting along an edge may overlap or leave a gap up
+     * to twice that wide along it: about 500 pixels of edges at most for a tile filling the block. Far below anything
+     * visible.
      */
-    public static final double SLIVER_AREA = 1.0E-3;
+    public static final double ROUNDING_AREA = 0.1;
 
     /**
      * Volume in cubic pixels that meshes of the same solid may differ by. Rounding points to a render grid of 2^-17
@@ -100,24 +102,24 @@ public final class MeshAssertions {
                 Message.of("halves volume=", halves, " whole volume=", whole, " ", split));
     }
 
-    /** Checks that culling against {@code occluder} hides the faces completely. */
+    /** Checks that culling against {@code occluder} hides the faces, up to slivers rounding leaves. */
     public static void assertHidden(String faces, Mesh3d mesh, Mesh3d occluder) {
         double visible = area(MeshGeometry.visiblePart(mesh, occluder));
-        check(visible == 0, Message.of(faces, " visible=", visible));
+        check(visible <= ROUNDING_AREA, Message.of(faces, " visible=", visible));
     }
 
     /** Checks that culling against {@code occluder} leaves {@code expected} square pixels visible, up to slivers. */
     public static void assertVisibleArea(String faces, Mesh3d mesh, Mesh3d occluder, double expected) {
         double visible = area(MeshGeometry.visiblePart(mesh, occluder));
         check(
-                Math.abs(visible - expected) <= SLIVER_AREA,
+                Math.abs(visible - expected) <= ROUNDING_AREA,
                 Message.of(faces, " visible=", visible, " expected=", expected));
     }
 
     /** Checks that culling against {@code occluder} takes nothing but slivers away from the faces. */
     public static void assertStayVisible(String faces, Mesh3d mesh, Mesh3d occluder) {
         double culled = MeshGeometry.culledArea(mesh, occluder);
-        check(culled <= SLIVER_AREA, Message.of(faces, " culled=", culled));
+        check(culled <= ROUNDING_AREA, Message.of(faces, " culled=", culled));
     }
 
     /**
@@ -136,14 +138,14 @@ public final class MeshAssertions {
 
     /**
      * Checks that two meshes meeting in a shared face, picked by {@code shared}, each cover the same area there and
-     * hide the other's faces there completely, and keep their other faces, which only meet along the seam.
+     * hide the other's faces there up to slivers, and keep their other faces, which only meet along the seam.
      */
     public static void assertOnlySharedFacesHideEachOther(Mesh3d first, Mesh3d second, FaceFilter shared) {
         Mesh3d firstShared = shared.of(first), secondShared = shared.of(second);
         double firstArea = area(firstShared), secondArea = area(secondShared);
         check(firstArea > 0 && secondArea > 0, Message.of("no shared faces: ", firstArea, " and ", secondArea));
         check(
-                Math.abs(firstArea - secondArea) <= SLIVER_AREA,
+                Math.abs(firstArea - secondArea) <= ROUNDING_AREA,
                 Message.of("shared face areas differ: ", firstArea, " and ", secondArea));
         assertHidden("first shared faces", firstShared, second);
         assertHidden("second shared faces", secondShared, first);

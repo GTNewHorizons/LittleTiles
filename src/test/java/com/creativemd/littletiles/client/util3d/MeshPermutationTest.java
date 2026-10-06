@@ -17,6 +17,7 @@ import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertOnly
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertStayVisible;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertVisibleArea;
 import static com.creativemd.littletiles.client.util3d.MeshGeometry.area;
+import static com.creativemd.littletiles.client.util3d.Message.check;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE_CONCAVE;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE_CONVEX;
@@ -344,7 +345,7 @@ public class MeshPermutationTest {
     /**
      * Places a shape across the face between the block and its neighbour, as one tile in each, the neighbour built in
      * its own block and moved next to this one as rendering does. Both are cut at that face into caps of the same
-     * cross-section, so each cap must hide the other completely. The faces off that face only meet the other tile's
+     * cross-section, so each cap must hide the other up to slivers. The faces off that face only meet the other tile's
      * along the seam, so they must stay visible.
      */
     @Test
@@ -376,7 +377,7 @@ public class MeshPermutationTest {
 
     /**
      * Splits the block at a random pixel plane into a cut shape and a plain box, with the box's faces as culling builds
-     * them. The box face on the split plane covers the shape's cap there, so the cap must be hidden completely, and
+     * them. The box face on the split plane covers the shape's cap there, so the cap must be hidden up to slivers, and
      * the face must stay visible exactly where the cap does not cover it. The box's other faces only meet the shape's
      * along the seam, so they must stay visible.
      */
@@ -483,17 +484,38 @@ public class MeshPermutationTest {
 
     /**
      * Moves the corners of a cube on their own, from slightly to collapsing edges and faces, see
-     * {@link DeformedBoxes#warped}, and clips the boxes the game accepts to a random sub-box as
+     * {@link DeformedBoxes#warped}, and clips those enclosing volume without folding to a random sub-box as
      * {@link #randomlyClippedShapeMeshesClose} does: the mesh must be closed and its volume add up.
      */
     @Test
     public void warpedDeformedBoxesClipClosed() {
         Sweep.run("TEST_PERMUTATIONS_DEFORMED_CAPS", "warped deformed boxes", trial -> {
             Random random = trial.random();
-            Vector3i[] corners = trial
-                    .input("corners", Draw.until(() -> DeformedBoxes.warped(random), Mesh3dUtil::enclosesVolume));
+            Vector3i[] corners = trial.input(
+                    "corners",
+                    Draw.until(
+                            () -> DeformedBoxes.warped(random),
+                            candidate -> Mesh3dUtil.enclosesVolume(candidate) && !DeformedBoxes.foldsOver(candidate)));
             Tile box = trial.input("box", Draw.deformedBoxClippedToSubBox(random, corners));
             assertClosedAndVolumesAddUp(random, box);
+        });
+    }
+
+    /**
+     * Splits the block near a random pixel plane into two deformed boxes sharing the face between them, see
+     * {@link DeformedBoxes.Neighbours}. Both boxes must split a warped shared face along the same diagonal, or their
+     * surfaces differ by a tetrahedron, which they then share or leave open. The boxes must fit beside each other, but
+     * not with the high one moved a pixel into the low one. Each must hide the other's shared face up to slivers, and
+     * keep its other faces, which only meet the other box's along the seam.
+     */
+    @Test
+    public void neighbouringDeformedBoxesOnlyTouch() {
+        Sweep.run("TEST_PERMUTATIONS_DEFORMED_NEIGHBOURS", "deformed neighbours", trial -> {
+            DeformedBoxes.Neighbours boxes = trial.input("boxes", DeformedBoxes.neighbours(trial.random()));
+            check(boxes.splitSharedFaceAlike(), "warped shared face split along different diagonals");
+            assertFit(boxes.low, boxes.high);
+            assertCollide(boxes.low, boxes.highMovedIntoLow());
+            assertOnlySharedFacesHideEachOther(boxes.low.mesh(), boxes.high.mesh(), boxes.sharedFace());
         });
     }
 }

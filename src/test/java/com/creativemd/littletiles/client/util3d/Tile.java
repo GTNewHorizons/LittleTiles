@@ -43,6 +43,12 @@ public final class Tile {
         return new Tile(box, null);
     }
 
+    /** A deformed box with the corners, in pixels from the block minimum, in the box around them. */
+    public static Tile deformedBox(Vector3i[] corners) {
+        LittleTileBox box = LittleTileBox.fromPoints(corners);
+        return new Tile(box, LittleTileCutoutInfo.fromDeformedCorners(box, corners));
+    }
+
     public boolean isPlainBox() {
         return shape == null;
     }

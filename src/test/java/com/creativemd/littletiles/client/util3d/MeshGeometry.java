@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3d;
+import org.joml.Vector3i;
 
 import com.creativemd.littletiles.client.render.LittleTilesFaceCuller;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -55,6 +56,38 @@ public final class MeshGeometry {
     /** The normal of the triangle, as long as twice its area. */
     public static Vector3d normal(Vector3d a, Vector3d b, Vector3d c) {
         return new Vector3d(b).sub(a).cross(new Vector3d(c).sub(a));
+    }
+
+    /** Whether a face of the mesh has both points as corners, in pixels. */
+    public static boolean hasEdge(Mesh3d mesh, Vector3i from, Vector3i to) {
+        Vector3d[] vertices = mesh.getVertices();
+        for (int first = 0; first < vertices.length; first += TRIANGLE_CORNERS) {
+            Vector3d[] corners = Arrays.copyOfRange(vertices, first, first + TRIANGLE_CORNERS);
+            if (isAtAnyOf(from, corners) && isAtAnyOf(to, corners)) return true;
+        }
+        return false;
+    }
+
+    /** Whether the point, in blocks, lies at the pixel. */
+    public static boolean isAt(Vector3d point, Vector3i pixel) {
+        Vector3d pixelInBlocks = new Vector3d(pixel).div(PIXELS);
+        return point.distance(pixelInBlocks) <= EPSILON;
+    }
+
+    /** Whether the point, in blocks, lies at any of the pixels. */
+    public static boolean isAtAnyOf(Vector3d point, Vector3i[] pixels) {
+        for (Vector3i pixel : pixels) {
+            if (isAt(point, pixel)) return true;
+        }
+        return false;
+    }
+
+    /** Whether any of the points, in blocks, lies at the pixel. */
+    private static boolean isAtAnyOf(Vector3i pixel, Vector3d[] points) {
+        for (Vector3d point : points) {
+            if (isAt(point, pixel)) return true;
+        }
+        return false;
     }
 
     /**
@@ -221,6 +254,11 @@ public final class MeshGeometry {
             double plane = BlockSpace.toBlocks(pixel);
             return new FaceFilter(
                     corners -> allMatch(corners, corner -> Math.abs(corner.get(axis) - plane) <= EPSILON));
+        }
+
+        /** The faces whose corners all lie on the given points, in pixels. */
+        public static FaceFilter between(Vector3i... points) {
+            return new FaceFilter(corners -> allMatch(corners, corner -> isAtAnyOf(corner, points)));
         }
 
         /** The faces this filter picks, copied into a mesh of their own. */

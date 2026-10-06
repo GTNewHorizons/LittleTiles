@@ -271,14 +271,19 @@ public final class MeshCutter {
         return true;
     }
 
-    /** Six times the enclosed volume. */
+    /**
+     * Six times the enclosed volume. Taken from a corner of the faces, so that it is exactly 0 when their corners, on
+     * the grid, lie in one plane across an axis or along one line.
+     */
     public double volumeTimesSix() {
+        if (faces.isEmpty()) return 0;
+        Vector3d origin = points.get(faces.get(0).corners[0]);
         double volume = 0;
         for (Face polygon : faces) {
             int[] face = polygon.corners;
             Vector3d a = points.get(face[0]);
             for (int i = 1; i < face.length - 1; i++) {
-                volume += det(a, points.get(face[i]), points.get(face[i + 1]), points.get(0));
+                volume += det(a, points.get(face[i]), points.get(face[i + 1]), origin);
             }
         }
         return volume;
@@ -305,8 +310,9 @@ public final class MeshCutter {
             merged[i] = first;
         }
 
+        // Cuts through a corner, edge or face where the mesh barely reaches past a plane leave it rounded flat onto it
         List<Triangle3d> triangles = new ArrayList<>(faces.size() * 2);
-        boolean hasArea = false;
+        if (volumeTimesSix() == 0) return triangles;
         for (Face polygon : faces) {
             int[] face = polygon.corners;
             for (int i = 1; i < face.length - 1; i++) {
@@ -320,12 +326,9 @@ public final class MeshCutter {
                         new Vector3d(points.get(c)));
                 triangle.setPlane(polygon.plane);
                 triangles.add(triangle);
-                // Exact for points on the grid
-                hasArea |= triangle.getArea() > 0;
             }
         }
-        // Cuts through the line or corner where the mesh only touches a plane leave faces rounded onto it
-        return hasArea ? triangles : new ArrayList<>();
+        return triangles;
     }
 
     private static Vector3d round(Vector3d point) {

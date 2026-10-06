@@ -384,6 +384,27 @@ public class Mesh3dUtil {
         return mesh;
     }
 
+    /** How much of its tile box a cutout covers, see {@link #classifyTile}. */
+    public enum TileCoverage {
+        /** Nothing of the shape is inside the box, so there is nothing to place. */
+        EMPTY,
+        /** The shape crosses the box and has to be cut to it. */
+        PARTIAL,
+        /** The shape fills the whole box, so a plain box tile looks the same. */
+        FULL
+    }
+
+    /**
+     * How much of the box the cutout covers, from the volume they share. A big shape split across many blocks leaves
+     * most of them either empty or completely filled, which need no mesh at all.
+     */
+    public static TileCoverage classifyTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
+        double shared = MeshCollision.sharedVolume(box, cutoutInfo, box, null);
+        if (shared <= MeshCutter.VOLUME_EPSILON) return TileCoverage.EMPTY;
+        return shared >= MeshCollision.volume(box) - MeshCutter.VOLUME_EPSILON ? TileCoverage.FULL
+                : TileCoverage.PARTIAL;
+    }
+
     /** The bounds of the points of the mesh, in pixels. */
     private static void pixelBounds(Mesh3d mesh, double[] min, double[] max) {
         Arrays.fill(min, Double.POSITIVE_INFINITY);

@@ -27,6 +27,12 @@ public final class MeshCollision {
      */
     public static boolean intersects(LittleTileBox boxA, LittleTileCutoutInfo cutoutA, LittleTileBox boxB,
             LittleTileCutoutInfo cutoutB) {
+        return sharedVolume(boxA, cutoutA, boxB, cutoutB) > MeshCutter.VOLUME_EPSILON;
+    }
+
+    /** The volume two tiles share, in cubic blocks, see {@link #intersects}. */
+    static double sharedVolume(LittleTileBox boxA, LittleTileCutoutInfo cutoutA, LittleTileBox boxB,
+            LittleTileCutoutInfo cutoutB) {
         LittleTileBox common = new LittleTileBox(
                 Math.max(boxA.minX, boxB.minX),
                 Math.max(boxA.minY, boxB.minY),
@@ -34,26 +40,31 @@ public final class MeshCollision {
                 Math.min(boxA.maxX, boxB.maxX),
                 Math.min(boxA.maxY, boxB.maxY),
                 Math.min(boxA.maxZ, boxB.maxZ));
-        if (common.minX >= common.maxX || common.minY >= common.maxY || common.minZ >= common.maxZ) return false;
-        if (cutoutA == null && cutoutB == null) return true;
+        if (common.minX >= common.maxX || common.minY >= common.maxY || common.minZ >= common.maxZ) return 0;
+        if (cutoutA == null && cutoutB == null) return volume(common);
 
         List<Piece> piecesA = pieces(boxA, cutoutA, common);
-        if (piecesA.isEmpty()) return false;
+        if (piecesA.isEmpty()) return 0;
         List<Piece> piecesB = pieces(boxB, cutoutB, common);
-        if (piecesB.isEmpty()) return false;
+        if (piecesB.isEmpty()) return 0;
         double sixTimesVolume = 0;
         for (Piece pieceA : piecesA) {
             MeshCutter withinA = MeshCutter.box(common);
-            // A cut that doesn't close leaves too little volume, so rather than missing a collision count it as one
-            if (!pieceA.cut(withinA)) return true;
+            // A cut that doesn't close leaves too little volume, so rather than missing a collision count it as all
+            if (!pieceA.cut(withinA)) return Double.POSITIVE_INFINITY;
             if (withinA.isEmpty()) continue;
             for (Piece pieceB : piecesB) {
                 MeshCutter shared = withinA.copy();
-                if (!pieceB.cut(shared)) return true;
+                if (!pieceB.cut(shared)) return Double.POSITIVE_INFINITY;
                 sixTimesVolume += pieceA.sign * pieceB.sign * shared.volumeTimesSix();
             }
         }
-        return sixTimesVolume / 6 > MeshCutter.VOLUME_EPSILON;
+        return sixTimesVolume / 6;
+    }
+
+    /** The volume of the box, in cubic blocks. */
+    static double volume(LittleTileBox box) {
+        return (box.maxX - box.minX) * (box.maxY - box.minY) * (box.maxZ - box.minZ) / (16.0 * 16 * 16);
     }
 
     /** The pieces of the tile, see {@link Mesh3dUtil#convexPieces}, less those sharing no volume with the box. */

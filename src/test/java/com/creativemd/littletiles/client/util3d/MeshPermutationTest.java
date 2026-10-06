@@ -243,4 +243,27 @@ public class MeshPermutationTest {
             for (Tile convex : concave.complements(SLOPE_CONVEX)) assertFit(concave, convex);
         });
     }
+
+    /**
+     * Moves the four convex round slopes complementing a concave one a pixel into it along y or z, before turning all
+     * of them into one of the orientations. They then share a layer below the curved face inside the block, so they
+     * must collide, catching collisions missed where the curved faces almost touch.
+     */
+    @Test
+    public void roundSlopeComplementsMovedIntoEachOtherCollide() {
+        Sweep.run("TEST_PERMUTATIONS_OVERLAPPING_ROUND_SLOPES", "overlapping round slopes", trial -> {
+            Random random = trial.random();
+            int axis = trial.input("axis", Draw.axisAcrossSlopeFace(random));
+            LittleTileCutoutInfo unturned = trial.input(
+                    "unturned concave",
+                    Draw.until(
+                            () -> Draw.unturnedReachingIntoBlock(random, SLOPE_CONCAVE, Draw.smallSlopeSize(random)),
+                            candidate -> Slopes.concaveOverlapsMovedComplementInBlock(candidate, axis)));
+            int turn = trial.orientationInTurn();
+            Tile concave = Tile.of(unturned).turned(turn);
+            for (Tile moved : Tile.of(Shapes.movedAlong(unturned, axis, -1)).complements(SLOPE_CONVEX)) {
+                assertCollide(concave, moved.turned(turn));
+            }
+        });
+    }
 }

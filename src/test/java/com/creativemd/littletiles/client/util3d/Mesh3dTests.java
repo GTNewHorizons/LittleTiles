@@ -287,8 +287,8 @@ public class Mesh3dTests {
     public void deformedNeighboursOfDifferentHeightsSplitTheirSharedFaceAlike() {
         assertNeighboursFit(
                 new Vector3i[] { new Vector3i(0, 0, 0), new Vector3i(16, 0, 0), new Vector3i(0, 16, 0),
-                        new Vector3i(16, 16, 0), new Vector3i(0, 0, 6), new Vector3i(16, 0, 6),
-                        new Vector3i(0, 15, 2), new Vector3i(16, 16, 5) },
+                        new Vector3i(16, 16, 0), new Vector3i(0, 0, 6), new Vector3i(16, 0, 6), new Vector3i(0, 15, 2),
+                        new Vector3i(16, 16, 5) },
                 new Vector3i[] { new Vector3i(0, 0, 6), new Vector3i(16, 0, 6), new Vector3i(0, 15, 2),
                         new Vector3i(16, 16, 5), new Vector3i(0, 0, 16), new Vector3i(16, 0, 16),
                         new Vector3i(0, 16, 16), new Vector3i(16, 16, 16) });

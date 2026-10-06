@@ -221,7 +221,11 @@ public class Mesh3dUtil {
         List<Triangle3d> triangles = new ArrayList<>();
         for (int[] face : DEFORMED_BOX_FACES) {
             Vector3d a = corners[face[0]], b = corners[face[1]], c = corners[face[2]], d = corners[face[3]];
-            if (splitsAlongFirstDiagonal(a, b, c, d)) {
+            if (splitsAlongFirstDiagonal(
+                    cornerOffsets[face[0]],
+                    cornerOffsets[face[1]],
+                    cornerOffsets[face[2]],
+                    cornerOffsets[face[3]])) {
                 addDeformedFaceTriangle(triangles, a, b, c);
                 addDeformedFaceTriangle(triangles, a, c, d);
             } else {
@@ -278,12 +282,19 @@ public class Mesh3dUtil {
      * a warped face the two splits give visibly different silhouettes and the shorter diagonal keeps the surface
      * closest to flat.
      * <p>
+     * Decided on the corners as grid offsets, exactly, rather than in the cutout's local unit space, which every box
+     * stretches by its own size: boxes sharing a face share its corners, so they split it alike and fit together.
+     * <p>
      * Public because the preview draws this diagonal as a line, and a line showing a different split than the mesh
-     * actually uses would be worse than drawing none at all. The points must be in the cutout's local unit space
-     * ({@link #toLocal}), not world space - on a non-cubic box the normalization changes which diagonal is shorter.
+     * actually uses would be worse than drawing none at all.
      */
-    public static boolean splitsAlongFirstDiagonal(Vector3d a, Vector3d b, Vector3d c, Vector3d d) {
-        return Mesh3d.distanceSquared(a, c) <= Mesh3d.distanceSquared(b, d);
+    public static boolean splitsAlongFirstDiagonal(Vector3i a, Vector3i b, Vector3i c, Vector3i d) {
+        return distanceSquared(a, c) <= distanceSquared(b, d);
+    }
+
+    private static long distanceSquared(Vector3i a, Vector3i b) {
+        long x = a.x - b.x, y = a.y - b.y, z = a.z - b.z;
+        return x * x + y * y + z * z;
     }
 
     private static void addDeformedFaceTriangle(List<Triangle3d> triangles, Vector3d a, Vector3d b, Vector3d c) {

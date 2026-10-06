@@ -8,6 +8,8 @@ import org.joml.Vector3i;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -123,5 +125,48 @@ public class Mesh3dTests {
                 new Vector3i(15, 14, -1), new Vector3i(-1, 1, 17), new Vector3i(17, 2, 17), new Vector3i(1, 16, 18),
                 new Vector3i(18, 18, 17) };
         assertClosed(BLOCK, cutout);
+    }
+
+    // Tiles that only touch can be placed next to each other
+
+    private static void assertFits(LittleTileBox existingBox, LittleTileCutoutInfo existing, LittleTileBox candidateBox,
+            LittleTileCutoutInfo candidate) {
+        LittleTileBlock tile = new LittleTileBlock();
+        tile.boundingBox = existingBox.copy();
+        tile.setCutoutInfo(existing);
+        TileEntityLittleTiles tiles = new TileEntityLittleTiles();
+        tiles.getTiles().add(tile);
+        assertTrue(
+                describe(existing) + " " + (candidate == null ? candidateBox : describe(candidate)),
+                tiles.isSpaceForLittleTile(candidateBox.copy(), candidate));
+    }
+
+    @Test
+    public void largeComplementarySlopesFit() {
+        Vector3i size = new Vector3i(781, 156, 78), pos = new Vector3i(-154, -112, -5);
+        assertFits(
+                BLOCK,
+                cutout(LittleTileShapeMode.SLOPE, size, pos, 10),
+                BLOCK,
+                cutout(LittleTileShapeMode.SLOPE, size, pos, 0));
+    }
+
+    /** The slope face of the small one lies on that of the big one. */
+    @Test
+    public void differentlySizedCoplanarSlopesFit() {
+        assertFits(
+                BLOCK,
+                cutout(LittleTileShapeMode.SLOPE, new Vector3i(16, 10, 12), new Vector3i(2, 9, 0), 27),
+                BLOCK,
+                cutout(LittleTileShapeMode.SLOPE, new Vector3i(8, 10, 6), new Vector3i(2, 9, 0), 35));
+    }
+
+    @Test
+    public void onePixelBarNextToASlopeFits() {
+        assertFits(
+                BLOCK,
+                cutout(LittleTileShapeMode.SLOPE, new Vector3i(6, 18, 30), new Vector3i(10, 0, 10), 43),
+                new LittleTileBox(12, 8, 0, 13, 9, 16),
+                null);
     }
 }

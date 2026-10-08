@@ -34,16 +34,20 @@ import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.packet.LittleBlockPacket;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.ChiselConnections;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
+import com.cricketcraft.chisel.api.IFacade;
 
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.Optional;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-public class BlockTile extends BlockContainer {
+@Optional.Interface(iface = "com.cricketcraft.chisel.api.IFacade", modid = "chisel")
+public class BlockTile extends BlockContainer implements IFacade {
 
     @SideOnly(Side.CLIENT)
     private IIcon overrideIcon;
@@ -566,6 +570,37 @@ public class BlockTile extends BlockContainer {
     @Override
     public TileEntity createNewTileEntity(World world, int meta) {
         return new TileEntityLittleTiles();
+    }
+
+    // Chisel connected textures only connect per neighbour, see getFacade with the block being rendered. Our own tiles
+    // are rendered in LittleTilesBlockAccess, which decides their connections itself.
+
+    @Override
+    @Optional.Method(modid = "chisel")
+    public Block getFacade(IBlockAccess world, int x, int y, int z, int side) {
+        return this;
+    }
+
+    @Override
+    @Optional.Method(modid = "chisel")
+    public int getFacadeMetadata(IBlockAccess world, int x, int y, int z, int side) {
+        return 0;
+    }
+
+    @Override
+    @Optional.Method(modid = "chisel")
+    public Block getFacade(IBlockAccess world, int x, int y, int z, int side, int fromX, int fromY, int fromZ,
+            Block fromBlock, int fromMeta) {
+        return ChiselConnections.fromBlockToTiles(world, x, y, z, fromX, fromY, fromZ, fromBlock, fromMeta) ? fromBlock
+                : this;
+    }
+
+    @Override
+    @Optional.Method(modid = "chisel")
+    public int getFacadeMetadata(IBlockAccess world, int x, int y, int z, int side, int fromX, int fromY, int fromZ,
+            Block fromBlock, int fromMeta) {
+        return ChiselConnections.fromBlockToTiles(world, x, y, z, fromX, fromY, fromZ, fromBlock, fromMeta) ? fromMeta
+                : 0;
     }
 
     private static TileEntityLittleTiles getTileEntityAt(IBlockAccess world, int x, int y, int z) {

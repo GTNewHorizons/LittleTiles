@@ -7,6 +7,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.joml.Vector3i;
 
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.OrientationMapper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 public class LittleTileCutoutInfo {
@@ -126,8 +127,19 @@ public class LittleTileCutoutInfo {
         cutoutInfo.pos = new Vector3i(cutoutPosX, cutoutPosY, cutoutPosZ);
         cutoutInfo.orientation = nbt.getByte("cutoutOrientation");
         cutoutInfo.thickness = nbt.getByte("cutoutThickness");
-        cutoutInfo.faceStart = ForgeDirection.values()[nbt.getByte("cutoutFaceStart")];
-        cutoutInfo.faceEnd = ForgeDirection.values()[nbt.getByte("cutoutFaceEnd")];
+
+        if (cutoutInfo.orientation < 0 || cutoutInfo.orientation >= OrientationMapper.NUM_ORIENTATIONS) return null;
+
+        ForgeDirection[] directions = ForgeDirection.values();
+        int faceStart = nbt.getByte("cutoutFaceStart");
+        int faceEnd = nbt.getByte("cutoutFaceEnd");
+
+        if (faceStart < 0 || faceStart >= directions.length || faceEnd < 0 || faceEnd >= directions.length) {
+            return null;
+        }
+
+        cutoutInfo.faceStart = directions[faceStart];
+        cutoutInfo.faceEnd = directions[faceEnd];
         cutoutInfo.negX = nbt.getBoolean("cutoutNegX");
         cutoutInfo.negY = nbt.getBoolean("cutoutNegY");
         cutoutInfo.negZ = nbt.getBoolean("cutoutNegZ");

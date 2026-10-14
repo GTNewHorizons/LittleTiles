@@ -1,17 +1,18 @@
 package com.creativemd.littletiles.common.placement;
 
-import com.creativemd.littletiles.utils.PreviewTile;
-import net.minecraft.util.ChunkCoordinates;
-
 import java.util.ArrayList;
 
-class PlacementEntry {
+import net.minecraft.util.ChunkCoordinates;
 
-    public final ChunkCoordinates coord;
-    public final ArrayList<PreviewTile> placeTiles;
+import com.creativemd.littletiles.utils.PreviewTile;
 
-    public PlacementEntry(ChunkCoordinates coord, ArrayList<PreviewTile> placeTiles) {
-        this.coord = coord;
+/** The tiles a {@link LittleTilePlacementPlan} places into one block. */
+final class PlacementEntry extends BaseEntry {
+
+    final ArrayList<PreviewTile> placeTiles;
+
+    PlacementEntry(ChunkCoordinates coord, ArrayList<PreviewTile> placeTiles) {
+        super(coord);
         this.placeTiles = placeTiles;
     }
 }

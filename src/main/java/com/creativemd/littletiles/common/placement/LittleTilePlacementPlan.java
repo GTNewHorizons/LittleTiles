@@ -10,7 +10,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 
-import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.structure.LittleStructure;
@@ -68,16 +67,14 @@ public class LittleTilePlacementPlan extends BasePlan {
         for (PlacementEntry entry : entries) {
             recorder.watch(entry.coord);
         }
-        for (PlacementEntry entry : entries) {
-            TileEntityLittleTiles tile = getOrCreateTileEntity(world, entry);
-            if (tile == null) {
-                continue;
-            }
+        // On failure nothing was placed, so the result is empty.
+        applyEntries(world, entries, entry -> {
+            TileEntityLittleTiles tile = entry.getTileEntity();
             for (PreviewTile placeTile : entry.placeTiles) {
                 applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles);
             }
             if (structure != null) tile.combineTiles(structure);
-        }
+        });
         for (SoundType soundType : soundsToBePlayed) {
             playTileSound(world, player, soundType);
         }
@@ -208,18 +205,6 @@ public class LittleTilePlacementPlan extends BasePlan {
                 soundType.func_150496_b(),
                 (soundType.getVolume() + 1.0F) / 2.0F,
                 soundType.getPitch() * 0.8F);
-    }
-
-    private static TileEntityLittleTiles getOrCreateTileEntity(World world, PlacementEntry entry) {
-        ChunkCoordinates coord = entry.coord;
-        TileEntityLittleTiles tile = getTileEntity(world, coord);
-        if (tile != null) {
-            return tile;
-        }
-
-        world.setBlock(coord.posX, coord.posY, coord.posZ, LittleTiles.blockTile, 0, 3);
-        tile = getTileEntity(world, coord);
-        return tile;
     }
 
     private boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles,

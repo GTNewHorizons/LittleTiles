@@ -33,14 +33,12 @@ public final class LittleTileChangePlan extends BasePlan {
         return changes.isEmpty();
     }
 
+    /** Applies every change or none of them. */
     public boolean apply(World world) {
         List<ResolvedChange> resolved = resolve(world);
         if (resolved == null) return false;
 
-        for (ResolvedChange change : resolved) {
-            change.apply(world);
-        }
-        return true;
+        return applyEntries(world, resolved, change -> change.apply(world));
     }
 
     /** Looks up everything the changes need and makes sure they still fit, without touching the world. */
@@ -68,7 +66,7 @@ public final class LittleTileChangePlan extends BasePlan {
 
             if (!isSpaceForTiles(world, coord, remainingTiles, change.placedTiles)) return null;
 
-            resolved.add(new ResolvedChange(change, tile, tilesToRemove));
+            resolved.add(new ResolvedChange(change, tilesToRemove));
         }
         return resolved;
     }

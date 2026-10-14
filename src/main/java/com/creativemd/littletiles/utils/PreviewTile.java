@@ -100,8 +100,7 @@ public class PreviewTile {
     }
 
     public List<LittleTile> placeTile(EntityPlayer player, ItemStack stack, TileEntityLittleTiles teLT,
-            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles, LittleTilePlaceMode placeMode,
-            LittleTileCutoutInfo cutoutInfoCurrent) {
+            LittleStructure structure, LittleTilePlaceMode placeMode, LittleTileCutoutInfo cutoutInfoCurrent) {
         LittleTile LT = preview.getLittleTile(teLT);
         if (LT == null) return null;
 
@@ -130,8 +129,6 @@ public class PreviewTile {
             return placeTileModeOverwrite(LT, player, stack, true);
         } else if (placeMode == LittleTilePlaceMode.STENCIL) {
             return placeTileModeOverwrite(LT, player, stack, false);
-        } else if (unplaceableTiles != null) {
-            unplaceableTiles.add(LT);
         }
         return null;
     }

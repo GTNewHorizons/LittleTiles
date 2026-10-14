@@ -7,6 +7,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
 import com.creativemd.littletiles.LittleTilesConfig;
+import com.creativemd.littletiles.common.items.ItemLittleBag;
 import com.creativemd.littletiles.common.material.LittleMaterialStack;
 
 /**
@@ -16,10 +17,10 @@ public class LittleBagStorage {
 
     private static final String TILES_TAG = "tiles";
     /**
-     * Most tiles that are loaded from a bag, 100 stacks of blocks. This is no limit for what a bag may hold, it only
+     * Most tiles that are loaded from a bag, twice the largest bag. This is no limit for what a bag may hold, it only
      * keeps corrupt content from creating an absurd amount of slots.
      */
-    private static final int MAX_READ_TILES = 100 * 64 * LittleMaterialStack.TILES_PER_BLOCK;
+    private static final int MAX_READ_TILES = 2 * ItemLittleBag.MAX_CAPACITY * 64 * LittleMaterialStack.TILES_PER_BLOCK;
 
     private final Supplier<ItemStack> bagGetter;
     private final Consumer<ItemStack> bagSetter;

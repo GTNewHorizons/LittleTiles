@@ -11,6 +11,7 @@ import net.minecraft.item.ItemStack;
 
 import com.cleanroommc.modularui.utils.item.ItemStackHandler;
 import com.creativemd.littletiles.LittleTilesConfig;
+import com.creativemd.littletiles.common.items.ItemLittleBag;
 import com.creativemd.littletiles.common.items.ItemPartialTiles;
 import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.material.LittleMaterialStack;
@@ -32,13 +33,15 @@ import com.creativemd.littletiles.common.material.LittleMaterialValuator;
 public class LittleBagItemHandler extends ItemStackHandler {
 
     public static final int COLUMNS = 9;
-    /** How much a bag can hold in total. Only the amount of tiles matters, not how they are spread over the slots. */
-    public static final int MAX_STACKS = 10;
-    public static final int MAX_TILES = MAX_STACKS * 64 * LittleMaterialStack.TILES_PER_BLOCK;
     /** Amount of empty rows that is always available to fill the bag. */
     public static final int EMPTY_ROWS = 4;
 
     private final LittleBagStorage storage;
+    /**
+     * How much the bag can hold in total, see {@link ItemLittleBag#getMaxTiles}. Only the amount of tiles matters, not
+     * how they are spread over the slots.
+     */
+    private final int maxTiles;
     /** What every slot is worth. Decomposing little tiles is too expensive to repeat on every frame. */
     private final StackValue[] slotValues;
     /** What the last stack offered to the bag is worth, usually the one on the cursor. */
@@ -47,6 +50,7 @@ public class LittleBagItemHandler extends ItemStackHandler {
     public LittleBagItemHandler(Supplier<ItemStack> bagGetter, Consumer<ItemStack> bagSetter) {
         super(0);
         this.storage = new LittleBagStorage(bagGetter, bagSetter);
+        this.maxTiles = ItemLittleBag.getMaxTiles(bagGetter.get());
 
         List<ItemStack> sorted = new ArrayList<>();
         // Everything the bag holds is loaded, even above its limits, it only refuses new content then.
@@ -122,7 +126,7 @@ public class LittleBagItemHandler extends ItemStackHandler {
 
     /** How full the bag is, from 0 to 100. */
     public int getFillPercentage() {
-        return (int) ((long) getTileCount() * 100 / MAX_TILES);
+        return (int) ((long) getTileCount() * 100 / maxTiles);
     }
 
     /** The materials stored in the bag. */
@@ -178,7 +182,7 @@ public class LittleBagItemHandler extends ItemStackHandler {
     /** Tiles that may still go into the given slot. What already lies in that slot does not count as used. */
     private int getFreeTiles(int slot) {
         int existing = getSlotValue(slot).tiles;
-        return Math.max(MAX_TILES - getTileCount() + existing, 0);
+        return Math.max(maxTiles - getTileCount() + existing, 0);
     }
 
     @Override

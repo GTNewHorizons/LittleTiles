@@ -314,11 +314,11 @@ public class BlockTile extends BlockContainer {
     }
 
     /**
-     * Breaking while sneaking in survival takes every tile of the block at once. A structure tile is broken like
-     * always, the structure decides what is removed with it.
+     * Breaking while sneaking takes every tile of the block at once. A structure tile is broken like always, the
+     * structure decides what is removed with it.
      */
     public static boolean isEntireBlockHarvest(EntityPlayer player, LittleTile hitTile) {
-        return player.isSneaking() && !player.capabilities.isCreativeMode && !hitTile.isStructureBlock;
+        return player.isSneaking() && !hitTile.isStructureBlock;
     }
 
     /** The tiles taken when the entire block is harvested. Structures are left alone, they drop as their own item. */

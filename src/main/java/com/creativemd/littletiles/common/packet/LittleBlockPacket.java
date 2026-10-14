@@ -131,20 +131,20 @@ public class LittleBlockPacket extends CreativeCorePacket {
                             BlockTile.cancelNext = true;
                         break;
                     case DESTROY:
-                        if (nbt.getBoolean(ENTIRE_BLOCK) && BlockTile.isEntireBlockHarvest(player, tile)) {
-                            List<LittleTile> tiles = BlockTile.selectEntireBlock(littleEntity);
-                            // The item is made before the tiles leave the block they are saved from
-                            ItemStack drop = BlockTile.getEntireBlockDrop(player.worldObj, tiles);
-                            littleEntity.removeTiles(tiles);
-                            WorldUtils.dropItem(player.worldObj, drop, x, y, z);
-                            break;
-                        }
                         boolean creative = player.capabilities.isCreativeMode;
                         LittleTileChangeRecorder recorder = new LittleTileChangeRecorder(player.worldObj);
                         if (creative) recorder.watch(littleEntity.getCoord());
-                        tile.destroy();
-                        // littleEntity.removeTile(tile);
-                        if (!creative) WorldUtils.dropItem(player.worldObj, tile.getDrops(), x, y, z);
+                        if (nbt.getBoolean(ENTIRE_BLOCK) && BlockTile.isEntireBlockHarvest(player, tile)) {
+                            List<LittleTile> tiles = BlockTile.selectEntireBlock(littleEntity);
+                            // The item is made before the tiles leave the block they are saved from
+                            ItemStack drop = creative ? null : BlockTile.getEntireBlockDrop(player.worldObj, tiles);
+                            littleEntity.removeTiles(tiles);
+                            if (drop != null) WorldUtils.dropItem(player.worldObj, drop, x, y, z);
+                        } else {
+                            tile.destroy();
+                            // littleEntity.removeTile(tile);
+                            if (!creative) WorldUtils.dropItem(player.worldObj, tile.getDrops(), x, y, z);
+                        }
                         littleEntity.update();
                         if (creative) LittleTilesPlacementHistory.recordAction(
                                 player,

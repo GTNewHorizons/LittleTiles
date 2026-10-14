@@ -75,7 +75,7 @@ public class LittleTilePlacementPlan {
     }
 
     public LittleTilePlacementPlanResult applyPlan(World world, EntityPlayer player, ItemStack stack,
-            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
+            LittleStructure structure) {
         structureMainPosition = null;
         soundsToBePlayed.clear();
         // Freeze every coordinate before any placement can change shared structure data.
@@ -89,7 +89,7 @@ public class LittleTilePlacementPlan {
                 continue;
             }
             for (PreviewTile placeTile : entry.placeTiles) {
-                applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles);
+                applyTile(entry, placeTile, tile, player, stack, structure);
             }
             if (structure != null) tile.combineTiles(structure);
         }
@@ -167,7 +167,7 @@ public class LittleTilePlacementPlan {
     }
 
     private void applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile, EntityPlayer player,
-            ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
+            ItemStack stack, LittleStructure structure) {
         LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile);
         LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile);
         // Mesh-backed fragments can clip to empty space when split across blocks.
@@ -176,8 +176,7 @@ public class LittleTilePlacementPlan {
             return;
         }
 
-        List<LittleTile> tiles = placeTile
-                .placeTile(player, stack, tile, structure, unplaceableTiles, placeMode, cutoutInfoCurrent);
+        List<LittleTile> tiles = placeTile.placeTile(player, stack, tile, structure, placeMode, cutoutInfoCurrent);
         if (tiles == null) {
             return;
         }

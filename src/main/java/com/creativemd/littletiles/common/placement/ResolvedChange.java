@@ -29,7 +29,7 @@ final class ResolvedChange {
             if (change.placedTiles.isEmpty()) return;
             ChunkCoordinates coord = change.coord;
             world.setBlock(coord.posX, coord.posY, coord.posZ, LittleTiles.blockTile, 0, 3);
-            tile = LittleTileChangeRecorder.getTileEntity(world, coord);
+            tile = BasePlan.getTileEntity(world, coord);
             if (tile == null) return;
         }
 

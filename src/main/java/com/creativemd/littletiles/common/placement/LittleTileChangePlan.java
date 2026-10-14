@@ -13,7 +13,7 @@ import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 
-public final class LittleTileChangePlan {
+public final class LittleTileChangePlan extends BasePlan {
 
     private final ArrayList<ChangeEntry> changes;
 
@@ -52,7 +52,7 @@ public final class LittleTileChangePlan {
         for (ChangeEntry change : changes) {
             ChunkCoordinates coord = change.coord;
             if (world.getChunkFromBlockCoords(coord.posX, coord.posZ) instanceof EmptyChunk) return null;
-            TileEntityLittleTiles tile = LittleTileChangeRecorder.getTileEntity(world, coord);
+            TileEntityLittleTiles tile = getTileEntity(world, coord);
             Block block = world.getBlock(coord.posX, coord.posY, coord.posZ);
 
             if (tile == null && (block instanceof BlockTile || !block.getMaterial().isReplaceable())) return null;

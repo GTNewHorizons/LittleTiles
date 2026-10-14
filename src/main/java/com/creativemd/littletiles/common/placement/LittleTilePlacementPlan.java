@@ -7,7 +7,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Block.SoundType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 
@@ -27,7 +26,7 @@ import com.creativemd.littletiles.utils.PreviewTile;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 
-public class LittleTilePlacementPlan {
+public class LittleTilePlacementPlan extends BasePlan {
 
     public static final class SplitPreviewMap
             extends Object2ObjectLinkedOpenHashMap<ChunkCoordinates, ArrayList<PreviewTile>> {
@@ -143,14 +142,6 @@ public class LittleTilePlacementPlan {
             }
         }
         return false;
-    }
-
-    private static TileEntityLittleTiles getTileEntity(World world, ChunkCoordinates coord) {
-        TileEntity te = world.getTileEntity(coord.posX, coord.posY, coord.posZ);
-        if (te instanceof TileEntityLittleTiles lte) {
-            return lte;
-        }
-        return null;
     }
 
     private void applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile, EntityPlayer player,

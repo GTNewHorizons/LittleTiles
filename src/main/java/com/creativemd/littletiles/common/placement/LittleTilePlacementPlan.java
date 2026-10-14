@@ -33,17 +33,6 @@ public class LittleTilePlacementPlan {
             extends Object2ObjectLinkedOpenHashMap<ChunkCoordinates, ArrayList<PreviewTile>> {
     }
 
-    private static class PlacementEntry {
-
-        public final ChunkCoordinates coord;
-        public final ArrayList<PreviewTile> placeTiles;
-
-        public PlacementEntry(ChunkCoordinates coord, ArrayList<PreviewTile> placeTiles) {
-            this.coord = coord;
-            this.placeTiles = placeTiles;
-        }
-    }
-
     private final ArrayList<PlacementEntry> entries = new ArrayList<>();
     private final ArrayList<SoundType> soundsToBePlayed = new ArrayList<>();
     private boolean canApplyPlan;

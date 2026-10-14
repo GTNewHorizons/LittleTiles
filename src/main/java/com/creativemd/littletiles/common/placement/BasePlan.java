@@ -48,8 +48,8 @@ abstract class BasePlan {
      * A structure is destroyed as a whole, so every structure in the block has to be loaded completely. Otherwise the
      * unloaded part survives the change and is not recorded either.
      * <p>
-     * Has to run before the tile entity of the block is looked up: Linking a structure removes tiles whose structure
-     * is gone, which can remove the tile entity as well.
+     * Has to run before the tile entity of the block is looked up: Linking a structure removes tiles whose structure is
+     * gone, which can remove the tile entity as well.
      */
     static boolean areStructuresLoaded(World world, ChunkCoordinates coord) {
         TileEntityLittleTiles tileEntity = getTileEntity(world, coord);

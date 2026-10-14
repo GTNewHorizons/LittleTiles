@@ -3,6 +3,7 @@ package com.creativemd.littletiles.common.items;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 
 import com.cleanroommc.modularui.api.IGuiHolder;
@@ -24,8 +25,26 @@ import cpw.mods.fml.relauncher.SideOnly;
  */
 public class ItemLittleBag extends Item implements IGuiHolder<PlayerInventoryGuiData> {
 
+    private static final String CAPACITY_TAG = "capacity";
+    /** Capacity of a bag that was made before bags had one, the size of a chest. */
+    public static final int DEFAULT_CAPACITY = 27;
+
     public ItemLittleBag() {
         setMaxStackSize(1);
+    }
+
+    /** Creates an empty bag which holds as many tiles as the given amount of stacks of blocks. */
+    public static ItemStack create(int capacity) {
+        ItemStack stack = new ItemStack(LittleTiles.littleBag);
+        stack.stackTagCompound = new NBTTagCompound();
+        stack.stackTagCompound.setInteger(CAPACITY_TAG, capacity);
+        return stack;
+    }
+
+    /** How many stacks of blocks the given bag holds. */
+    public static int getCapacity(ItemStack stack) {
+        if (stack.stackTagCompound == null || !stack.stackTagCompound.hasKey(CAPACITY_TAG)) return DEFAULT_CAPACITY;
+        return stack.stackTagCompound.getInteger(CAPACITY_TAG);
     }
 
     @Override

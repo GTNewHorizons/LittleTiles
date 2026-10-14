@@ -42,6 +42,7 @@ import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
+import com.creativemd.littletiles.common.recipe.LittleBagBackpackRecipe;
 import com.creativemd.littletiles.common.sorting.LittleTileSortingList;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -67,7 +68,7 @@ import cpw.mods.fml.common.versioning.DefaultArtifactVersion;
         modid = LittleTiles.modid,
         version = LittleTiles.version,
         name = "LittleTiles",
-        dependencies = "after:angelica;required-after:modularui2")
+        dependencies = "after:angelica;after:Backpack;required-after:modularui2")
 public class LittleTiles {
 
     @Instance(LittleTiles.modid)
@@ -195,6 +196,16 @@ public class LittleTiles {
         GameRegistry.addRecipe(
                 new ItemStack(colorTube),
                 new Object[] { "XXX", "XLX", "XXX", 'X', Items.dye, 'L', Items.iron_ingot });
+
+        // With the Backpack mod the bag is made from a backpack, which decides its size
+        if (Loader.isModLoaded("Backpack")) {
+            LittleBagBackpackRecipe.register();
+        } else {
+            GameRegistry.addRecipe(
+                    ItemLittleBag.create(ItemLittleBag.DEFAULT_CAPACITY),
+                    new Object[] { " I ", "LSL", " L ", 'I', new ItemStack(Items.dye, 1, 4), 'L', Items.leather, 'S',
+                            Items.string });
+        }
         initAngelicaCompat();
         if (Loader.isModLoaded("Waila")) {
             Waila.init();

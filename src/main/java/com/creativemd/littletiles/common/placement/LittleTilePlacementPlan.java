@@ -1,4 +1,4 @@
-package com.creativemd.littletiles.common.items;
+package com.creativemd.littletiles.common.placement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,8 +15,6 @@ import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.blocks.BlockTile;
-import com.creativemd.littletiles.common.history.LittleTileChangeRecorder;
-import com.creativemd.littletiles.common.history.LittleTilePlacementPlanResult;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;

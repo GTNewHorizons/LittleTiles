@@ -9,7 +9,6 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.EmptyChunk;
 
-import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 
@@ -55,7 +54,7 @@ public final class LittleTileChangePlan extends BasePlan {
             TileEntityLittleTiles tile = getTileEntity(world, coord);
             Block block = world.getBlock(coord.posX, coord.posY, coord.posZ);
 
-            if (tile == null && (block instanceof BlockTile || !block.getMaterial().isReplaceable())) return null;
+            if (!canHoldTiles(block, tile)) return null;
 
             List<LittleTile> remainingTiles = tile == null ? new ArrayList<LittleTile>()
                     : new ArrayList<>(tile.getTiles());

@@ -13,7 +13,6 @@ import net.minecraft.world.World;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
-import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -104,11 +103,7 @@ public class LittleTilePlacementPlan extends BasePlan {
             // an empty BlockTile onto air. Skip the coord rather than rejecting the whole plan.
             if (placeMode == LittleTilePlaceMode.STENCIL && tile == null) continue;
 
-            // The coord is usable if it already hosts a LittleTiles TE (we'll merge into it) or holds a
-            // replaceable non-BlockTile we can overwrite.
-            boolean canPlaceHere = tile != null
-                    || (!(block instanceof BlockTile) && block.getMaterial().isReplaceable());
-            if (!canPlaceHere) {
+            if (!canHoldTiles(block, tile)) {
                 if (specialPlaceMode) continue;
                 return false;
             }

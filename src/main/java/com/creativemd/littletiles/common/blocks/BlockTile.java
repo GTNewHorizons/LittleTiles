@@ -159,7 +159,9 @@ public class BlockTile extends BlockContainer {
             return ((LittleTileBlock) littleTile.loadedTile).block
                     .getPlayerRelativeBlockHardness(player, world, x, y, z);
         }
-        return super.getBlockHardness(world, x, y, z);
+        // The server does not know which tile is mined. With no progress it never finishes mining the whole block,
+        // the hit tile is only removed by the DESTROY packet the client sends.
+        return 0;
     }
 
     @Override
@@ -302,15 +304,24 @@ public class BlockTile extends BlockContainer {
 
                 }
             }
-
+            return true;
         }
-        return true;
+        // Tiles are only removed by the DESTROY packet. Harvesting the whole block would drop every tile in it.
+        return false;
     }
 
     @Override
     public boolean removedByPlayer(World world, EntityPlayer player, int x, int y, int z, boolean willHarvest) {
         return removedByPlayer(world, player, x, y, z);
     }
+
+    /**
+     * Area mining tools and the like harvest blocks directly, without asking {@link #removedByPlayer}. That would drop
+     * every tile while they stay in the world. Without a player, e.g. in an explosion, the block is gone, so
+     * {@link #getDrops} still drops all tiles there.
+     */
+    @Override
+    public void harvestBlock(World world, EntityPlayer player, int x, int y, int z, int meta) {}
 
     @Override
     public boolean isReplaceable(IBlockAccess world, int x, int y, int z) {

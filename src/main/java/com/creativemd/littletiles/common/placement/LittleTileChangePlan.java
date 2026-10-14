@@ -49,6 +49,7 @@ public final class LittleTileChangePlan extends BasePlan {
         for (ChangeEntry change : changes) {
             ChunkCoordinates coord = change.coord;
             if (world.getChunkFromBlockCoords(coord.posX, coord.posZ) instanceof EmptyChunk) return null;
+            if (!areStructuresLoaded(world, coord)) return null;
             TileEntityLittleTiles tile = getTileEntity(world, coord);
             Block block = world.getBlock(coord.posX, coord.posY, coord.posZ);
 

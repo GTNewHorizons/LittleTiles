@@ -93,6 +93,10 @@ public class LittleTilePlacementPlan extends BasePlan {
         for (var entry : splittedTiles.object2ObjectEntrySet()) {
             ChunkCoordinates coord = entry.getKey();
             ArrayList<PreviewTile> placeTiles = entry.getValue();
+            if (!areStructuresLoaded(world, coord)) {
+                if (specialPlaceMode) continue;
+                return false;
+            }
             TileEntityLittleTiles tile = getTileEntity(world, coord);
             Block block = world.getBlock(coord.posX, coord.posY, coord.posZ);
 

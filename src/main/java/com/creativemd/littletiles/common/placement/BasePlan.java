@@ -1,5 +1,6 @@
 package com.creativemd.littletiles.common.placement;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -10,6 +11,7 @@ import net.minecraft.world.World;
 
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTile;
 
 /** Shared logic of plans which change the tiles of several blocks at once. */
 abstract class BasePlan {
@@ -40,6 +42,23 @@ abstract class BasePlan {
     /** Tiles can go into a block with a tile entity already, or into a replaceable block which is overwritten. */
     static boolean canHoldTiles(Block block, TileEntityLittleTiles tile) {
         return tile != null || (!(block instanceof BlockTile) && block.getMaterial().isReplaceable());
+    }
+
+    /**
+     * A structure is destroyed as a whole, so every structure in the block has to be loaded completely. Otherwise the
+     * unloaded part survives the change and is not recorded either.
+     * <p>
+     * Has to run before the tile entity of the block is looked up: Linking a structure removes tiles whose structure
+     * is gone, which can remove the tile entity as well.
+     */
+    static boolean areStructuresLoaded(World world, ChunkCoordinates coord) {
+        TileEntityLittleTiles tileEntity = getTileEntity(world, coord);
+        if (tileEntity == null) return true;
+        for (LittleTile tile : new ArrayList<>(tileEntity.getTiles())) {
+            if (!tile.isStructureBlock) continue;
+            if (!tile.isLoaded() || !tile.structure.hasLoaded()) return false;
+        }
+        return true;
     }
 
     static TileEntityLittleTiles getTileEntity(World world, ChunkCoordinates coord) {

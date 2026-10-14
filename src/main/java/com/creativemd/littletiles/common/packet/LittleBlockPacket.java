@@ -1,8 +1,10 @@
 package com.creativemd.littletiles.common.packet;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
@@ -31,6 +33,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 
 public class LittleBlockPacket extends CreativeCorePacket {
+
+    /** DESTROY: the client harvested every tile of the block, see {@link BlockTile#isEntireBlockHarvest}. */
+    public static final String ENTIRE_BLOCK = "entireBlock";
 
     public int x;
     public int y;
@@ -126,6 +131,14 @@ public class LittleBlockPacket extends CreativeCorePacket {
                             BlockTile.cancelNext = true;
                         break;
                     case DESTROY:
+                        if (nbt.getBoolean(ENTIRE_BLOCK) && BlockTile.isEntireBlockHarvest(player, tile)) {
+                            List<LittleTile> tiles = BlockTile.selectEntireBlock(littleEntity);
+                            // The item is made before the tiles leave the block they are saved from
+                            ItemStack drop = BlockTile.getEntireBlockDrop(player.worldObj, tiles);
+                            littleEntity.removeTiles(tiles);
+                            WorldUtils.dropItem(player.worldObj, drop, x, y, z);
+                            break;
+                        }
                         boolean creative = player.capabilities.isCreativeMode;
                         LittleTileChangeRecorder recorder = new LittleTileChangeRecorder(player.worldObj);
                         if (creative) recorder.watch(littleEntity.getCoord());

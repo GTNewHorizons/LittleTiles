@@ -31,7 +31,9 @@ import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
+import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
+import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.packet.LittleBlockPacket;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -292,11 +294,15 @@ public class BlockTile extends BlockContainer {
             final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
             if (littleTile != null && littleTile.updateLoadedTile(player)) {
                 try {
-                    littleTile.loadedTile.destroy();
+                    boolean entireBlock = isEntireBlockHarvest(player, littleTile.loadedTile);
+                    if (entireBlock) littleTile.removeTiles(selectEntireBlock(littleTile));
+                    else littleTile.loadedTile.destroy();
                     NBTTagCompound nbt = new NBTTagCompound();
                     littleTile.writeToNBT(nbt);
+                    NBTTagCompound packetNbt = new NBTTagCompound();
+                    packetNbt.setBoolean(LittleBlockPacket.ENTIRE_BLOCK, entireBlock);
                     PacketHandler.sendPacketToServer(
-                            new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.DESTROY));
+                            new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.DESTROY, packetNbt));
                     littleTile.updateRender();
                 } catch (Exception ignored) {
 
@@ -305,6 +311,33 @@ public class BlockTile extends BlockContainer {
 
         }
         return true;
+    }
+
+    /**
+     * Breaking while sneaking in survival takes every tile of the block at once. A structure tile is broken like
+     * always, the structure decides what is removed with it.
+     */
+    public static boolean isEntireBlockHarvest(EntityPlayer player, LittleTile hitTile) {
+        return player.isSneaking() && !player.capabilities.isCreativeMode && !hitTile.isStructureBlock;
+    }
+
+    /** The tiles taken when the entire block is harvested. Structures are left alone, they drop as their own item. */
+    public static List<LittleTile> selectEntireBlock(TileEntityLittleTiles littleTile) {
+        List<LittleTile> tiles = new ArrayList<>();
+        synchronized (littleTile.getTiles()) {
+            for (LittleTile tile : littleTile.getTiles()) {
+                if (!tile.isStructureBlock) tiles.add(tile);
+            }
+        }
+        return tiles;
+    }
+
+    /** One item holding all the given tiles, or the tile's own item if there is only one. */
+    public static ItemStack getEntireBlockDrop(World world, List<LittleTile> tiles) {
+        if (tiles.size() == 1) return tiles.get(0).getDrop();
+        ItemStack drop = new ItemStack(LittleTiles.multiTiles);
+        ItemRecipe.saveTiles(world, tiles, drop);
+        return drop;
     }
 
     @Override

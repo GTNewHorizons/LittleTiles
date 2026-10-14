@@ -34,7 +34,7 @@ import io.netty.buffer.ByteBuf;
 
 public class LittleBlockPacket extends CreativeCorePacket {
 
-    /** DESTROY: the client harvested every tile of the block, see {@link BlockTile#isEntireBlockHarvest}. */
+    /** DESTROY: the client harvested every tile of the block, see {@link BlockTile#takesEntireBlock}. */
     public static final String ENTIRE_BLOCK = "entireBlock";
 
     public int x;
@@ -134,7 +134,7 @@ public class LittleBlockPacket extends CreativeCorePacket {
                         boolean creative = player.capabilities.isCreativeMode;
                         LittleTileChangeRecorder recorder = new LittleTileChangeRecorder(player.worldObj);
                         if (creative) recorder.watch(littleEntity.getCoord());
-                        if (nbt.getBoolean(ENTIRE_BLOCK) && BlockTile.isEntireBlockHarvest(player, tile)) {
+                        if (nbt.getBoolean(ENTIRE_BLOCK) && BlockTile.takesEntireBlock(player, tile)) {
                             List<LittleTile> tiles = BlockTile.selectEntireBlock(littleEntity);
                             // The item is made before the tiles leave the block they are saved from
                             ItemStack drop = creative ? null : BlockTile.getEntireBlockDrop(player.worldObj, tiles);

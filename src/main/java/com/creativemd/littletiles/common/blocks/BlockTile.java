@@ -294,7 +294,7 @@ public class BlockTile extends BlockContainer {
             final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
             if (littleTile != null && littleTile.updateLoadedTile(player)) {
                 try {
-                    boolean entireBlock = isEntireBlockHarvest(player, littleTile.loadedTile);
+                    boolean entireBlock = takesEntireBlock(player, littleTile.loadedTile);
                     if (entireBlock) littleTile.removeTiles(selectEntireBlock(littleTile));
                     else littleTile.loadedTile.destroy();
                     NBTTagCompound nbt = new NBTTagCompound();
@@ -314,10 +314,10 @@ public class BlockTile extends BlockContainer {
     }
 
     /**
-     * Breaking while sneaking takes every tile of the block at once. A structure tile is broken like always, the
-     * structure decides what is removed with it.
+     * Breaking or picking while sneaking takes every tile of the block at once. A structure tile is broken and picked
+     * like always, the structure decides what goes with it.
      */
-    public static boolean isEntireBlockHarvest(EntityPlayer player, LittleTile hitTile) {
+    public static boolean takesEntireBlock(EntityPlayer player, LittleTile hitTile) {
         return player.isSneaking() && !hitTile.isStructureBlock;
     }
 
@@ -370,6 +370,9 @@ public class BlockTile extends BlockContainer {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
         if (littleTile != null && littleTile.updateLoadedTile(player)) {
             try {
+                // Survival picks from the inventory and could never find the item, so only creative gets the block
+                if (player.capabilities.isCreativeMode && takesEntireBlock(player, littleTile.loadedTile))
+                    return getEntireBlockDrop(world, selectEntireBlock(littleTile));
                 ArrayList<ItemStack> drops = littleTile.loadedTile.getDrops();
                 if (!drops.isEmpty()) return drops.get(0);
             } catch (Exception ignored) {

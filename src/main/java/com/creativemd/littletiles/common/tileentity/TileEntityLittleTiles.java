@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.tileentity;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -100,6 +101,12 @@ public class TileEntityLittleTiles extends TileEntity {
     public boolean removeTile(LittleTile tile, boolean cleanupTileEntityIfLast) {
         boolean result = tiles.remove(tile);
         updateTiles(cleanupTileEntityIfLast);
+        return result;
+    }
+
+    public boolean removeTiles(Collection<LittleTile> tiles) {
+        boolean result = this.tiles.removeAll(tiles);
+        updateTiles();
         return result;
     }
 

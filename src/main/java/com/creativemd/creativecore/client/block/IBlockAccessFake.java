@@ -11,12 +11,12 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public class IBlockAccessFake implements IBlockAccess {
 
-    private IBlockAccess world;
+    protected IBlockAccess world;
     private Block block;
     private int meta;
-    private int posX;
-    private int posY;
-    private int posZ;
+    protected int posX;
+    protected int posY;
+    protected int posZ;
 
     public IBlockAccessFake() {}
 
@@ -41,7 +41,7 @@ public class IBlockAccessFake implements IBlockAccess {
         this.meta = meta;
     }
 
-    private boolean isTilePos(int x, int y, int z) {
+    protected boolean isTilePos(int x, int y, int z) {
         return x == posX && y == posY && z == posZ;
     }
 

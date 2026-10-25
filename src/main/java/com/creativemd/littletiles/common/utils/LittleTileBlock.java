@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.utils;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Random;
 
 import net.minecraft.block.Block;
@@ -23,6 +24,8 @@ public class LittleTileBlock extends LittleTile {
 
     public Block block;
     public int meta;
+    /** Name of the unregistered block this tile was saved with, {@link #block} is the placeholder then. **/
+    public String missingBlockName;
     private static final ThreadLocal<IBlockAccessFake> blockAccessFakeThreadLocal = ThreadLocal
             .withInitial(IBlockAccessFake::new);
 
@@ -43,16 +46,26 @@ public class LittleTileBlock extends LittleTile {
     @Override
     public void saveTileExtra(NBTTagCompound nbt) {
 
-        nbt.setString("block", Block.blockRegistry.getNameForObject(block));
+        nbt.setString(
+                "block",
+                missingBlockName != null ? missingBlockName : Block.blockRegistry.getNameForObject(block));
         nbt.setInteger("meta", meta);
     }
 
     @Override
     public void loadTileExtra(NBTTagCompound nbt) {
-        block = Block.getBlockFromName(nbt.getString("block"));
+        setBlockByName(nbt.getString("block"));
         meta = nbt.getInteger("meta");
-        if (block == null || block instanceof BlockAir)
-            throw new IllegalArgumentException("Invalid block name! name=" + nbt.getString("block"));
+    }
+
+    /** Unknown blocks become the missing placeholder, keeping the name so saving does not lose the tile. **/
+    public void setBlockByName(String name) {
+        block = Block.getBlockFromName(name);
+        if (block == null || block instanceof BlockAir) {
+            System.out.println("Found tile with missing block name=" + name + ", keeping it as missing tile");
+            block = LittleTiles.missingBlock;
+            missingBlockName = name;
+        } else missingBlockName = null;
     }
 
     @Override
@@ -61,6 +74,7 @@ public class LittleTileBlock extends LittleTile {
             LittleTileBlock thisTile = (LittleTileBlock) tile;
             thisTile.block = block;
             thisTile.meta = meta;
+            thisTile.missingBlockName = missingBlockName;
         }
     }
 
@@ -173,7 +187,9 @@ public class LittleTileBlock extends LittleTile {
     @Override
     public boolean canBeCombined(LittleTile tile) {
         if (super.canBeCombined(tile) && tile instanceof LittleTileBlock) {
-            return block == ((LittleTileBlock) tile).block && meta == ((LittleTileBlock) tile).meta;
+            LittleTileBlock other = (LittleTileBlock) tile;
+            return block == other.block && meta == other.meta
+                    && Objects.equals(missingBlockName, other.missingBlockName);
         }
         return false;
     }

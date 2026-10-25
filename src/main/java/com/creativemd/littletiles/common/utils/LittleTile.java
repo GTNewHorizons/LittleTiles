@@ -70,11 +70,11 @@ public abstract class LittleTile {
         if (nbt.hasKey("tileID")) // If it's the old tileentity
         {
             if (nbt.hasKey("block")) {
-                Block block = Block.getBlockFromName(nbt.getString("block"));
-                int meta = nbt.getInteger("meta");
                 LittleTileBox box = new LittleTileBox(new LittleTileVec("i", nbt), new LittleTileVec("a", nbt));
                 box.addOffset(new LittleTileVec(8, 8, 8));
-                LittleTileBlock tile = new LittleTileBlock(block, meta);
+                LittleTileBlock tile = new LittleTileBlock();
+                tile.setBlockByName(nbt.getString("block"));
+                tile.meta = nbt.getInteger("meta");
                 tile.boundingBox = box;
                 tile.cornerVec = box.getMinVec();
                 return tile;

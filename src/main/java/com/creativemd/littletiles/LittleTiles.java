@@ -18,6 +18,7 @@ import com.creativemd.creativecore.common.packet.CreativeCorePacket;
 import com.creativemd.littletiles.client.render.AngelicaCompat;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.blocks.BlockLTColored;
+import com.creativemd.littletiles.common.blocks.BlockLTMissing;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ItemBlockColored;
 import com.creativemd.littletiles.common.events.LittleEvent;
@@ -95,6 +96,7 @@ public class LittleTiles {
             .setCreativeTab(creativeTabLittleTiles);
     public static Block coloredBlock = new BlockLTColored(materialLittleTile).setBlockName("LTBlocks")
             .setCreativeTab(creativeTabLittleTiles);
+    public static Block missingBlock = new BlockLTMissing(materialLittleTile).setBlockName("LTMissing");
 
     public static Item hammer = new ItemHammer().setUnlocalizedName("LTHammer").setCreativeTab(creativeTabLittleTiles);
     public static Item recipe = new ItemRecipe().setUnlocalizedName("LTRecipe").setCreativeTab(creativeTabLittleTiles);
@@ -144,6 +146,7 @@ public class LittleTiles {
         // GameRegistry.registerBlock(coloredBlock, "LTColoredBlock");
         GameRegistry.registerBlock(coloredBlock, ItemBlockColored.class, "LTColoredBlock");
         GameRegistry.registerBlock(blockTile, ItemBlockTiles.class, "BlockLittleTiles");
+        GameRegistry.registerBlock(missingBlock, "LTMissingBlock");
 
         GameRegistry.registerItem(multiTiles, "multiTiles");
 

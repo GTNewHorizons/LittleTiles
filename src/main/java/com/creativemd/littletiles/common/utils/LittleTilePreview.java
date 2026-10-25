@@ -3,11 +3,13 @@ package com.creativemd.littletiles.common.utils;
 import java.util.ArrayList;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockAir;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
@@ -48,6 +50,7 @@ public final class LittleTilePreview {
         LittleTilesCubeObject cube = renderBox.getCube();
         if (nbt.hasKey("block")) {
             cube.block = Block.getBlockFromName(nbt.getString("block"));
+            if (cube.block == null || cube.block instanceof BlockAir) cube.block = LittleTiles.missingBlock;
             cube.meta = nbt.getInteger("meta");
         } else {
             cube.block = Blocks.stone;

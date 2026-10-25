@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
@@ -339,14 +340,14 @@ public class Mesh3d {
             for (Triangle3d tri : triangles) {
                 Vector3d[] verts = { tri.getP1(), tri.getP2(), tri.getP3() };
                 for (Vector3d v : verts) {
-                    writer.write(String.format("v %.6f %.6f %.6f%n", v.x, v.y, v.z));
+                    writer.write(String.format(Locale.ROOT, "v %.6f %.6f %.6f%n", v.x, v.y, v.z));
                 }
             }
 
             // Then, write faces
             for (int i = 0; i < triangles.size(); i++) {
                 // Faces in OBJ reference vertices by their 1-based index
-                writer.write(String.format("f %d %d %d%n", vertexIndex, vertexIndex + 1, vertexIndex + 2));
+                writer.write(String.format(Locale.ROOT, "f %d %d %d%n", vertexIndex, vertexIndex + 1, vertexIndex + 2));
                 vertexIndex += 3;
             }
 

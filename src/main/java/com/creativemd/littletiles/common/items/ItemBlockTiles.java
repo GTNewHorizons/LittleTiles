@@ -19,7 +19,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
-import com.creativemd.creativecore.common.utils.WorldUtils;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
 import com.creativemd.littletiles.client.render.LittleDeformedBoxHelper;
@@ -29,8 +28,6 @@ import com.creativemd.littletiles.common.history.LittleTilePlacementPlanResult;
 import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.structure.LittleStructure;
-import com.creativemd.littletiles.common.utils.LittleTile;
-import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
@@ -236,10 +233,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             return false;
         }
 
-        ArrayList<LittleTile> unplaceableTiles = new ArrayList<>();
         boolean shouldRecordHistory = !world.isRemote && player.capabilities.isCreativeMode;
-        LittleTilePlacementPlanResult placementResult = plan
-                .applyPlan(world, player, stack, structure, unplaceableTiles);
+        LittleTilePlacementPlanResult placementResult = plan.applyPlan(world, player, stack, structure);
         if (placementResult.hasChanges()) {
             ItemStack currentStack = player.inventory.mainInventory[player.inventory.currentItem];
             boolean isChisel = currentStack != null && currentStack.getItem() == LittleTiles.chisel;
@@ -254,17 +249,6 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
                         new LittleTilesPlacementHistory.PlacementAction(
                                 world.provider.dimensionId,
                                 placementResult.createPlan()));
-            }
-
-            if (!world.isRemote) {
-                for (LittleTile unplaceableTile : unplaceableTiles) {
-                    if (!(unplaceableTile instanceof LittleTileBlock) && !ItemTileContainer.addBlock(
-                            player,
-                            ((LittleTileBlock) unplaceableTile).block,
-                            ((LittleTileBlock) unplaceableTile).meta,
-                            (float) unplaceableTile.getPercentVolume()))
-                        WorldUtils.dropItem(world, unplaceableTile.getDrops(), x, y, z);
-                }
             }
             return true;
         }

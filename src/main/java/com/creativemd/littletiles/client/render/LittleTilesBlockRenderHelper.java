@@ -20,6 +20,7 @@ import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
+import com.creativemd.creativecore.client.rendering.EmptyFaceClipper;
 import com.creativemd.creativecore.client.rendering.ExtendedRenderBlocks;
 import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.client.rendering.RenderHelper3D;
@@ -148,7 +149,7 @@ public class LittleTilesBlockRenderHelper {
     }
 
     private static CutoutResult renderCutout(int x, int y, int z, LittleTilesCubeObject cube,
-            Supplier<CullingContext> culling, IBlockAccess world) {
+            Supplier<CullingContext> culling, IBlockAccess world, ExtendedRenderBlocks renderer) {
         // Resolved once and handed to the culler. Asking again inside would be a different question: the tile can
         // drop its mesh in between, and an empty cut result reads as HIDDEN, which would skip the cube entirely
         // instead of falling back to drawing it as a plain box.
@@ -161,25 +162,45 @@ public class LittleTilesBlockRenderHelper {
         if (visible.isEmpty()) {
             return CutoutResult.HIDDEN;
         }
-        renderTriangles(x, y, z, cube, visible, world);
+        renderTriangles(x, y, z, cube, visible, world, renderer);
         return CutoutResult.DRAWN;
     }
 
+    /**
+     * Runs the block's own rendering handler with every face hidden, so that it emits no geometry but still applies the
+     * tessellator state it would normally render with. Blocks like Extra Utilities' full-bright ones set a fixed
+     * brightness there, which meshes would otherwise miss by bypassing the handler entirely. Returns whether the
+     * brightness now on the tessellator comes from the handler.
+     */
+    private static boolean applyCustomRendererBrightness(ExtendedRenderBlocks renderer, LittleTilesCubeObject cube,
+            int x, int y, int z) {
+        // Standard blocks set their brightness per face, so there is no single value to inherit.
+        if (cube.block.getRenderType() <= 0) {
+            return false;
+        }
+        renderer.faceClipper = EmptyFaceClipper.INSTANCE;
+        renderer.meta = cube.meta;
+        renderer.lockBlockBounds = true;
+        try {
+            renderer.renderBlockAllFaces(cube.block, x, y, z);
+        } finally {
+            renderer.lockBlockBounds = false;
+            renderer.faceClipper = null;
+        }
+        return true;
+    }
+
     private static void renderTriangles(int x, int y, int z, LittleTilesCubeObject cube, List<Triangle3d> triangles,
-            IBlockAccess world) {
+            IBlockAccess world, ExtendedRenderBlocks renderer) {
         // cut results are cached on the tile and must not be textured in place
         Mesh3d mesh = new Mesh3d(triangles).copy();
         mesh.setTextures(cube.block, cube.meta);
         Tessellator tess = Tessellator.instance;
 
-        int brightness = cube.block.getMixedBrightnessForBlock(world, x, y, z);
-        // Force brightness to 15 for blocks that emits.
-        // This is a workaround to support blocks like Caelestis Lapis from extraUtils.
-        // TODO: Investigate a better way to handle this (POC:
-        // https://github.com/GTNewHorizons/LittleTiles/commits/refactor-brightness/)
+        if (!applyCustomRendererBrightness(renderer, cube, x, y, z)) {
+            tess.setBrightness(cube.block.getMixedBrightnessForBlock(world, x, y, z));
+        }
         int emitted = cube.block.getLightValue(world, x, y, z);
-        if (emitted > 0) brightness |= (15 << 4);
-        tess.setBrightness(brightness);
 
         int color = resolveRenderColor(cube.color, cube.block, cube.meta);
         boolean topTintOnly = tintsTopFaceOnly(cube.block);
@@ -302,7 +323,7 @@ public class LittleTilesBlockRenderHelper {
                 }
 
                 if (cube.cutoutInfo != null) {
-                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, fake);
+                    CutoutResult result = renderCutout(x, y, z, cube, cullingContext, fake, extraRenderer);
                     if (result == CutoutResult.DRAWN) {
                         rendered = true;
                         continue;
@@ -337,7 +358,7 @@ public class LittleTilesBlockRenderHelper {
                 }
 
                 if (!boxTriangles.isEmpty()) {
-                    renderTriangles(x, y, z, cube, boxTriangles, fake);
+                    renderTriangles(x, y, z, cube, boxTriangles, fake, extraRenderer);
                 }
             }
         } finally {

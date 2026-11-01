@@ -109,7 +109,8 @@ public class LittlePlacePacket extends CreativeCorePacket {
     private static ItemStack getPlacementStack(ItemStack heldStack, ItemStack requestedStack) {
         if (heldStack == null || heldStack.stackSize <= 0) return null;
         if (heldStack.getItem() != LittleTiles.chisel) {
-            return PlacementHelper.isLittleBlock(heldStack) ? heldStack.copy() : null;
+            ItemStack placementStack = heldStack.copy();
+            return PlacementHelper.hasOnlyValidMaterials(placementStack) ? placementStack : null;
         }
 
         // A chisel sends a temporary tile, not the held tool. Only its geometry comes from the client.

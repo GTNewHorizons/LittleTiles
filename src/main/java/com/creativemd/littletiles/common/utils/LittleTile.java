@@ -25,6 +25,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -73,8 +74,9 @@ public abstract class LittleTile {
                 LittleTileBox box = new LittleTileBox(new LittleTileVec("i", nbt), new LittleTileVec("a", nbt));
                 box.addOffset(new LittleTileVec(8, 8, 8));
                 LittleTileBlock tile = new LittleTileBlock();
-                tile.setBlockByName(nbt.getString("block"));
-                tile.meta = nbt.getInteger("meta");
+                LittleMaterial material = LittleMaterial.readFromNBT(nbt);
+                tile.setBlockByName(material.blockName);
+                tile.meta = material.meta;
                 tile.boundingBox = box;
                 tile.cornerVec = box.getMinVec();
                 return tile;

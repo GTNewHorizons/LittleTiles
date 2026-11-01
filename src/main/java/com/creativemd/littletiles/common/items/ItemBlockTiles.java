@@ -27,6 +27,7 @@ import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.history.LittleTilePlacementPlanResult;
 import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
+import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -69,7 +70,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     @SideOnly(Side.CLIENT)
     public String getUnlocalizedName(ItemStack stack) {
         if (stack.stackTagCompound != null) {
-            Block block = Block.getBlockFromName(stack.stackTagCompound.getString("block"));
+            Block block = LittleMaterial.readFromNBT(stack.stackTagCompound).getBlock();
             if (block == null) {
                 return "block.LTBlocks.missingblock";
             }

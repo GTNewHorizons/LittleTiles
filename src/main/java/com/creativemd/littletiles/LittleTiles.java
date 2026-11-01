@@ -121,6 +121,7 @@ public class LittleTiles {
 
     public static AngelicaCompat angelicaCompat;
     public static NEICompat neiCompat;
+    public static PosteaCompat posteaCompat;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -204,6 +205,9 @@ public class LittleTiles {
         }
         if (Loader.isModLoaded("NotEnoughItems")) {
             neiCompat = new NEICompat();
+        }
+        if (Loader.isModLoaded("postea")) {
+            posteaCompat = new PosteaCompat();
         }
     }
 

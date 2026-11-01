@@ -10,6 +10,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
@@ -125,6 +126,8 @@ public final class LittleTilePreview {
 
     public static LittleTilePreview getPreviewFromNBT(NBTTagCompound nbt) {
         if (nbt == null) return null;
+        // everything reading the block of a preview reads it from its nbt
+        LittleMaterial.migrateNBT(nbt);
         LittleTileSize size = null;
         LittleTileBox box = null;
         if (nbt.hasKey("sizex")) size = new LittleTileSize("size", nbt);

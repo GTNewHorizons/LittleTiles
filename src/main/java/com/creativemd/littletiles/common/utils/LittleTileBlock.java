@@ -18,6 +18,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 public class LittleTileBlock extends LittleTile {
@@ -54,8 +55,9 @@ public class LittleTileBlock extends LittleTile {
 
     @Override
     public void loadTileExtra(NBTTagCompound nbt) {
-        setBlockByName(nbt.getString("block"));
-        meta = nbt.getInteger("meta");
+        LittleMaterial material = LittleMaterial.readFromNBT(nbt);
+        setBlockByName(material.blockName);
+        meta = material.meta;
     }
 
     /** Unknown blocks become the missing placeholder, keeping the name so saving does not lose the tile. **/

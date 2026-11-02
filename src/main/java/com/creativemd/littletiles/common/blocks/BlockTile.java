@@ -1,8 +1,11 @@
 package com.creativemd.littletiles.common.blocks;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
@@ -33,6 +36,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.packet.LittleBlockPacket;
+import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
@@ -159,7 +163,9 @@ public class BlockTile extends BlockContainer {
             return ((LittleTileBlock) littleTile.loadedTile).block
                     .getPlayerRelativeBlockHardness(player, world, x, y, z);
         }
-        return super.getBlockHardness(world, x, y, z);
+        // The server does not know which tile is mined. With no progress it never finishes mining the whole block,
+        // the hit tile is only removed by the DESTROY packet the client sends.
+        return 0;
     }
 
     @Override
@@ -202,11 +208,25 @@ public class BlockTile extends BlockContainer {
         setBlockBounds(0, 0, 0, 0, 0, 0);
     }
 
+    /**
+     * Called whenever the block or its metadata changes, after the chunk already holds the new block. If it is still
+     * this block, only the metadata changed and the tile entity keeps its tiles. Nothing in LittleTiles does that, but
+     * other mods might.
+     */
     @Override
     public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
-        if (littleTile != null && littleTile.getTiles().isEmpty()) {
+        if (littleTile == null) return;
+        if (littleTile.getTiles().isEmpty()) {
             super.breakBlock(world, x, y, z, block, meta);
+        } else if (!world.isRemote && world.getBlock(x, y, z) != this) {
+            // Removed with its tiles, e.g. by an explosion. A structure reaching into other blocks dropped as a whole
+            // with getDrops, so it has to go away as a whole as well.
+            Set<LittleStructure> structures = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (LittleTile tile : new ArrayList<>(littleTile.getTiles())) {
+                if (tile.isStructureBlock && tile.isLoaded() && structures.add(tile.structure))
+                    tile.structure.onLittleTileDestory(littleTile);
+            }
         }
     }
 
@@ -302,15 +322,24 @@ public class BlockTile extends BlockContainer {
 
                 }
             }
-
+            return true;
         }
-        return true;
+        // Tiles are only removed by the DESTROY packet. Harvesting the whole block would drop every tile in it.
+        return false;
     }
 
     @Override
     public boolean removedByPlayer(World world, EntityPlayer player, int x, int y, int z, boolean willHarvest) {
         return removedByPlayer(world, player, x, y, z);
     }
+
+    /**
+     * Area mining tools and the like harvest blocks directly, without asking {@link #removedByPlayer}. That would drop
+     * every tile while they stay in the world. Without a player, e.g. in an explosion, the block is gone, so
+     * {@link #getDrops} still drops all tiles there.
+     */
+    @Override
+    public void harvestBlock(World world, EntityPlayer player, int x, int y, int z, int meta) {}
 
     @Override
     public boolean isReplaceable(IBlockAccess world, int x, int y, int z) {
@@ -319,14 +348,23 @@ public class BlockTile extends BlockContainer {
         return true;
     }
 
+    /**
+     * What the block drops when it is removed without a player, e.g. by an explosion. Every tile of a structure drops
+     * the whole structure, so each structure drops only once. The stacks are copies: a structure hands out its own
+     * stack, and item entities sharing one stack add it to itself when they merge.
+     */
     @Override
-    /** Blocks will drop before this method is called */
     public ArrayList<ItemStack> getDrops(World world, int x, int y, int z, int metadata, int fortune) {
         ArrayList<ItemStack> stacks = new ArrayList<>();
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
         if (littleTile != null) {
-            for (LittleTile tile : littleTile.getTiles()) {
-                stacks.addAll(tile.getDrops());
+            Set<LittleStructure> structures = Collections.newSetFromMap(new IdentityHashMap<>());
+            // Loading a structure removes tiles whose structure is gone
+            for (LittleTile tile : new ArrayList<>(littleTile.getTiles())) {
+                if (tile.isStructureBlock && (!tile.isLoaded() || !structures.add(tile.structure))) continue;
+                for (ItemStack drop : tile.getDrops()) {
+                    stacks.add(drop.copy());
+                }
             }
         }
         return stacks;

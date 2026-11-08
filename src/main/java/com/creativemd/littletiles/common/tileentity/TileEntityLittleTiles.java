@@ -130,6 +130,7 @@ public class TileEntityLittleTiles extends TileEntity {
             // While the block is being replaced, the chunk holds the new block already: that one has to stay
             if (!worldObj.isRemote && tiles.isEmpty()
                     && cleanupTileEntityIfLast
+                    && !deferEmptyCleanup
                     && worldObj.getBlock(xCoord, yCoord, zCoord) == LittleTiles.blockTile) {
                 worldObj.setBlockToAir(xCoord, yCoord, zCoord);
             }

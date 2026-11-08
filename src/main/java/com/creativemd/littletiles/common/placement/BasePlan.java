@@ -33,8 +33,19 @@ abstract class BasePlan {
             }
         }
 
+        // Destroying one structure can empty another entry's block. Keep every prepared tile entity alive
+        // until all placements are done, otherwise later entries would write into a removed tile entity.
         for (E entry : entries) {
-            apply.accept(entry);
+            entry.getTileEntity().deferEmptyCleanup();
+        }
+        try {
+            for (E entry : entries) {
+                apply.accept(entry);
+            }
+        } finally {
+            for (E entry : entries) {
+                entry.getTileEntity().finishDeferredEmptyCleanup();
+            }
         }
         return true;
     }

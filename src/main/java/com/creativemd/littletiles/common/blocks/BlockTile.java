@@ -334,12 +334,14 @@ public class BlockTile extends BlockContainer {
     }
 
     /**
-     * Area mining tools and the like harvest blocks directly, without asking {@link #removedByPlayer}. That would drop
-     * every tile while they stay in the world. Without a player, e.g. in an explosion, the block is gone, so
-     * {@link #getDrops} still drops all tiles there.
+     * Area mining tools, quarries and the like harvest blocks directly, without asking {@link #removedByPlayer}. Some
+     * remove the block afterwards, some do not, so it is removed here: every tile drops, so every tile has to go.
      */
     @Override
-    public void harvestBlock(World world, EntityPlayer player, int x, int y, int z, int meta) {}
+    public void harvestBlock(World world, EntityPlayer player, int x, int y, int z, int meta) {
+        super.harvestBlock(world, player, x, y, z, meta);
+        world.setBlockToAir(x, y, z);
+    }
 
     @Override
     public boolean isReplaceable(IBlockAccess world, int x, int y, int z) {

@@ -73,15 +73,11 @@ public class LittleBagBackpackRecipe extends ShapedOreRecipe {
     }
 
     /**
-     * The pattern holds a single backpack, but where it lands depends on the grid size and on the offset the pattern
-     * matched at, so it is looked up by item rather than by slot.
+     * The backpack in the middle of the pattern. Forge matches 3x3 patterns only in the top left corner, also in bigger
+     * grids, so it is always found there. Other slots can hold further backpacks the pattern did not check.
      */
     private static ItemStack findBackpack(InventoryCrafting inventory) {
-        for (int i = 0; i < inventory.getSizeInventory(); i++) {
-            ItemStack stack = inventory.getStackInSlot(i);
-            if (stack != null && stack.getItem() == ItemsBackpack.backpack) return stack;
-        }
-        return null;
+        return inventory.getStackInRowAndColumn(1, 1);
     }
 
     /** A dyed or undyed backpack of a known tier. The ender backpack shares the item, but has no tier. */

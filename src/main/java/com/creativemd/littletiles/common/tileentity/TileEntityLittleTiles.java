@@ -143,7 +143,8 @@ public class TileEntityLittleTiles extends TileEntity {
     /** Remove the block if the completed plan left it empty. */
     public void finishDeferredEmptyCleanup() {
         deferEmptyCleanup = false;
-        if (worldObj != null && !worldObj.isRemote && tiles.isEmpty()
+        if (worldObj != null && !worldObj.isRemote
+                && tiles.isEmpty()
                 && worldObj.getTileEntity(xCoord, yCoord, zCoord) == this) {
             worldObj.setBlockToAir(xCoord, yCoord, zCoord);
         }

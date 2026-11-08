@@ -44,6 +44,7 @@ public class TileEntityLittleTiles extends TileEntity {
 
     // The monitor must survive list replacement: render snapshots and cut invalidation share it.
     private final List<LittleTile> tiles = createTileList();
+    private boolean deferEmptyCleanup;
 
     public void setTiles(List<LittleTile> tiles) {
         replaceTiles(tiles);
@@ -126,12 +127,27 @@ public class TileEntityLittleTiles extends TileEntity {
 
             update();
             updateNeighbor();
-            if (!worldObj.isRemote && tiles.isEmpty() && cleanupTileEntityIfLast) {
+            if (!worldObj.isRemote && tiles.isEmpty() && cleanupTileEntityIfLast && !deferEmptyCleanup) {
                 worldObj.setBlockToAir(xCoord, yCoord, zCoord);
             }
         }
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) updateCustomRenderer();
 
+    }
+
+    /** Keep this block alive while a multi-block plan removes and places tiles. */
+    public void deferEmptyCleanup() {
+        deferEmptyCleanup = true;
+    }
+
+    /** Remove the block if the completed plan left it empty. */
+    public void finishDeferredEmptyCleanup() {
+        deferEmptyCleanup = false;
+        if (worldObj != null && !worldObj.isRemote
+                && tiles.isEmpty()
+                && worldObj.getTileEntity(xCoord, yCoord, zCoord) == this) {
+            worldObj.setBlockToAir(xCoord, yCoord, zCoord);
+        }
     }
 
     @SideOnly(Side.CLIENT)

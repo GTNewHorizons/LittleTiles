@@ -1,4 +1,4 @@
-package com.creativemd.littletiles.common.history;
+package com.creativemd.littletiles.common.placement;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 
@@ -34,7 +33,7 @@ public final class LittleTileChangeRecorder {
     public void watch(ChunkCoordinates coord) {
         capture(coord);
 
-        TileEntityLittleTiles tileEntity = getTileEntity(world, coord);
+        TileEntityLittleTiles tileEntity = BasePlan.getTileEntity(world, coord);
         if (tileEntity == null) return;
         for (LittleTile tile : new ArrayList<>(tileEntity.getTiles())) {
             if (!tile.isStructureBlock || !tile.isLoaded()) continue;
@@ -62,7 +61,7 @@ public final class LittleTileChangeRecorder {
     // A block cannot hold two identical tiles, so a set loses nothing and makes diffing cheap.
     private static Set<NBTTagCompound> captureTiles(World world, ChunkCoordinates coord) {
         HashSet<NBTTagCompound> snapshots = new HashSet<>();
-        TileEntityLittleTiles tileEntity = getTileEntity(world, coord);
+        TileEntityLittleTiles tileEntity = BasePlan.getTileEntity(world, coord);
         if (tileEntity != null) {
             for (LittleTile tile : tileEntity.getTiles()) {
                 NBTTagCompound nbt = new NBTTagCompound();
@@ -71,11 +70,5 @@ public final class LittleTileChangeRecorder {
             }
         }
         return snapshots;
-    }
-
-    static TileEntityLittleTiles getTileEntity(World world, ChunkCoordinates coord) {
-        TileEntity tile = world.getTileEntity(coord.posX, coord.posY, coord.posZ);
-        if (tile instanceof TileEntityLittleTiles littleTile) return littleTile;
-        return null;
     }
 }

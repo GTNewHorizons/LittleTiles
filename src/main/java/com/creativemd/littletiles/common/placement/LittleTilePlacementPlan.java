@@ -1,4 +1,4 @@
-package com.creativemd.littletiles.common.items;
+package com.creativemd.littletiles.common.placement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,16 +7,11 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Block.SoundType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 
-import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
-import com.creativemd.littletiles.common.blocks.BlockTile;
-import com.creativemd.littletiles.common.history.LittleTileChangeRecorder;
-import com.creativemd.littletiles.common.history.LittleTilePlacementPlanResult;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -29,21 +24,10 @@ import com.creativemd.littletiles.utils.PreviewTile;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 
-public class LittleTilePlacementPlan {
+public class LittleTilePlacementPlan extends BasePlan {
 
     public static final class SplitPreviewMap
             extends Object2ObjectLinkedOpenHashMap<ChunkCoordinates, ArrayList<PreviewTile>> {
-    }
-
-    private static class PlacementEntry {
-
-        public final ChunkCoordinates coord;
-        public final ArrayList<PreviewTile> placeTiles;
-
-        public PlacementEntry(ChunkCoordinates coord, ArrayList<PreviewTile> placeTiles) {
-            this.coord = coord;
-            this.placeTiles = placeTiles;
-        }
     }
 
     private final ArrayList<PlacementEntry> entries = new ArrayList<>();
@@ -75,7 +59,7 @@ public class LittleTilePlacementPlan {
     }
 
     public LittleTilePlacementPlanResult applyPlan(World world, EntityPlayer player, ItemStack stack,
-            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
+            LittleStructure structure) {
         structureMainPosition = null;
         soundsToBePlayed.clear();
         // Freeze every coordinate before any placement can change shared structure data.
@@ -83,16 +67,14 @@ public class LittleTilePlacementPlan {
         for (PlacementEntry entry : entries) {
             recorder.watch(entry.coord);
         }
-        for (PlacementEntry entry : entries) {
-            TileEntityLittleTiles tile = getOrCreateTileEntity(world, entry);
-            if (tile == null) {
-                continue;
-            }
+        // On failure nothing was placed, so the result is empty.
+        applyEntries(world, entries, entry -> {
+            TileEntityLittleTiles tile = entry.getTileEntity();
             for (PreviewTile placeTile : entry.placeTiles) {
-                applyTile(entry, placeTile, tile, player, stack, structure, unplaceableTiles);
+                applyTile(entry, placeTile, tile, player, stack, structure);
             }
             if (structure != null) tile.combineTiles(structure);
-        }
+        });
         for (SoundType soundType : soundsToBePlayed) {
             playTileSound(world, player, soundType);
         }
@@ -111,6 +93,10 @@ public class LittleTilePlacementPlan {
         for (var entry : splittedTiles.object2ObjectEntrySet()) {
             ChunkCoordinates coord = entry.getKey();
             ArrayList<PreviewTile> placeTiles = entry.getValue();
+            if (!areStructuresLoaded(world, coord)) {
+                if (specialPlaceMode) continue;
+                return false;
+            }
             TileEntityLittleTiles tile = getTileEntity(world, coord);
             Block block = world.getBlock(coord.posX, coord.posY, coord.posZ);
 
@@ -118,11 +104,7 @@ public class LittleTilePlacementPlan {
             // an empty BlockTile onto air. Skip the coord rather than rejecting the whole plan.
             if (placeMode == LittleTilePlaceMode.STENCIL && tile == null) continue;
 
-            // The coord is usable if it already hosts a LittleTiles TE (we'll merge into it) or holds a
-            // replaceable non-BlockTile we can overwrite.
-            boolean canPlaceHere = tile != null
-                    || (!(block instanceof BlockTile) && block.getMaterial().isReplaceable());
-            if (!canPlaceHere) {
+            if (!canHoldTiles(block, tile)) {
                 if (specialPlaceMode) continue;
                 return false;
             }
@@ -158,16 +140,8 @@ public class LittleTilePlacementPlan {
         return false;
     }
 
-    private static TileEntityLittleTiles getTileEntity(World world, ChunkCoordinates coord) {
-        TileEntity te = world.getTileEntity(coord.posX, coord.posY, coord.posZ);
-        if (te instanceof TileEntityLittleTiles lte) {
-            return lte;
-        }
-        return null;
-    }
-
     private void applyTile(PlacementEntry entry, PreviewTile placeTile, TileEntityLittleTiles tile, EntityPlayer player,
-            ItemStack stack, LittleStructure structure, ArrayList<LittleTile> unplaceableTiles) {
+            ItemStack stack, LittleStructure structure) {
         LittleTileCutoutInfo baseCutoutInfo = getBaseCutoutInfo(placeTile);
         LittleTileCutoutInfo cutoutInfoCurrent = getCutoutInfoCurrent(entry.coord, placeTile);
         // Mesh-backed fragments can clip to empty space when split across blocks.
@@ -176,8 +150,7 @@ public class LittleTilePlacementPlan {
             return;
         }
 
-        List<LittleTile> tiles = placeTile
-                .placeTile(player, stack, tile, structure, unplaceableTiles, placeMode, cutoutInfoCurrent);
+        List<LittleTile> tiles = placeTile.placeTile(player, stack, tile, structure, placeMode, cutoutInfoCurrent);
         if (tiles == null) {
             return;
         }
@@ -235,18 +208,6 @@ public class LittleTilePlacementPlan {
                 soundType.func_150496_b(),
                 (soundType.getVolume() + 1.0F) / 2.0F,
                 soundType.getPitch() * 0.8F);
-    }
-
-    private static TileEntityLittleTiles getOrCreateTileEntity(World world, PlacementEntry entry) {
-        ChunkCoordinates coord = entry.coord;
-        TileEntityLittleTiles tile = getTileEntity(world, coord);
-        if (tile != null) {
-            return tile;
-        }
-
-        world.setBlock(coord.posX, coord.posY, coord.posZ, LittleTiles.blockTile, 0, 3);
-        tile = getTileEntity(world, coord);
-        return tile;
     }
 
     private boolean isSpaceForTiles(TileEntityLittleTiles mainTile, ArrayList<PreviewTile> placeTiles,

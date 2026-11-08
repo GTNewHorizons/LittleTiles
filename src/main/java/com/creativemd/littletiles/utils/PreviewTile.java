@@ -8,7 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 
-import com.creativemd.littletiles.common.items.LittleTilePlacementPlan.SplitPreviewMap;
+import com.creativemd.littletiles.common.placement.LittleTilePlacementPlan.SplitPreviewMap;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;

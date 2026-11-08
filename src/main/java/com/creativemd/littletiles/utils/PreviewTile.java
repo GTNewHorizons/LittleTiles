@@ -75,14 +75,18 @@ public class PreviewTile {
 
     private List<LittleTile> placeTileModeOverwrite(LittleTile tileNew, EntityPlayer player, ItemStack stack,
             boolean doAdd) {
-        List<LittleTile> tiles = new ArrayList<>(tileNew.te.getTiles());
-        List<LittleTile> newTiles = new ArrayList<>();
-
-        for (LittleTile t : tiles) {
+        List<LittleTile> overlapping = new ArrayList<>();
+        for (LittleTile t : tileNew.te.getTiles()) {
             if (t.overlapsTile(tileNew)) {
-                newTiles.addAll(t.splitByTile(tileNew));
-                t.destroy(false);
+                overlapping.add(t);
             }
+        }
+
+        List<LittleTile> newTiles = new ArrayList<>();
+        for (LittleTile t : overlapping) {
+            // Overwriting a structure removes all its tiles
+            if (!t.isStructureBlock) newTiles.addAll(t.splitByTile(tileNew));
+            t.destroy(false);
         }
         if (doAdd) {
             newTiles.add(tileNew);
@@ -100,8 +104,7 @@ public class PreviewTile {
     }
 
     public List<LittleTile> placeTile(EntityPlayer player, ItemStack stack, TileEntityLittleTiles teLT,
-            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles, LittleTilePlaceMode placeMode,
-            LittleTileCutoutInfo cutoutInfoCurrent) {
+            LittleStructure structure, LittleTilePlaceMode placeMode, LittleTileCutoutInfo cutoutInfoCurrent) {
         LittleTile LT = preview.getLittleTile(teLT);
         if (LT == null) return null;
 
@@ -130,8 +133,6 @@ public class PreviewTile {
             return placeTileModeOverwrite(LT, player, stack, true);
         } else if (placeMode == LittleTilePlaceMode.STENCIL) {
             return placeTileModeOverwrite(LT, player, stack, false);
-        } else if (unplaceableTiles != null) {
-            unplaceableTiles.add(LT);
         }
         return null;
     }

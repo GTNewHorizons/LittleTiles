@@ -286,7 +286,7 @@ public class LittleDoor extends LittleStructure {
 
         LittleTilePlacementPlan plan = new LittleTilePlacementPlan();
         plan.fillPlan(world, x, y, z, previews, structure, LittleTilePlaceMode.NORMAL);
-        if (plan.canApplyPlan() && plan.applyPlan(world, player, null, structure, null).hasPlacedTiles()) {
+        if (plan.canApplyPlan() && plan.applyPlan(world, player, null, structure).hasPlacedTiles()) {
             ArrayList<LittleTile> tiles = getTiles();
             for (LittleTile littleTile : tiles) {
                 littleTile.te.update();

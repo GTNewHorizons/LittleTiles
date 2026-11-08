@@ -1,12 +1,10 @@
-package com.creativemd.littletiles.common.history;
+package com.creativemd.littletiles.common.placement;
 
 import java.util.ArrayList;
 import java.util.Set;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ChunkCoordinates;
-
-import com.creativemd.littletiles.common.items.LittleTilePlacementPlan;
 
 /**
  * Result of applying a {@link LittleTilePlacementPlan}.

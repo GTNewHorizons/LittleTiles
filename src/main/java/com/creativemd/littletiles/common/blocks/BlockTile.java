@@ -332,6 +332,12 @@ public class BlockTile extends BlockContainer {
         return stacks;
     }
 
+    /** Explosions only drop part of what they destroy, but the tiles are what the block is made of. */
+    @Override
+    public void dropBlockAsItemWithChance(World world, int x, int y, int z, int meta, float chance, int fortune) {
+        super.dropBlockAsItemWithChance(world, x, y, z, meta, 1.0F, fortune);
+    }
+
     @Override
     public ItemStack getPickBlock(MovingObjectPosition target, World world, int x, int y, int z, EntityPlayer player) {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);

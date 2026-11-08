@@ -1,4 +1,4 @@
-package com.creativemd.littletiles.common.history;
+package com.creativemd.littletiles.common.placement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,11 +9,10 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.EmptyChunk;
 
-import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 
-public final class LittleTileChangePlan {
+public final class LittleTileChangePlan extends BasePlan {
 
     private final ArrayList<ChangeEntry> changes;
 
@@ -34,14 +33,12 @@ public final class LittleTileChangePlan {
         return changes.isEmpty();
     }
 
+    /** Applies every change or none of them. */
     public boolean apply(World world) {
         List<ResolvedChange> resolved = resolve(world);
         if (resolved == null) return false;
 
-        for (ResolvedChange change : resolved) {
-            change.apply(world);
-        }
-        return true;
+        return applyEntries(world, resolved, change -> change.apply(world));
     }
 
     /** Looks up everything the changes need and makes sure they still fit, without touching the world. */
@@ -52,10 +49,11 @@ public final class LittleTileChangePlan {
         for (ChangeEntry change : changes) {
             ChunkCoordinates coord = change.coord;
             if (world.getChunkFromBlockCoords(coord.posX, coord.posZ) instanceof EmptyChunk) return null;
-            TileEntityLittleTiles tile = LittleTileChangeRecorder.getTileEntity(world, coord);
+            if (!areStructuresLoaded(world, coord)) return null;
+            TileEntityLittleTiles tile = getTileEntity(world, coord);
             Block block = world.getBlock(coord.posX, coord.posY, coord.posZ);
 
-            if (tile == null && (block instanceof BlockTile || !block.getMaterial().isReplaceable())) return null;
+            if (!canHoldTiles(block, tile)) return null;
 
             List<LittleTile> remainingTiles = tile == null ? new ArrayList<LittleTile>()
                     : new ArrayList<>(tile.getTiles());
@@ -69,7 +67,7 @@ public final class LittleTileChangePlan {
 
             if (!isSpaceForTiles(world, coord, remainingTiles, change.placedTiles)) return null;
 
-            resolved.add(new ResolvedChange(change, tile, tilesToRemove));
+            resolved.add(new ResolvedChange(change, tilesToRemove));
         }
         return resolved;
     }

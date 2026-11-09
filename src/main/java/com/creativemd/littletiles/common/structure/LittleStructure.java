@@ -240,11 +240,14 @@ public abstract class LittleStructure {
 
     // ====================LittleTile-Stuff====================
 
-    public void onLittleTileDestory() {
+    /**
+     * Removes every tile of the structure. Blocks left empty are removed, except the given one: tiles are about to be
+     * placed into it.
+     */
+    public void onLittleTileDestory(TileEntityLittleTiles keep) {
         ArrayList<LittleTile> tiles = getTiles();
         for (LittleTile tile : tiles) {
-            tile.te.removeTile(tile);
-            // tiles.get(i).destroy();
+            tile.te.removeTile(tile, tile.te != keep);
         }
     }
 

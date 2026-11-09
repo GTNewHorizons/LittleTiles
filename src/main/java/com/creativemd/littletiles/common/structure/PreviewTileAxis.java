@@ -1,6 +1,5 @@
 package com.creativemd.littletiles.common.structure;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -73,8 +72,7 @@ public class PreviewTileAxis extends PreviewTile {
 
     @Override
     public List<LittleTile> placeTile(EntityPlayer player, ItemStack stack, TileEntityLittleTiles teLT,
-            LittleStructure structure, ArrayList<LittleTile> unplaceableTiles, LittleTilePlaceMode placeMode,
-            LittleTileCutoutInfo cutoutInfo) {
+            LittleStructure structure, LittleTilePlaceMode placeMode, LittleTileCutoutInfo cutoutInfo) {
         if (structure instanceof LittleDoor) {
             LittleDoor door = (LittleDoor) structure;
             door.axisVec = box.getMinVec(); // Check if this would be perfect

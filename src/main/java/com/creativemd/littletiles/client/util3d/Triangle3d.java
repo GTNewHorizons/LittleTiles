@@ -192,9 +192,12 @@ public class Triangle3d {
         tex3 = mapTexture(plane, p3, icon);
     }
 
+    /** In doubles, which is exact, as the orientations only swap and flip axes. */
     private static Vector3d rotateVector(Vector3d v, Matrix3f matrix) {
-        Vector3f result = matrix.transform(new Vector3f((float) v.x, (float) v.y, (float) v.z));
-        return new Vector3d(result.x, result.y, result.z);
+        return new Vector3d(
+                matrix.m00() * v.x + matrix.m10() * v.y + matrix.m20() * v.z,
+                matrix.m01() * v.x + matrix.m11() * v.y + matrix.m21() * v.z,
+                matrix.m02() * v.x + matrix.m12() * v.y + matrix.m22() * v.z);
     }
 
     public void rotate(int orientation) {

@@ -591,16 +591,16 @@ public class BlockTile extends BlockContainer implements IFacade {
     @Optional.Method(modid = "chisel")
     public Block getFacade(IBlockAccess world, int x, int y, int z, int side, int fromX, int fromY, int fromZ,
             Block fromBlock, int fromMeta) {
-        return ChiselConnections.fromBlockToTiles(world, x, y, z, fromX, fromY, fromZ, fromBlock, fromMeta) ? fromBlock
-                : this;
+        return ChiselConnections
+                .fromBlockToTiles(world, x, y, z, side, fromX, fromY, fromZ, fromBlock, fromMeta) ? fromBlock : this;
     }
 
     @Override
     @Optional.Method(modid = "chisel")
     public int getFacadeMetadata(IBlockAccess world, int x, int y, int z, int side, int fromX, int fromY, int fromZ,
             Block fromBlock, int fromMeta) {
-        return ChiselConnections.fromBlockToTiles(world, x, y, z, fromX, fromY, fromZ, fromBlock, fromMeta) ? fromMeta
-                : 0;
+        return ChiselConnections
+                .fromBlockToTiles(world, x, y, z, side, fromX, fromY, fromZ, fromBlock, fromMeta) ? fromMeta : 0;
     }
 
     private static TileEntityLittleTiles getTileEntityAt(IBlockAccess world, int x, int y, int z) {

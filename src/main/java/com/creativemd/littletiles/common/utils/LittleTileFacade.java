@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.utils;
 
 import net.minecraft.block.Block;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
@@ -95,6 +96,38 @@ public final class LittleTileFacade {
             if (tile.matches(block, meta) && continues(reach, tile.box, dx, dy, dz)) return true;
         }
         return false;
+    }
+
+    /**
+     * Whether tiles of the block and meta in the target cover the face that the target lies in front of: the face of
+     * the neighbour beside the asking area, as far as that area reaches it. Along the axes the asker steps sideways the
+     * whole face counts, along the others only the reached part of it.
+     *
+     * @param normal the side being rendered; the offset steps along it once, in front of the neighbour
+     */
+    public static boolean coversFace(LittleTileBox reach, LittleTileFacades targetTiles, Block block, int meta, int dx,
+            int dy, int dz, ForgeDirection normal) {
+        LittleTileBox face = new LittleTileBox(
+                faceMin(reach.minX, dx, normal.offsetX),
+                faceMin(reach.minY, dy, normal.offsetY),
+                faceMin(reach.minZ, dz, normal.offsetZ),
+                faceMax(reach.maxX, dx, normal.offsetX),
+                faceMax(reach.maxY, dy, normal.offsetY),
+                faceMax(reach.maxZ, dz, normal.offsetZ));
+        return targetTiles.fills(new LittleTileFacade(block, meta, face));
+    }
+
+    /** The covered face is one grid unit deep at the target's boundary facing back, against the normal. */
+    private static int faceMin(int reachMin, int offset, int normal) {
+        if (normal > 0) return LittleTile.minPos;
+        if (normal < 0) return LittleTile.maxPos - 1;
+        return offset != 0 ? LittleTile.minPos : reachMin;
+    }
+
+    private static int faceMax(int reachMax, int offset, int normal) {
+        if (normal > 0) return LittleTile.minPos + 1;
+        if (normal < 0) return LittleTile.maxPos;
+        return offset != 0 ? LittleTile.maxPos : reachMax;
     }
 
     /**

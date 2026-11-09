@@ -37,6 +37,18 @@ public final class LittleTileFacade {
         return this.block == block && this.meta == meta;
     }
 
+    @Override
+    public boolean equals(Object object) {
+        if (!(object instanceof LittleTileFacade)) return false;
+        LittleTileFacade other = (LittleTileFacade) object;
+        return matches(other.block, other.meta) && box.equals(other.box);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * (31 * System.identityHashCode(block) + meta) + box.hashCode();
+    }
+
     /**
      * @return the box stretched along every axis the offset points to, up to the boundary of its block
      */
@@ -54,16 +66,16 @@ public final class LittleTileFacade {
     public static LittleTileBox reach(LittleTileFacades sourceTiles, LittleTileBox sourceBox, Block block, int meta,
             int dx, int dy, int dz) {
         LittleTileBox reach = stretch(sourceBox, dx, dy, dz);
-        return fills(sourceTiles, block, meta, reach) ? reach : null;
+        return sourceTiles.fills(new LittleTileFacade(block, meta, reach)) ? reach : null;
     }
 
     /**
      * Whether tiles of the block and meta fill the whole box. The tiles of a block never overlap, so the volumes they
      * share with the box add up to the box's volume exactly when they fill it.
      */
-    public static boolean fills(LittleTileFacades tiles, Block block, int meta, LittleTileBox box) {
+    static boolean fills(LittleTileFacade[] tiles, Block block, int meta, LittleTileBox box) {
         long filled = 0;
-        for (LittleTileFacade tile : tiles.tiles) {
+        for (LittleTileFacade tile : tiles) {
             if (tile.matches(block, meta)) filled += sharedVolume(tile.box, box);
         }
         return filled == sharedVolume(box, box);

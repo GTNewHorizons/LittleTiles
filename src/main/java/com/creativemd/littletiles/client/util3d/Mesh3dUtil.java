@@ -371,8 +371,12 @@ public class Mesh3dUtil {
         }
 
         mesh.scale(cutoutScale);
-        mesh.translate(posCutout);
-        mesh.translate(new Vector3d(posSubMin.x / 16.0, posSubMin.y / 16.0, posSubMin.z / 16.0));
+        // In one step, so the same tile in neighbouring boxes ends up with the very same points
+        mesh.translate(
+                new Vector3d(
+                        (posCutout.x + posSubMin.x) / 16.0,
+                        (posCutout.y + posSubMin.y) / 16.0,
+                        (posCutout.z + posSubMin.z) / 16.0));
 
         int meshMinX = posCutout.x + posSubMin.x;
         int meshMaxX = meshMinX + cutoutInfo.size.x;

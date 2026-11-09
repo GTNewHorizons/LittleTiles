@@ -386,11 +386,12 @@ public class Mesh3dUtil {
         int meshMaxZ = meshMinZ + cutoutInfo.size.z;
         Plane3d plane;
 
-        if (meshMinY > posSubMax.y || meshMaxY < posSubMin.y
-                || meshMinX > posSubMax.x
-                || meshMaxX < posSubMin.x
-                || meshMinZ > posSubMax.z
-                || meshMaxZ < posSubMin.z) {
+        // Bounds that only touch the box share no volume with it
+        if (meshMinY >= posSubMax.y || meshMaxY <= posSubMin.y
+                || meshMinX >= posSubMax.x
+                || meshMaxX <= posSubMin.x
+                || meshMinZ >= posSubMax.z
+                || meshMaxZ <= posSubMin.z) {
             return new Mesh3d(new ArrayList<>());
         }
 

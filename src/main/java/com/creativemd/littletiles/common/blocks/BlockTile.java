@@ -1,8 +1,11 @@
 package com.creativemd.littletiles.common.blocks;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
@@ -31,8 +34,11 @@ import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
+import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
+import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.packet.LittleBlockPacket;
+import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.ChiselConnections;
 import com.creativemd.littletiles.common.utils.LittleTile;
@@ -163,7 +169,9 @@ public class BlockTile extends BlockContainer implements IFacade {
             return ((LittleTileBlock) littleTile.loadedTile).block
                     .getPlayerRelativeBlockHardness(player, world, x, y, z);
         }
-        return super.getBlockHardness(world, x, y, z);
+        // The server does not know which tile is mined. With no progress it never finishes mining the whole block,
+        // the hit tile is only removed by the DESTROY packet the client sends.
+        return 0;
     }
 
     @Override
@@ -206,11 +214,25 @@ public class BlockTile extends BlockContainer implements IFacade {
         setBlockBounds(0, 0, 0, 0, 0, 0);
     }
 
+    /**
+     * Called whenever the block or its metadata changes, after the chunk already holds the new block. If it is still
+     * this block, only the metadata changed and the tile entity keeps its tiles. Nothing in LittleTiles does that, but
+     * other mods might.
+     */
     @Override
     public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
-        if (littleTile != null && littleTile.getTiles().isEmpty()) {
+        if (littleTile == null) return;
+        if (littleTile.getTiles().isEmpty()) {
             super.breakBlock(world, x, y, z, block, meta);
+        } else if (!world.isRemote && world.getBlock(x, y, z) != this) {
+            // Removed with its tiles, e.g. by an explosion. A structure reaching into other blocks dropped as a whole
+            // with getDrops, so it has to go away as a whole as well.
+            Set<LittleStructure> structures = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (LittleTile tile : new ArrayList<>(littleTile.getTiles())) {
+                if (tile.isStructureBlock && tile.isLoaded() && structures.add(tile.structure))
+                    tile.structure.onLittleTileDestory(littleTile);
+            }
         }
     }
 
@@ -296,24 +318,66 @@ public class BlockTile extends BlockContainer implements IFacade {
             final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
             if (littleTile != null && littleTile.updateLoadedTile(player)) {
                 try {
-                    littleTile.loadedTile.destroy();
+                    boolean entireBlock = takesEntireBlock(player, littleTile.loadedTile);
+                    if (entireBlock) littleTile.removeTiles(selectEntireBlock(littleTile));
+                    else littleTile.loadedTile.destroy();
                     NBTTagCompound nbt = new NBTTagCompound();
                     littleTile.writeToNBT(nbt);
+                    NBTTagCompound packetNbt = new NBTTagCompound();
+                    packetNbt.setBoolean(LittleBlockPacket.ENTIRE_BLOCK, entireBlock);
                     PacketHandler.sendPacketToServer(
-                            new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.DESTROY));
+                            new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.DESTROY, packetNbt));
                     littleTile.updateRender();
                 } catch (Exception ignored) {
 
                 }
             }
-
+            return true;
         }
-        return true;
+        // Tiles are only removed by the DESTROY packet. Harvesting the whole block would drop every tile in it.
+        return false;
+    }
+
+    /**
+     * Breaking or picking while sneaking takes every tile of the block at once. A structure tile is broken and picked
+     * like always, the structure decides what goes with it.
+     */
+    public static boolean takesEntireBlock(EntityPlayer player, LittleTile hitTile) {
+        return player.isSneaking() && !hitTile.isStructureBlock;
+    }
+
+    /** The tiles taken when the entire block is harvested. Structures are left alone, they drop as their own item. */
+    public static List<LittleTile> selectEntireBlock(TileEntityLittleTiles littleTile) {
+        List<LittleTile> tiles = new ArrayList<>();
+        synchronized (littleTile.getTiles()) {
+            for (LittleTile tile : littleTile.getTiles()) {
+                if (!tile.isStructureBlock) tiles.add(tile);
+            }
+        }
+        return tiles;
+    }
+
+    /** One item holding all the given tiles, or the tile's own item if there is only one. */
+    public static ItemStack getEntireBlockDrop(World world, List<LittleTile> tiles) {
+        if (tiles.size() == 1) return tiles.get(0).getDrop();
+        ItemStack drop = new ItemStack(LittleTiles.multiTiles);
+        ItemRecipe.saveTiles(world, tiles, drop);
+        return drop;
     }
 
     @Override
     public boolean removedByPlayer(World world, EntityPlayer player, int x, int y, int z, boolean willHarvest) {
         return removedByPlayer(world, player, x, y, z);
+    }
+
+    /**
+     * Area mining tools, quarries and the like harvest blocks directly, without asking {@link #removedByPlayer}. Some
+     * remove the block afterwards, some do not, so it is removed here: every tile drops, so every tile has to go.
+     */
+    @Override
+    public void harvestBlock(World world, EntityPlayer player, int x, int y, int z, int meta) {
+        super.harvestBlock(world, player, x, y, z, meta);
+        world.setBlockToAir(x, y, z);
     }
 
     @Override
@@ -323,17 +387,32 @@ public class BlockTile extends BlockContainer implements IFacade {
         return true;
     }
 
+    /**
+     * What the block drops when it is removed without a player, e.g. by an explosion. Every tile of a structure drops
+     * the whole structure, so each structure drops only once. The stacks are copies: a structure hands out its own
+     * stack, and item entities sharing one stack add it to itself when they merge.
+     */
     @Override
-    /** Blocks will drop before this method is called */
     public ArrayList<ItemStack> getDrops(World world, int x, int y, int z, int metadata, int fortune) {
         ArrayList<ItemStack> stacks = new ArrayList<>();
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
         if (littleTile != null) {
-            for (LittleTile tile : littleTile.getTiles()) {
-                stacks.addAll(tile.getDrops());
+            Set<LittleStructure> structures = Collections.newSetFromMap(new IdentityHashMap<>());
+            // Loading a structure removes tiles whose structure is gone
+            for (LittleTile tile : new ArrayList<>(littleTile.getTiles())) {
+                if (tile.isStructureBlock && (!tile.isLoaded() || !structures.add(tile.structure))) continue;
+                for (ItemStack drop : tile.getDrops()) {
+                    stacks.add(drop.copy());
+                }
             }
         }
         return stacks;
+    }
+
+    /** Explosions only drop part of what they destroy, but the tiles are what the block is made of. */
+    @Override
+    public void dropBlockAsItemWithChance(World world, int x, int y, int z, int meta, float chance, int fortune) {
+        super.dropBlockAsItemWithChance(world, x, y, z, meta, 1.0F, fortune);
     }
 
     @Override
@@ -341,6 +420,9 @@ public class BlockTile extends BlockContainer implements IFacade {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
         if (littleTile != null && littleTile.updateLoadedTile(player)) {
             try {
+                // Survival picks from the inventory and could never find the item, so only creative gets the block
+                if (player.capabilities.isCreativeMode && takesEntireBlock(player, littleTile.loadedTile))
+                    return getEntireBlockDrop(world, selectEntireBlock(littleTile));
                 ArrayList<ItemStack> drops = littleTile.loadedTile.getDrops();
                 if (!drops.isEmpty()) return drops.get(0);
             } catch (Exception ignored) {

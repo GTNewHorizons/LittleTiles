@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.tileentity;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -48,6 +49,7 @@ public class TileEntityLittleTiles extends TileEntity {
 
     // The monitor must survive list replacement: render snapshots and cut invalidation share it.
     private final List<LittleTile> tiles = createTileList();
+    private boolean deferEmptyCleanup;
 
     public void setTiles(List<LittleTile> tiles) {
         replaceTiles(tiles);
@@ -108,6 +110,12 @@ public class TileEntityLittleTiles extends TileEntity {
         return result;
     }
 
+    public boolean removeTiles(Collection<LittleTile> tiles) {
+        boolean result = this.tiles.removeAll(tiles);
+        updateTiles();
+        return result;
+    }
+
     public void addTiles(ArrayList<LittleTile> tiles) {
         this.tiles.addAll(tiles);
         updateTiles();
@@ -131,12 +139,31 @@ public class TileEntityLittleTiles extends TileEntity {
 
             update();
             updateNeighbor();
-            if (!worldObj.isRemote && tiles.isEmpty() && cleanupTileEntityIfLast) {
+            // While the block is being replaced, the chunk holds the new block already: that one has to stay
+            if (!worldObj.isRemote && tiles.isEmpty()
+                    && cleanupTileEntityIfLast
+                    && !deferEmptyCleanup
+                    && worldObj.getBlock(xCoord, yCoord, zCoord) == LittleTiles.blockTile) {
                 worldObj.setBlockToAir(xCoord, yCoord, zCoord);
             }
         }
         if (FMLCommonHandler.instance().getEffectiveSide().isClient()) updateCustomRenderer();
 
+    }
+
+    /** Keep this block alive while a multi-block plan removes and places tiles. */
+    public void deferEmptyCleanup() {
+        deferEmptyCleanup = true;
+    }
+
+    /** Remove the block if the completed plan left it empty. */
+    public void finishDeferredEmptyCleanup() {
+        deferEmptyCleanup = false;
+        if (worldObj != null && !worldObj.isRemote
+                && tiles.isEmpty()
+                && worldObj.getTileEntity(xCoord, yCoord, zCoord) == this) {
+            worldObj.setBlockToAir(xCoord, yCoord, zCoord);
+        }
     }
 
     @SideOnly(Side.CLIENT)

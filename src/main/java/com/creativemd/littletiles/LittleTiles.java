@@ -18,10 +18,10 @@ import com.creativemd.creativecore.common.packet.CreativeCorePacket;
 import com.creativemd.littletiles.client.render.AngelicaCompat;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.common.blocks.BlockLTColored;
+import com.creativemd.littletiles.common.blocks.BlockLTMissing;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ItemBlockColored;
 import com.creativemd.littletiles.common.events.LittleEvent;
-import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.items.ItemBlockTiles;
 import com.creativemd.littletiles.common.items.ItemCollisionTool;
 import com.creativemd.littletiles.common.items.ItemColorTube;
@@ -42,6 +42,8 @@ import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
+import com.creativemd.littletiles.common.placement.LittleTilesPlacementHistory;
+import com.creativemd.littletiles.common.recipe.LittleBagBackpackRecipe;
 import com.creativemd.littletiles.common.sorting.LittleTileSortingList;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -67,7 +69,7 @@ import cpw.mods.fml.common.versioning.DefaultArtifactVersion;
         modid = LittleTiles.modid,
         version = LittleTiles.version,
         name = "LittleTiles",
-        dependencies = "after:angelica;after:chisel@[2.18.1-GTNH,);required-after:modularui2")
+        dependencies = "after:angelica;after:chisel@[2.18.1-GTNH,);after:Backpack;required-after:modularui2")
 public class LittleTiles {
 
     @Instance(LittleTiles.modid)
@@ -95,6 +97,7 @@ public class LittleTiles {
             .setCreativeTab(creativeTabLittleTiles);
     public static Block coloredBlock = new BlockLTColored(materialLittleTile).setBlockName("LTBlocks")
             .setCreativeTab(creativeTabLittleTiles);
+    public static Block missingBlock = new BlockLTMissing(materialLittleTile).setBlockName("LTMissing");
 
     public static Item hammer = new ItemHammer().setUnlocalizedName("LTHammer").setCreativeTab(creativeTabLittleTiles);
     public static Item recipe = new ItemRecipe().setUnlocalizedName("LTRecipe").setCreativeTab(creativeTabLittleTiles);
@@ -119,6 +122,7 @@ public class LittleTiles {
 
     public static AngelicaCompat angelicaCompat;
     public static NEICompat neiCompat;
+    public static PosteaCompat posteaCompat;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -144,6 +148,7 @@ public class LittleTiles {
         // GameRegistry.registerBlock(coloredBlock, "LTColoredBlock");
         GameRegistry.registerBlock(coloredBlock, ItemBlockColored.class, "LTColoredBlock");
         GameRegistry.registerBlock(blockTile, ItemBlockTiles.class, "BlockLittleTiles");
+        GameRegistry.registerBlock(missingBlock, "LTMissingBlock");
 
         GameRegistry.registerItem(multiTiles, "multiTiles");
 
@@ -195,12 +200,25 @@ public class LittleTiles {
         GameRegistry.addRecipe(
                 new ItemStack(colorTube),
                 new Object[] { "XXX", "XLX", "XXX", 'X', Items.dye, 'L', Items.iron_ingot });
+
+        // With the Backpack mod the bag is made from a backpack, which decides its size
+        if (Loader.isModLoaded("Backpack")) {
+            LittleBagBackpackRecipe.register();
+        } else {
+            GameRegistry.addRecipe(
+                    ItemLittleBag.create(ItemLittleBag.DEFAULT_CAPACITY),
+                    new Object[] { " I ", "LSL", " L ", 'I', new ItemStack(Items.dye, 1, 4), 'L', Items.leather, 'S',
+                            Items.string });
+        }
         initAngelicaCompat();
         if (Loader.isModLoaded("Waila")) {
             Waila.init();
         }
         if (Loader.isModLoaded("NotEnoughItems")) {
             neiCompat = new NEICompat();
+        }
+        if (Loader.isModLoaded("postea")) {
+            posteaCompat = new PosteaCompat();
         }
     }
 

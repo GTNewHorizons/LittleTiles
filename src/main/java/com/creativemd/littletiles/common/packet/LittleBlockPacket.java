@@ -1,8 +1,10 @@
 package com.creativemd.littletiles.common.packet;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
@@ -16,10 +18,10 @@ import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.WorldUtils;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.blocks.BlockTile;
-import com.creativemd.littletiles.common.history.LittleTileChangeRecorder;
-import com.creativemd.littletiles.common.history.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.items.ItemColorTube;
 import com.creativemd.littletiles.common.items.ItemTileContainer;
+import com.creativemd.littletiles.common.placement.LittleTileChangeRecorder;
+import com.creativemd.littletiles.common.placement.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
@@ -31,6 +33,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 
 public class LittleBlockPacket extends CreativeCorePacket {
+
+    /** DESTROY: the client harvested every tile of the block, see {@link BlockTile#takesEntireBlock}. */
+    public static final String ENTIRE_BLOCK = "entireBlock";
 
     public int x;
     public int y;
@@ -129,9 +134,17 @@ public class LittleBlockPacket extends CreativeCorePacket {
                         boolean creative = player.capabilities.isCreativeMode;
                         LittleTileChangeRecorder recorder = new LittleTileChangeRecorder(player.worldObj);
                         if (creative) recorder.watch(littleEntity.getCoord());
-                        tile.destroy();
-                        // littleEntity.removeTile(tile);
-                        if (!creative) WorldUtils.dropItem(player.worldObj, tile.getDrops(), x, y, z);
+                        if (nbt.getBoolean(ENTIRE_BLOCK) && BlockTile.takesEntireBlock(player, tile)) {
+                            List<LittleTile> tiles = BlockTile.selectEntireBlock(littleEntity);
+                            // The item is made before the tiles leave the block they are saved from
+                            ItemStack drop = creative ? null : BlockTile.getEntireBlockDrop(player.worldObj, tiles);
+                            littleEntity.removeTiles(tiles);
+                            if (drop != null) WorldUtils.dropItem(player.worldObj, drop, x, y, z);
+                        } else {
+                            tile.destroy();
+                            // littleEntity.removeTile(tile);
+                            if (!creative) WorldUtils.dropItem(player.worldObj, tile.getDrops(), x, y, z);
+                        }
                         littleEntity.update();
                         if (creative) LittleTilesPlacementHistory.recordAction(
                                 player,

@@ -69,7 +69,7 @@ import cpw.mods.fml.common.versioning.DefaultArtifactVersion;
         modid = LittleTiles.modid,
         version = LittleTiles.version,
         name = "LittleTiles",
-        dependencies = "after:angelica;after:Backpack;required-after:modularui2")
+        dependencies = "after:angelica;after:chisel@[2.18.1-GTNH,);after:Backpack;required-after:modularui2")
 public class LittleTiles {
 
     @Instance(LittleTiles.modid)

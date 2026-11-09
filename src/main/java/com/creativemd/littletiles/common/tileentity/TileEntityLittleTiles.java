@@ -1,8 +1,10 @@
 package com.creativemd.littletiles.common.tileentity;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
@@ -27,7 +29,10 @@ import com.creativemd.littletiles.client.util3d.TriangleRayIntersect;
 import com.creativemd.littletiles.client.util3d.TriangleTriangleIntersect;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTileFacade;
+import com.creativemd.littletiles.common.utils.LittleTileFacades;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
@@ -58,6 +63,7 @@ public class TileEntityLittleTiles extends TileEntity {
             tiles.clear();
             tiles.addAll(snapshot);
         }
+        invalidateFacades();
     }
 
     public List<LittleTile> getTiles() {
@@ -104,6 +110,12 @@ public class TileEntityLittleTiles extends TileEntity {
         return result;
     }
 
+    public boolean removeTiles(Collection<LittleTile> tiles) {
+        boolean result = this.tiles.removeAll(tiles);
+        updateTiles();
+        return result;
+    }
+
     public void addTiles(ArrayList<LittleTile> tiles) {
         this.tiles.addAll(tiles);
         updateTiles();
@@ -127,7 +139,11 @@ public class TileEntityLittleTiles extends TileEntity {
 
             update();
             updateNeighbor();
-            if (!worldObj.isRemote && tiles.isEmpty() && cleanupTileEntityIfLast && !deferEmptyCleanup) {
+            // While the block is being replaced, the chunk holds the new block already: that one has to stay
+            if (!worldObj.isRemote && tiles.isEmpty()
+                    && cleanupTileEntityIfLast
+                    && !deferEmptyCleanup
+                    && worldObj.getBlock(xCoord, yCoord, zCoord) == LittleTiles.blockTile) {
                 worldObj.setBlockToAir(xCoord, yCoord, zCoord);
             }
         }
@@ -440,6 +456,7 @@ public class TileEntityLittleTiles extends TileEntity {
     @SideOnly(Side.CLIENT)
     public void updateRender() {
         invalidateCutCaches();
+        invalidateFacades();
         recalculateMaxLightValue();
         invalidateNeighbourRender();
     }
@@ -580,6 +597,42 @@ public class TileEntityLittleTiles extends TileEntity {
 
     public int getMaxLightValue() {
         return maxLightValue;
+    }
+
+    /**
+     * Either the computed facades or a placeholder until they are needed. Every invalidation stores a new placeholder,
+     * so a computation that raced with a change of the tiles cannot replace it with its stale result.
+     */
+    private final AtomicReference<Object> facades = new AtomicReference<>(new Object());
+
+    private void invalidateFacades() {
+        facades.set(new Object());
+    }
+
+    /**
+     * The block tiles connected textures can connect to, from neighbours and from the other tiles of this block.
+     * Computed on first use after the tiles changed, from any thread.
+     */
+    public LittleTileFacades getFacades() {
+        Object current = facades.get();
+        if (current instanceof LittleTileFacades) return (LittleTileFacades) current;
+        LittleTileFacades computed = computeFacades();
+        facades.compareAndSet(current, computed);
+        return computed;
+    }
+
+    private LittleTileFacades computeFacades() {
+        List<LittleTileFacade> result = new ArrayList<>();
+        synchronized (tiles) {
+            for (LittleTile tile : tiles) {
+                if (!(tile instanceof LittleTileBlock) || tile.boundingBox == null) continue;
+                // cut shapes don't connect for now, their bounding box isn't what they show
+                if (tile.getCutoutInfo() != null) continue;
+                LittleTileBlock blockTile = (LittleTileBlock) tile;
+                result.add(new LittleTileFacade(blockTile.block, blockTile.meta, tile.boundingBox.copy()));
+            }
+        }
+        return new LittleTileFacades(result.toArray(new LittleTileFacade[0]));
     }
 
     @Override

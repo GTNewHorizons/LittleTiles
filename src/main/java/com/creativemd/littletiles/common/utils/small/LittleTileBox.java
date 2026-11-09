@@ -268,6 +268,17 @@ public class LittleTileBox {
     }
 
     @Override
+    public int hashCode() {
+        int result = minX;
+        result = 31 * result + minY;
+        result = 31 * result + minZ;
+        result = 31 * result + maxX;
+        result = 31 * result + maxY;
+        result = 31 * result + maxZ;
+        return result;
+    }
+
+    @Override
     public String toString() {
         return "[" + minX + "," + minY + "," + minZ + " -> " + maxX + "," + maxY + "," + maxZ + "]";
     }

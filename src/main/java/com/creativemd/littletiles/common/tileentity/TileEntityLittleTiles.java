@@ -31,6 +31,7 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileFacade;
+import com.creativemd.littletiles.common.utils.LittleTileFacades;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
@@ -585,15 +586,15 @@ public class TileEntityLittleTiles extends TileEntity {
      * The block tiles connected textures can connect to, from neighbours and from the other tiles of this block.
      * Computed on first use after the tiles changed, from any thread.
      */
-    public LittleTileFacade[] getFacades() {
+    public LittleTileFacades getFacades() {
         Object current = facades.get();
-        if (current instanceof LittleTileFacade[]) return (LittleTileFacade[]) current;
-        LittleTileFacade[] computed = computeFacades();
+        if (current instanceof LittleTileFacades) return (LittleTileFacades) current;
+        LittleTileFacades computed = computeFacades();
         facades.compareAndSet(current, computed);
         return computed;
     }
 
-    private LittleTileFacade[] computeFacades() {
+    private LittleTileFacades computeFacades() {
         List<LittleTileFacade> result = new ArrayList<>();
         synchronized (tiles) {
             for (LittleTile tile : tiles) {
@@ -604,7 +605,7 @@ public class TileEntityLittleTiles extends TileEntity {
                 result.add(new LittleTileFacade(blockTile.block, blockTile.meta, tile.boundingBox.copy()));
             }
         }
-        return result.toArray(new LittleTileFacade[0]);
+        return new LittleTileFacades(result.toArray(new LittleTileFacade[0]));
     }
 
     @Override

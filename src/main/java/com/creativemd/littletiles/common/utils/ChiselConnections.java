@@ -22,7 +22,7 @@ public final class ChiselConnections {
         int dx = Integer.signum(x - fromX);
         int dy = Integer.signum(y - fromY);
         int dz = Integer.signum(z - fromZ);
-        LittleTileFacade[] targetFacades = ((TileEntityLittleTiles) target).getFacades();
+        LittleTileFacades targetFacades = ((TileEntityLittleTiles) target).getFacades();
         return LittleTileFacade.connectsToTiles(LittleTileFacade.FULL_BLOCK, targetFacades, block, meta, dx, dy, dz);
     }
 
@@ -36,14 +36,14 @@ public final class ChiselConnections {
         int dx = Integer.signum(x - fromX);
         int dy = Integer.signum(y - fromY);
         int dz = Integer.signum(z - fromZ);
-        LittleTileFacade[] sourceFacades = ((TileEntityLittleTiles) source).getFacades();
+        LittleTileFacades sourceFacades = ((TileEntityLittleTiles) source).getFacades();
         // Stretch the tile to the requested side(s) and check that matching tiles fill it.
         LittleTileBox reach = LittleTileFacade.reach(sourceFacades, sourceBox, block, meta, dx, dy, dz);
         if (reach == null) return false;
 
         TileEntity target = world.getTileEntity(x, y, z);
         if (target instanceof TileEntityLittleTiles) {
-            LittleTileFacade[] targetFacades = ((TileEntityLittleTiles) target).getFacades();
+            LittleTileFacades targetFacades = ((TileEntityLittleTiles) target).getFacades();
             return LittleTileFacade.connectsToTiles(reach, targetFacades, block, meta, dx, dy, dz);
         }
         return matchesBlock(world, x, y, z, side, fromX, fromY, fromZ, block, meta);

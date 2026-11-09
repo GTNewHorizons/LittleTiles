@@ -51,7 +51,7 @@ public final class LittleTileFacade {
     }
 
     /** The source area extended to its boundary, or null if other materials leave a gap in it. */
-    public static LittleTileBox reach(LittleTileFacade[] sourceTiles, LittleTileBox sourceBox, Block block, int meta,
+    public static LittleTileBox reach(LittleTileFacades sourceTiles, LittleTileBox sourceBox, Block block, int meta,
             int dx, int dy, int dz) {
         LittleTileBox reach = stretch(sourceBox, dx, dy, dz);
         return fills(sourceTiles, block, meta, reach) ? reach : null;
@@ -61,9 +61,9 @@ public final class LittleTileFacade {
      * Whether tiles of the block and meta fill the whole box. The tiles of a block never overlap, so the volumes they
      * share with the box add up to the box's volume exactly when they fill it.
      */
-    public static boolean fills(LittleTileFacade[] tiles, Block block, int meta, LittleTileBox box) {
+    public static boolean fills(LittleTileFacades tiles, Block block, int meta, LittleTileBox box) {
         long filled = 0;
-        for (LittleTileFacade tile : tiles) {
+        for (LittleTileFacade tile : tiles.tiles) {
             if (tile.matches(block, meta)) filled += sharedVolume(tile.box, box);
         }
         return filled == sharedVolume(box, box);
@@ -77,9 +77,9 @@ public final class LittleTileFacade {
     }
 
     /** Whether the target has a tile of the same material touching the reached area from the opposite boundary. */
-    public static boolean connectsToTiles(LittleTileBox reach, LittleTileFacade[] targetTiles, Block block, int meta,
+    public static boolean connectsToTiles(LittleTileBox reach, LittleTileFacades targetTiles, Block block, int meta,
             int dx, int dy, int dz) {
-        for (LittleTileFacade tile : targetTiles) {
+        for (LittleTileFacade tile : targetTiles.tiles) {
             if (tile.matches(block, meta) && continues(reach, tile.box, dx, dy, dz)) return true;
         }
         return false;

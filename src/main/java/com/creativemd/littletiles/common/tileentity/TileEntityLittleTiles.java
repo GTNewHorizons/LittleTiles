@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.tileentity;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -104,6 +105,12 @@ public class TileEntityLittleTiles extends TileEntity {
         return result;
     }
 
+    public boolean removeTiles(Collection<LittleTile> tiles) {
+        boolean result = this.tiles.removeAll(tiles);
+        updateTiles();
+        return result;
+    }
+
     public void addTiles(ArrayList<LittleTile> tiles) {
         this.tiles.addAll(tiles);
         updateTiles();
@@ -127,7 +134,11 @@ public class TileEntityLittleTiles extends TileEntity {
 
             update();
             updateNeighbor();
-            if (!worldObj.isRemote && tiles.isEmpty() && cleanupTileEntityIfLast && !deferEmptyCleanup) {
+            // While the block is being replaced, the chunk holds the new block already: that one has to stay
+            if (!worldObj.isRemote && tiles.isEmpty()
+                    && cleanupTileEntityIfLast
+                    && !deferEmptyCleanup
+                    && worldObj.getBlock(xCoord, yCoord, zCoord) == LittleTiles.blockTile) {
                 worldObj.setBlockToAir(xCoord, yCoord, zCoord);
             }
         }

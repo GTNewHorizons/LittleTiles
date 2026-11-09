@@ -24,6 +24,7 @@ public final class Shapes {
     public static final LittleTileShapeMode[] CUT_SHAPES = { LittleTileShapeMode.SLOPE,
             LittleTileShapeMode.SLOPE_CONCAVE, LittleTileShapeMode.SLOPE_CONVEX,
             LittleTileShapeMode.SLOPE_CONVEX_INNER_CORNER, LittleTileShapeMode.SLOPE_CONVEX_OUTER_CORNER,
+            LittleTileShapeMode.SLOPE_CONCAVE_INNER_CORNER, LittleTileShapeMode.SLOPE_CONCAVE_OUTER_CORNER,
             LittleTileShapeMode.SLOPE_TRIANGLE, LittleTileShapeMode.SLOPE_TRIANGLE_CORNER,
             LittleTileShapeMode.SLOPE_TRIANGLE_ALT, LittleTileShapeMode.SLOPE_OUTER_CORNER,
             LittleTileShapeMode.SLOPE_INNER_CORNER };

@@ -2,7 +2,7 @@ package com.creativemd.littletiles.common.structure;
 
 import net.minecraft.nbt.NBTTagCompound;
 
-import com.creativemd.creativecore.common.gui.SubGui;
+import com.creativemd.littletiles.common.gui.StructureConfigWidget;
 
 public class LittleLadder extends LittleStructure {
 
@@ -17,12 +17,7 @@ public class LittleLadder extends LittleStructure {
     }
 
     @Override
-    public void createControls(SubGui gui, LittleStructure structure) {
-
-    }
-
-    @Override
-    public LittleStructure parseStructure(SubGui gui) {
+    public LittleStructure parseStructure(StructureConfigWidget config) {
         return new LittleLadder();
     }
 

@@ -115,7 +115,7 @@ public class SubContainerWrench extends SubContainer {
 
     @Override
     public void onGuiPacket(int controlID, NBTTagCompound nbt, EntityPlayer player) {
-        if (controlID == 0) {
+        if (controlID == 0 && player.capabilities.isCreativeMode) {
             ItemStack stack1 = basic.getStackInSlot(0);
             ItemStack stack2 = basic.getStackInSlot(1);
             if (stack1 != null) {

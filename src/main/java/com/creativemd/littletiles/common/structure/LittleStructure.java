@@ -15,8 +15,8 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.EmptyChunk;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.creativemd.creativecore.common.gui.SubGui;
 import com.creativemd.creativecore.common.utils.HashMapList;
+import com.creativemd.littletiles.common.gui.StructureConfigWidget;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTile.LittleTilePosition;
@@ -276,11 +276,18 @@ public abstract class LittleStructure {
     public void onRotate(World world, EntityPlayer player, ItemStack stack, ForgeDirection direction) {}
 
     // ====================GUI STUFF====================
+    /**
+     * The settings of this structure type in the recipe gui, null when there is nothing to configure. {@code structure}
+     * is the one saved in the recipe if it has this type.
+     */
     @SideOnly(Side.CLIENT)
-    public abstract void createControls(SubGui gui, LittleStructure structure);
+    public StructureConfigWidget createConfigWidget(ItemStack stack, LittleStructure structure) {
+        return null;
+    }
 
+    /** The structure as set up in the recipe gui, {@code config} is the widget from {@link #createConfigWidget}. */
     @SideOnly(Side.CLIENT)
-    public abstract LittleStructure parseStructure(SubGui gui);
+    public abstract LittleStructure parseStructure(StructureConfigWidget config);
 
     // ====================LittleStructure ID====================
 

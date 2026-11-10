@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.creativemd.creativecore.lib.Vector3d;
+import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -99,6 +100,29 @@ public final class MeshCutter {
             indices.put(key, index);
         }
         return index;
+    }
+
+    /** The box, in blocks. */
+    public static MeshCutter box(LittleTileBox box) {
+        MeshCutter cutter = new MeshCutter();
+        for (int corner = 0; corner < Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT; corner++) {
+            cutter.points.add(
+                    new Vector3d(
+                            ((corner & 1) == 0 ? box.minX : box.maxX) / 16.0,
+                            ((corner & 2) == 0 ? box.minY : box.maxY) / 16.0,
+                            ((corner & 4) == 0 ? box.minZ : box.maxZ) / 16.0));
+        }
+        for (int[] inwards : Mesh3dUtil.DEFORMED_BOX_FACES) {
+            int[] face = { inwards[3], inwards[2], inwards[1], inwards[0] };
+            cutter.faces.add(
+                    new Face(
+                            face,
+                            Triangle3d.planeThrough(
+                                    cutter.points.get(face[0]),
+                                    cutter.points.get(face[1]),
+                                    cutter.points.get(face[2]))));
+        }
+        return cutter;
     }
 
     /** A copy to cut on its own. */

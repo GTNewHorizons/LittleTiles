@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.client.util3d;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -306,17 +307,29 @@ public class Mesh3dUtil {
         return new Mesh3d(createBoxTriangles());
     }
 
-    /** The solid of the tile before it is cut to its box, in blocks. */
-    public static Mesh3d solid(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
-        Mesh3d mesh = shapeMesh(cutoutInfo);
-        place(
-                mesh,
-                cutoutInfo,
-                cutoutInfo.size,
-                cutoutInfo.pos,
-                new Vector3i(box.minX, box.minY, box.minZ),
-                cutoutInfo.orientation);
-        return mesh;
+    /**
+     * The solid of the tile before it is cut to its box, as convex pieces that add up to it, in blocks. A shape made
+     * from a template has the pieces the template lists, other shapes are split into {@link #tetrahedra}.
+     *
+     * @param cutoutInfo the cutout, or null for a plain box. Its solid is all of space, one piece without faces, as
+     *                   tiles are cut to their boxes anyway
+     */
+    public static List<Mesh3d> convexPieces(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
+        if (cutoutInfo == null) return Collections.singletonList(new Mesh3d(new ArrayList<>()));
+        Mesh3dTemplateLoader.Template template = TEMPLATES.get(cutoutInfo.type);
+        List<Mesh3d> pieces = new ArrayList<>();
+        if (template == null) {
+            pieces.addAll(tetrahedra(shapeMesh(cutoutInfo)));
+        } else {
+            for (Mesh3d piece : template.pieces) {
+                pieces.add(piece.copy());
+            }
+        }
+        Vector3i boxMin = new Vector3i(box.minX, box.minY, box.minZ);
+        for (Mesh3d piece : pieces) {
+            place(piece, cutoutInfo, cutoutInfo.size, cutoutInfo.pos, boxMin, cutoutInfo.orientation);
+        }
+        return pieces;
     }
 
     /**

@@ -3,7 +3,6 @@ package com.creativemd.littletiles.client.util3d;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
@@ -11,9 +10,9 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
  * Whether tiles overlap, measured by the volume they share. Tiles that only touch share none, however their surfaces
  * are triangulated and rounded, so this needs no tolerances for touching faces, edges or corners.
  * <p>
- * The first tile is cut down to the box both tiles have in common. The second is split into signed tetrahedra, see
- * {@link Mesh3dUtil#tetrahedra}: what the first shares with each of them is the first cut by its face planes, and these
- * volumes add up to the volume the tiles share.
+ * Each tile is made of convex pieces, see {@link Mesh3dUtil#convexPieces}. What two convex pieces share within the box
+ * both tiles have in common is that box cut by the face planes of both pieces, and the volumes of all pairs of pieces
+ * add up to the volume the tiles share.
  */
 public final class MeshCollision {
 
@@ -36,44 +35,59 @@ public final class MeshCollision {
                 Math.min(boxA.maxZ, boxB.maxZ));
         if (common.minX >= common.maxX || common.minY >= common.maxY || common.minZ >= common.maxZ) return false;
         if (cutoutA == null && cutoutB == null) return true;
-        if (cutoutA == null) return intersects(boxB, cutoutB, boxA, null);
 
-        MeshCutter withinA = new MeshCutter(Mesh3dUtil.solid(boxA, cutoutA).getTriangles());
-        for (Plane3d plane : facePlanes(common)) {
-            // A cut that doesn't close leaves too little volume, so rather than missing a collision count it as one
-            if (!withinA.cut(plane)) return true;
-        }
-        if (cutoutB == null) return withinA.volumeTimesSix() / 6 > MeshCutter.VOLUME_EPSILON;
-
+        List<Piece> piecesA = pieces(boxA, cutoutA);
+        List<Piece> piecesB = pieces(boxB, cutoutB);
         double sixTimesVolume = 0;
-        for (Mesh3d tetrahedron : Mesh3dUtil.tetrahedra(Mesh3dUtil.solid(boxB, cutoutB))) {
-            if (withinA.isEmpty()) break;
-            List<Triangle3d> faces = tetrahedron.getTriangles();
-            Triangle3d base = faces.get(0);
-            Vector3d apex = faces.get(1).getP1();
-            // Inside out, it counts negatively, and its faces are turned outwards for their planes
-            boolean insideOut = MeshCutter.det(base.getP1(), base.getP2(), base.getP3(), apex) < 0;
-            MeshCutter shared = withinA.copy();
-            for (Triangle3d face : faces) {
-                if (!shared.cut(
-                        insideOut ? Triangle3d.planeThrough(face.getP1(), face.getP3(), face.getP2())
-                                : Triangle3d.planeThrough(face.getP1(), face.getP2(), face.getP3())))
-                    return true;
+        for (Piece pieceA : piecesA) {
+            MeshCutter withinA = MeshCutter.box(common);
+            // A cut that doesn't close leaves too little volume, so rather than missing a collision count it as one
+            if (!pieceA.cut(withinA)) return true;
+            if (withinA.isEmpty()) continue;
+            for (Piece pieceB : piecesB) {
+                MeshCutter shared = withinA.copy();
+                if (!pieceB.cut(shared)) return true;
+                sixTimesVolume += pieceA.sign * pieceB.sign * shared.volumeTimesSix();
             }
-            sixTimesVolume += insideOut ? -shared.volumeTimesSix() : shared.volumeTimesSix();
         }
         return sixTimesVolume / 6 > MeshCutter.VOLUME_EPSILON;
     }
 
-    /** The planes of the box's faces, facing out of it. */
-    private static List<Plane3d> facePlanes(LittleTileBox box) {
-        List<Plane3d> planes = new ArrayList<>(6);
-        planes.add(Plane3d.UP.moveAlongNormal(-(16 - box.maxY) / 16.0));
-        planes.add(Plane3d.DOWN.moveAlongNormal(-box.minY / 16.0));
-        planes.add(Plane3d.WEST.moveAlongNormal(-box.minX / 16.0));
-        planes.add(Plane3d.EAST.moveAlongNormal(-(16 - box.maxX) / 16.0));
-        planes.add(Plane3d.SOUTH.moveAlongNormal(-(16 - box.maxZ) / 16.0));
-        planes.add(Plane3d.NORTH.moveAlongNormal(-box.minZ / 16.0));
-        return planes;
+    /** The pieces of the tile, see {@link Mesh3dUtil#convexPieces}. */
+    private static List<Piece> pieces(LittleTileBox box, LittleTileCutoutInfo cutout) {
+        List<Piece> pieces = new ArrayList<>();
+        for (Mesh3d mesh : Mesh3dUtil.convexPieces(box, cutout)) {
+            pieces.add(new Piece(mesh));
+        }
+        return pieces;
+    }
+
+    /** Face planes and sign of a convex piece, prepared once for all its pairwise intersections. */
+    private static final class Piece {
+
+        final List<Plane3d> planes = new ArrayList<>();
+        final int sign;
+
+        Piece(Mesh3d mesh) {
+            sign = mesh.volume() < 0 ? -1 : 1;
+            // Turned outwards, so that its planes face out
+            if (sign < 0) mesh.flipWindingOrder();
+            Object polygon = null;
+            for (Triangle3d triangle : mesh.getTriangles()) {
+                // The triangles of a polygon come one after another, and one plane does for all of them
+                if (polygon != null && triangle.getPolygon() == polygon) continue;
+                polygon = triangle.getPolygon();
+                planes.add(triangle.getFacePlane());
+            }
+        }
+
+        /** @return false if a cut could not be closed, see {@link MeshCutter#cut} */
+        boolean cut(MeshCutter cutter) {
+            for (Plane3d plane : planes) {
+                if (cutter.isEmpty()) return true;
+                if (!cutter.cut(plane)) return false;
+            }
+            return true;
+        }
     }
 }

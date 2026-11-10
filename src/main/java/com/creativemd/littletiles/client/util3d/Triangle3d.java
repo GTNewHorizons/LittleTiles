@@ -27,7 +27,7 @@ public class Triangle3d {
     private Plane3d plane;
     /**
      * Shared by the triangles a convex polygon of the mesh was split into, so that {@link MeshCutter} can put it back
-     * together. Null for a triangle that is a face on its own.
+     * together, and {@link MeshCollision} takes its plane once. Null for a triangle that is a face on its own.
      */
     private Object polygon;
 

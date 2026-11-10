@@ -195,6 +195,7 @@ public final class PlacementHelper {
 
             for (LittleTilePreview tile : tiles) {
                 if (tile != null) {
+                    tile.itemBox = tile.getRenderBox().copy();
                     if (tile.box == null) {
                         tile.box = box.copy();
                         preview.add(new PreviewTile(tile.box.copy(), tile));

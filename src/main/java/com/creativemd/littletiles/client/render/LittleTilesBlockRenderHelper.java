@@ -7,8 +7,10 @@ import java.util.function.Supplier;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.IBlockAccess;
@@ -70,10 +72,7 @@ public class LittleTilesBlockRenderHelper {
                     color.zCoord,
                     alpha);
         } else {
-            Vector3i posSubMax = new Vector3i(
-                    (int) Math.round(size.xCoord * 16),
-                    (int) Math.round(size.yCoord * 16),
-                    (int) Math.round(size.zCoord * 16));
+            Vector3i posSubMax = sizeInPixels(size);
             if (cutoutSize == null) {
                 cutoutSize = posSubMax;
             }
@@ -92,6 +91,63 @@ public class LittleTilesBlockRenderHelper {
                     posSubMax,
                     cutoutInfo);
         }
+    }
+
+    private static Vector3i sizeInPixels(Vec3 size) {
+        return new Vector3i(
+                (int) Math.round(size.xCoord * 16),
+                (int) Math.round(size.yCoord * 16),
+                (int) Math.round(size.zCoord * 16));
+    }
+
+    /**
+     * Like {@link #renderShape}, but textured with {@code block} the way its item shows it.
+     *
+     * @param textureOffset where the tile sits in its own block, in blocks. The texture follows the tile, not the
+     *                      position it is previewed at.
+     */
+    public static void renderTexturedShape(LittleTileShapeMode shape, double centerX, double centerY, double centerZ,
+            Vec3 size, Vector3i cutoutSize, int orientation, Vector3i posCutout, LittleTileCutoutInfo cutoutInfo,
+            Block block, int meta, int color, Vector3d textureOffset, double alpha) {
+        Mesh3d mesh;
+        if (shape == LittleTileShapeMode.BOX || shape == LittleTileShapeMode.PILLAR) {
+            mesh = Mesh3dUtil.createBoxMesh();
+            mesh.scale(new Vector3d(size.xCoord, size.yCoord, size.zCoord));
+        } else {
+            Vector3i posSubMax = sizeInPixels(size);
+            if (cutoutSize == null) {
+                cutoutSize = posSubMax;
+            }
+            mesh = Mesh3dUtil
+                    .createMesh(cutoutInfo, cutoutSize, posCutout, new Vector3i(), posSubMax, null, 0, orientation);
+        }
+        mesh.translate(textureOffset);
+        mesh.setTextures(block, meta);
+        mesh.translate(new Vector3d(-textureOffset.x, -textureOffset.y, -textureOffset.z));
+
+        double x = centerX - size.xCoord / 2D;
+        double y = centerY - size.yCoord / 2D;
+        double z = centerZ - size.zCoord / 2D;
+        boolean topTintOnly = tintsTopFaceOnly(block);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+        GL11.glBegin(GL11.GL_TRIANGLES);
+        for (Triangle3d triangle : mesh.getTriangles()) {
+            int faceColor = topTintOnly && triangle.getFaceDirection() != ForgeDirection.UP ? ColorUtils.WHITE : color;
+            GL11.glColor4ub(
+                    (byte) (faceColor >> 16 & 255),
+                    (byte) (faceColor >> 8 & 255),
+                    (byte) (faceColor & 255),
+                    (byte) (alpha * 255));
+            GL11.glTexCoord2d(triangle.getTex1().x, triangle.getTex1().y);
+            vertexFromCamera(x, y, z, triangle.getP1());
+            GL11.glTexCoord2d(triangle.getTex2().x, triangle.getTex2().y);
+            vertexFromCamera(x, y, z, triangle.getP2());
+            GL11.glTexCoord2d(triangle.getTex3().x, triangle.getTex3().y);
+            vertexFromCamera(x, y, z, triangle.getP3());
+        }
+        GL11.glEnd();
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
     }
 
     public static void renderMesh(double x, double y, double z, Vector3i cutoutSize, int orientation, double red,

@@ -32,6 +32,11 @@ public class PreviewTileAxis extends PreviewTile {
     }
 
     @Override
+    public boolean isTextured() {
+        return false;
+    }
+
+    @Override
     public boolean needsCollisionTest() {
         return false;
     }

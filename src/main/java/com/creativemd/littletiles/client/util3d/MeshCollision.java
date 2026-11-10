@@ -40,7 +40,8 @@ public final class MeshCollision {
 
         MeshCutter withinA = new MeshCutter(Mesh3dUtil.solid(boxA, cutoutA).getTriangles());
         for (Plane3d plane : facePlanes(common)) {
-            withinA.cut(plane);
+            // A cut that doesn't close leaves too little volume, so rather than missing a collision count it as one
+            if (!withinA.cut(plane)) return true;
         }
         if (cutoutB == null) return withinA.volumeTimesSix() / 6 > MeshCutter.VOLUME_EPSILON;
 
@@ -54,9 +55,10 @@ public final class MeshCollision {
             boolean insideOut = MeshCutter.det(base.getP1(), base.getP2(), base.getP3(), apex) < 0;
             MeshCutter shared = withinA.copy();
             for (Triangle3d face : faces) {
-                shared.cut(
+                if (!shared.cut(
                         insideOut ? Triangle3d.planeThrough(face.getP1(), face.getP3(), face.getP2())
-                                : Triangle3d.planeThrough(face.getP1(), face.getP2(), face.getP3()));
+                                : Triangle3d.planeThrough(face.getP1(), face.getP2(), face.getP3())))
+                    return true;
             }
             sixTimesVolume += insideOut ? -shared.volumeTimesSix() : shared.volumeTimesSix();
         }

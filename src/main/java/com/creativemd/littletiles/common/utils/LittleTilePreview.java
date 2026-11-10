@@ -25,6 +25,11 @@ public final class LittleTilePreview {
     public NBTTagCompound nbt;
 
     public LittleTileBox box;
+    /**
+     * Where the item shows the tile, kept when {@link PlacementHelper#getPreviewTiles} moves {@link #box} to where it
+     * is placed. Null until then.
+     */
+    public LittleTileBox itemBox;
 
     public ArrayList<ShiftHandler> shifthandlers = new ArrayList<>();
 
@@ -46,8 +51,13 @@ public final class LittleTilePreview {
         return LittleTile.CreateandLoadTile(te, te.getWorldObj(), nbt);
     }
 
+    /** The box the item shows the tile in: its own, or centered in a block if it has none. */
+    public LittleTileBox getRenderBox() {
+        return box != null ? box : new LittleTileBox(new LittleTileVec(8, 8, 8), size, true);
+    }
+
     public CubeObject getCubeBlock() {
-        LittleTileBox renderBox = box != null ? box : new LittleTileBox(new LittleTileVec(8, 8, 8), size, true);
+        LittleTileBox renderBox = getRenderBox();
         LittleTilesCubeObject cube = renderBox.getCube();
         if (nbt.hasKey("block")) {
             cube.block = Block.getBlockFromName(nbt.getString("block"));
@@ -70,6 +80,7 @@ public final class LittleTilePreview {
         preview.canSplit = this.canSplit;
         preview.shifthandlers = new ArrayList<>(this.shifthandlers);
         if (box != null) preview.box = box.copy();
+        if (itemBox != null) preview.itemBox = itemBox.copy();
         return preview;
     }
 

@@ -20,10 +20,12 @@ import net.minecraft.util.Vec3;
 import net.minecraftforge.client.event.RenderHandEvent;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
@@ -32,6 +34,7 @@ import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -50,6 +53,9 @@ public class PreviewRenderer {
         packet.executeClient(Minecraft.getMinecraft().thePlayer);
         PacketHandler.sendPacketToServer(packet);
     }
+
+    /** Up to how many blocks the chisel preview may reach into and still be textured. */
+    private static final int CHISEL_PREVIEW_LIMIT = 27;
 
     public static LittleTileBlockPos markedHit = null;
     public static LittleTileBlockPos firstHit = null;
@@ -142,6 +148,200 @@ public class PreviewRenderer {
         if (LittleDeformedBoxHelper.hasMarkedCorner()) moveMarkedCorner(move, direction_look, align);
         else if (markedHit != null) moveMarkedHit(move, direction_look, align);
         else if (!isEditingDeformedBox()) processKey(rotate);
+    }
+
+    private static double previewAlpha() {
+        return Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5;
+    }
+
+    /** Center of the preview tile, relative to the camera. Spans from the first hit while one is set. */
+    private static Vec3 getPreviewCenter(PreviewTile previewTile, LittleTileBlockPos pos, double x, double y, double z,
+            int align) {
+        LittleTileBox previewBox = previewTile.getPreviewBox();
+        CubeObject cube = previewBox.getCube();
+        Vec3 size = previewBox.getSizeD();
+        double cubeX = x + cube.minX + size.xCoord / 2D;
+        double cubeY = y + cube.minY + size.yCoord / 2D;
+        double cubeZ = z + cube.minZ + size.zCoord / 2D;
+        if (firstHit != null) {
+            LittleTileBlockPos.Comparison comparison = pos.compareTo(firstHit);
+            Vec3 hitVec = firstHit.toHitVec();
+            if (comparison.biggerOrEqualX) {
+                cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord + size.xCoord / 2D;
+            } else {
+                cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord - size.xCoord / 2D + align / 16f;
+            }
+            if (comparison.biggerOrEqualY) {
+                cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord + size.yCoord / 2D;
+            } else {
+                cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord - size.yCoord / 2D + align / 16f;
+            }
+
+            if (comparison.biggerOrEqualZ) {
+                cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord + size.zCoord / 2D;
+            } else {
+                cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord - size.zCoord / 2D + align / 16f;
+            }
+        }
+        return Vec3.createVectorHelper(cubeX, cubeY, cubeZ);
+    }
+
+    private static boolean holdsChisel() {
+        ItemStack held = Minecraft.getMinecraft().thePlayer.getHeldItem();
+        return held != null && held.getItem() == LittleTiles.chisel;
+    }
+
+    private static Vector3i sizeInPixels(Vec3 size) {
+        return new Vector3i(
+                (int) Math.round(size.xCoord * 16),
+                (int) Math.round(size.yCoord * 16),
+                (int) Math.round(size.zCoord * 16));
+    }
+
+    /** The min corner of the preview in the world, in pixels. */
+    private static Vector3i worldMinPixels(Vec3 center, Vec3 size) {
+        return new Vector3i(
+                (int) Math.round((center.xCoord - size.xCoord / 2D + TileEntityRendererDispatcher.staticPlayerX) * 16),
+                (int) Math.round((center.yCoord - size.yCoord / 2D + TileEntityRendererDispatcher.staticPlayerY) * 16),
+                (int) Math.round((center.zCoord - size.zCoord / 2D + TileEntityRendererDispatcher.staticPlayerZ) * 16));
+    }
+
+    /** How many blocks along one axis {@code size} pixels from {@code min} reach into. */
+    private static int blocksSpanned(int min, int size) {
+        return Math.floorDiv(min + size - 1, 16) - Math.floorDiv(min, 16) + 1;
+    }
+
+    /** The chisel is drawn block by block, so it is only textured while it reaches into a few. */
+    private static boolean isTexturedPreview(PreviewTile previewTile, Vec3 center, Vec3 size) {
+        if (!previewTile.isTextured()) return false;
+        if (!holdsChisel()) return true;
+
+        Vector3i min = worldMinPixels(center, size);
+        Vector3i pixels = sizeInPixels(size);
+        return (long) blocksSpanned(min.x, pixels.x) * blocksSpanned(min.y, pixels.y) * blocksSpanned(min.z, pixels.z)
+                <= CHISEL_PREVIEW_LIMIT;
+    }
+
+    /**
+     * The chisel previews what it is about to place, so its texture lines up with the world. A placed tile is textured
+     * by each block it reaches into in that block's own coordinates, so the preview is drawn one block at a time.
+     */
+    private static void renderChiselTextured(PreviewTile previewTile, LittleToolHandler toolHandler,
+            LittleTileCutoutInfo cutoutInfo, Vec3 center, Vec3 size, double alpha) {
+        CubeObject cube = previewTile.preview.getCubeBlock();
+        int meta = cube.meta == -1 ? 0 : cube.meta;
+        int color = LittleTilesBlockRenderHelper.resolveRenderColor(cube.color, cube.block, meta);
+
+        Vector3i min = worldMinPixels(center, size);
+        Vector3i pixels = sizeInPixels(size);
+        Vector3i max = new Vector3i(min).add(pixels);
+        // Every piece is cut from the whole cutout
+        Vector3i cutoutSize = toolHandler.getTileSize() != null ? toolHandler.getTileSize() : pixels;
+        Vector3i posCutout = toolHandler.getTileOriginal();
+        double minX = center.xCoord - size.xCoord / 2D;
+        double minY = center.yCoord - size.yCoord / 2D;
+        double minZ = center.zCoord - size.zCoord / 2D;
+
+        for (int blockX = Math.floorDiv(min.x, 16); blockX * 16 < max.x; blockX++) {
+            for (int blockY = Math.floorDiv(min.y, 16); blockY * 16 < max.y; blockY++) {
+                for (int blockZ = Math.floorDiv(min.z, 16); blockZ * 16 < max.z; blockZ++) {
+                    // The piece of the preview inside this block, in pixels from the preview's corner
+                    Vector3i blockMin = new Vector3i(blockX * 16, blockY * 16, blockZ * 16).sub(min);
+                    Vector3i subMin = new Vector3i(blockMin).max(new Vector3i());
+                    Vector3i subMax = new Vector3i(blockMin).add(16, 16, 16).min(pixels);
+                    Vec3 pieceSize = Vec3.createVectorHelper(
+                            (subMax.x - subMin.x) / 16D,
+                            (subMax.y - subMin.y) / 16D,
+                            (subMax.z - subMin.z) / 16D);
+                    LittleTilesBlockRenderHelper.renderTexturedShape(
+                            toolHandler.getShape(),
+                            minX + subMin.x / 16D + pieceSize.xCoord / 2D,
+                            minY + subMin.y / 16D + pieceSize.yCoord / 2D,
+                            minZ + subMin.z / 16D + pieceSize.zCoord / 2D,
+                            pieceSize,
+                            cutoutSize,
+                            toolHandler.getOrientation(),
+                            new Vector3i(posCutout).sub(subMin),
+                            cutoutInfo,
+                            cube.block,
+                            meta,
+                            color,
+                            new Vector3d(
+                                    (subMin.x - blockMin.x) / 16D,
+                                    (subMin.y - blockMin.y) / 16D,
+                                    (subMin.z - blockMin.z) / 16D),
+                            alpha);
+                }
+            }
+        }
+    }
+
+    /** The shape of the preview tile: textured like its item, or untextured in its preview color. */
+    private static void renderPreviewShape(PreviewTile previewTile, LittleTileBlockPos pos, double x, double y,
+            double z, int align, double alpha) {
+        GL11.glPushMatrix();
+        Vec3 center = getPreviewCenter(previewTile, pos, x, y, z, align);
+        Vec3 size = previewTile.getPreviewBox().getSizeD();
+        Vec3 color = previewTile.getPreviewColor();
+
+        LittleToolHandler toolHandler;
+
+        LittleTileCutoutInfo cutoutInfo = null;
+        if (previewTile.preview != null) {
+            toolHandler = new LittleToolHandler(previewTile.preview.nbt);
+            cutoutInfo = LittleTileCutoutInfo.loadFromNBT(previewTile.preview.nbt);
+        } else {
+            toolHandler = new LittleToolHandler(Minecraft.getMinecraft().thePlayer.getHeldItem());
+        }
+
+        if (isTexturedPreview(previewTile, center, size) && holdsChisel()) {
+            renderChiselTextured(previewTile, toolHandler, cutoutInfo, center, size, alpha);
+            GL11.glPopMatrix();
+            return;
+        }
+
+        if (isTexturedPreview(previewTile, center, size)) {
+            // Textured as the item shows the tile, from where it sits in its own block - not where it is placed.
+            LittleTilePreview tile = previewTile.preview;
+            CubeObject cube = tile.getCubeBlock();
+            CubeObject itemCube = (tile.itemBox != null ? tile.itemBox : tile.getRenderBox()).getCube();
+            int meta = cube.meta == -1 ? 0 : cube.meta;
+            LittleTilesBlockRenderHelper.renderTexturedShape(
+                    toolHandler.getShape(),
+                    center.xCoord,
+                    center.yCoord,
+                    center.zCoord,
+                    size,
+                    toolHandler.getTileSize(),
+                    toolHandler.getOrientation(),
+                    toolHandler.getTileOriginal(),
+                    cutoutInfo,
+                    cube.block,
+                    meta,
+                    LittleTilesBlockRenderHelper.resolveRenderColor(cube.color, cube.block, meta),
+                    new Vector3d(
+                            itemCube.minX - Math.floor(itemCube.minX),
+                            itemCube.minY - Math.floor(itemCube.minY),
+                            itemCube.minZ - Math.floor(itemCube.minZ)),
+                    alpha);
+            GL11.glPopMatrix();
+            return;
+        }
+
+        LittleTilesBlockRenderHelper.renderShape(
+                toolHandler.getShape(),
+                center.xCoord,
+                center.yCoord,
+                center.zCoord,
+                size,
+                toolHandler.getTileSize(), // Needed for block picked cutouts
+                toolHandler.getOrientation(),
+                toolHandler.getTileOriginal(), // Needed for block picked cutouts
+                color,
+                alpha,
+                cutoutInfo);
+
+        GL11.glPopMatrix();
     }
 
     @SubscribeEvent
@@ -295,69 +495,31 @@ public class PreviewRenderer {
                     double x = (double) pos.getPosX() - TileEntityRendererDispatcher.staticPlayerX;
                     double y = (double) pos.getPosY() - TileEntityRendererDispatcher.staticPlayerY;
                     double z = (double) pos.getPosZ() - TileEntityRendererDispatcher.staticPlayerZ;
-                    for (PreviewTile previewTile : previews) {
-                        // A deformed box being edited was already drawn above, as a wireframe of its own corners -
-                        // filling its faces here would hide whatever the player is trying to line the box up against.
-                        if (editingDeformedBox) break;
-
-                        GL11.glPushMatrix();
-                        LittleTileBox previewBox = previewTile.getPreviewBox();
-                        CubeObject cube = previewBox.getCube();
-                        Vec3 size = previewBox.getSizeD();
-                        double cubeX = x + cube.minX + size.xCoord / 2D;
-                        double cubeY = y + cube.minY + size.yCoord / 2D;
-                        double cubeZ = z + cube.minZ + size.zCoord / 2D;
-                        if (firstHit != null) {
-                            LittleTileBlockPos.Comparison comparison = pos.compareTo(firstHit);
-                            Vec3 hitVec = firstHit.toHitVec();
-                            if (comparison.biggerOrEqualX) {
-                                cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord + size.xCoord / 2D;
-                            } else {
-                                cubeX = -TileEntityRendererDispatcher.staticPlayerX + hitVec.xCoord
-                                        - size.xCoord / 2D
-                                        + align / 16f;
-                            }
-                            if (comparison.biggerOrEqualY) {
-                                cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord + size.yCoord / 2D;
-                            } else {
-                                cubeY = -TileEntityRendererDispatcher.staticPlayerY + hitVec.yCoord
-                                        - size.yCoord / 2D
-                                        + align / 16f;
-                            }
-
-                            if (comparison.biggerOrEqualZ) {
-                                cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord + size.zCoord / 2D;
-                            } else {
-                                cubeZ = -TileEntityRendererDispatcher.staticPlayerZ + hitVec.zCoord
-                                        - size.zCoord / 2D
-                                        + align / 16f;
+                    // A deformed box being edited was already drawn above, as a wireframe of its own corners -
+                    // filling its faces here would hide whatever the player is trying to line the box up against.
+                    if (!editingDeformedBox) {
+                        double alpha = previewAlpha();
+                        // Textured previews only show their front-most faces. Faces inside them, like those of two
+                        // touching tiles, would otherwise show through the alpha and add up with the ones in front.
+                        // So they go into depth first, then in color only where they are in front. The depth buffer
+                        // is cleared for the hand right after this event, so writing to it leaves nothing behind.
+                        // The color mask is restored, not reset, as anaglyph 3D only lets each eye write its channels.
+                        GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT);
+                        GL11.glColorMask(false, false, false, false);
+                        GL11.glDepthMask(true);
+                        for (PreviewTile previewTile : previews) {
+                            Vec3 center = getPreviewCenter(previewTile, pos, x, y, z, align);
+                            if (isTexturedPreview(previewTile, center, previewTile.getPreviewBox().getSizeD())) {
+                                renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
                             }
                         }
-                        Vec3 color = previewTile.getPreviewColor();
+                        GL11.glPopAttrib();
+                        GL11.glDepthMask(false);
+                        GL11.glDepthFunc(GL11.GL_LEQUAL);
 
-                        LittleToolHandler toolHandler;
-
-                        LittleTileCutoutInfo cutoutInfo = null;
-                        if (previewTile.preview != null) {
-                            toolHandler = new LittleToolHandler(previewTile.preview.nbt);
-                            cutoutInfo = LittleTileCutoutInfo.loadFromNBT(previewTile.preview.nbt);
-                        } else {
-                            toolHandler = new LittleToolHandler(mc.thePlayer.getHeldItem());
+                        for (PreviewTile previewTile : previews) {
+                            renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
                         }
-                        LittleTilesBlockRenderHelper.renderShape(
-                                toolHandler.getShape(),
-                                cubeX,
-                                cubeY,
-                                cubeZ,
-                                size,
-                                toolHandler.getTileSize(), // Needed for block picked cutouts
-                                toolHandler.getOrientation(),
-                                toolHandler.getTileOriginal(), // Needed for block picked cutouts
-                                color,
-                                Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5,
-                                cutoutInfo);
-
-                        GL11.glPopMatrix();
                     }
 
                     // Drawn after the filled preview so the markers remain visible where their cubes overlap it.

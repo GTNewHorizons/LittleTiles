@@ -21,8 +21,8 @@ public class TemplateSplitTest {
     /** The rounding of doubles, in a template's unit cube. */
     private static final double EPSILON = 1.0E-9;
     private static final String[] TEMPLATES = { "slope", "slope_concave", "slope_convex", "slope_convex_inner",
-            "slope_convex_outer", "slope_triangle", "slope_triangle_corner", "slope_triangle_alternate", "slope_outer",
-            "slope_inner" };
+            "slope_convex_outer", "slope_concave_inner", "slope_concave_outer", "slope_triangle",
+            "slope_triangle_corner", "slope_triangle_alternate", "slope_outer", "slope_inner" };
     /** The surface of the concave slope, then the convex pieces it was split into offline. */
     private static final String OFFLINE_SPLIT = "slope_concave_pieces.obj";
 

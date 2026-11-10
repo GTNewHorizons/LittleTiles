@@ -43,7 +43,11 @@ public class Mesh3dTests {
     }
 
     private static void assertEmpty(LittleTileCutoutInfo cutout) {
-        Mesh3d mesh = Mesh3dUtil.meshFromTile(BLOCK, cutout);
+        assertEmpty(BLOCK, cutout);
+    }
+
+    private static void assertEmpty(LittleTileBox box, LittleTileCutoutInfo cutout) {
+        Mesh3d mesh = Mesh3dUtil.meshFromTile(box, cutout);
         assertTrue(
                 cutout.type + " size="
                         + cutout.size
@@ -86,6 +90,37 @@ public class Mesh3dTests {
         // Dragged inwards on the far face, which keeps the bounds and leaves the face at z = max flat
         cutout.corners[3].set(12, 13, 0);
         assertEmpty(cutout);
+    }
+
+    // Tiles reaching into their box by less than the rounding grid are rounded flat onto its planes, and those reaching
+    // in by far less than anything visible leave a sliver: neither is a tile there
+
+    /** Its slope face only touches the box along an edge, which is left as triangles without area. */
+    @Test
+    public void slopeTouchingTheBoxAlongAnEdgeIsEmpty() {
+        assertEmpty(
+                new LittleTileBox(1, 9, 2, 2, 13, 5),
+                cutout(LittleTileShapeMode.SLOPE, new Vector3i(32, 14, 16), new Vector3i(-10, -9, -2), 35));
+    }
+
+    /** Rounded flat onto the box's planes, with faces that still have area. */
+    @Test
+    public void roundCornerBarelyReachingIntoTheBoxIsEmpty() {
+        assertEmpty(
+                new LittleTileBox(9, 2, 2, 12, 5, 8),
+                cutout(
+                        LittleTileShapeMode.SLOPE_CONVEX_OUTER_CORNER,
+                        new Vector3i(11, 178, 37),
+                        new Vector3i(-2, -78, 0),
+                        38));
+    }
+
+    /** Leaves a sliver of less than a millionth of a cubic pixel in the box. */
+    @Test
+    public void triangleSlopeLeavingASliverInTheBoxIsEmpty() {
+        assertEmpty(
+                new LittleTileBox(11, 12, 12, 14, 14, 14),
+                cutout(LittleTileShapeMode.SLOPE_TRIANGLE, new Vector3i(31, 37, 19), new Vector3i(-1, -28, -13), 21));
     }
 
     // Cutting a tile down to its box leaves a closed mesh, also where the cuts pass close to its points

@@ -1,5 +1,8 @@
 package com.creativemd.littletiles.client.util3d;
 
+import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
+import static com.creativemd.littletiles.client.util3d.Shapes.describe;
+import static com.creativemd.littletiles.client.util3d.Shapes.shape;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -22,31 +25,12 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 /** Always-run regression tests for the meshes of tiles. */
 public class Mesh3dTests {
 
-    private static final LittleTileBox BLOCK = new LittleTileBox(0, 0, 0, 16, 16, 16);
-    /** See {@link MeshPermutationTest}: 0.001 square blocks, in square pixels. */
+    /** At most 0.001 square blocks may remain visible, measured in square pixels. */
     private static final double MAJOR_CULLING_REMAINDER = 16 * 16 / 1000.0;
 
     @BeforeClass
     public static void loadMeshes() {
         Mesh3dUtil.initializeMeshes();
-    }
-
-    private static LittleTileCutoutInfo cutout(LittleTileShapeMode shape, Vector3i size, Vector3i pos) {
-        return cutout(shape, size, pos, 0);
-    }
-
-    private static LittleTileCutoutInfo cutout(LittleTileShapeMode shape, Vector3i size, Vector3i pos,
-            int orientation) {
-        LittleTileCutoutInfo cutout = new LittleTileCutoutInfo();
-        cutout.type = shape;
-        cutout.size = size;
-        cutout.pos = pos;
-        cutout.orientation = orientation;
-        return cutout;
-    }
-
-    private static String describe(LittleTileCutoutInfo cutout) {
-        return cutout.type + " size=" + cutout.size + " pos=" + cutout.pos + " orientation=" + cutout.orientation;
     }
 
     private static void assertEmpty(LittleTileCutoutInfo cutout) {
@@ -55,14 +39,7 @@ public class Mesh3dTests {
 
     private static void assertEmpty(LittleTileBox box, LittleTileCutoutInfo cutout) {
         Mesh3d mesh = Mesh3dUtil.meshFromTile(box, cutout);
-        assertTrue(
-                cutout.type + " size="
-                        + cutout.size
-                        + " pos="
-                        + cutout.pos
-                        + " triangles="
-                        + mesh.getTriangles().size(),
-                mesh.getTriangles().isEmpty());
+        assertTrue(describe(cutout) + " triangles=" + mesh.getTriangles().size(), mesh.getTriangles().isEmpty());
     }
 
     // Tiles whose bounds only touch the box they are built for share no volume with it, so their mesh there is empty
@@ -71,22 +48,23 @@ public class Mesh3dTests {
     /** Its end cap at x = max lies on the block's west face. */
     @Test
     public void slopeEndingWhereTheBoxStartsIsEmpty() {
-        assertEmpty(cutout(LittleTileShapeMode.SLOPE, new Vector3i(5, 8, 8), new Vector3i(-5, 4, 4)));
+        assertEmpty(shape(LittleTileShapeMode.SLOPE, new Vector3i(5, 8, 8), new Vector3i(-5, 4, 4), 0));
     }
 
     /** Its bottom lies on the block's top face. */
     @Test
     public void roundSlopeStartingWhereTheBoxEndsIsEmpty() {
-        assertEmpty(cutout(LittleTileShapeMode.SLOPE_CONCAVE, new Vector3i(8, 6, 8), new Vector3i(4, 16, 4)));
+        assertEmpty(shape(LittleTileShapeMode.SLOPE_CONCAVE, new Vector3i(8, 6, 8), new Vector3i(4, 16, 4), 0));
     }
 
     /** Its flat face at z = max lies on the block's north face. */
     @Test
     public void deformedBoxEndingWhereTheBoxStartsIsEmpty() {
-        LittleTileCutoutInfo cutout = cutout(
+        LittleTileCutoutInfo cutout = shape(
                 LittleTileShapeMode.DEFORMED_BOX,
                 new Vector3i(8, 8, 7),
-                new Vector3i(4, 4, -7));
+                new Vector3i(4, 4, -7),
+                0);
         cutout.corners = new Vector3i[Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT];
         for (int corner = 0; corner < cutout.corners.length; corner++) {
             cutout.corners[corner] = new Vector3i(
@@ -107,7 +85,7 @@ public class Mesh3dTests {
     public void slopeTouchingTheBoxAlongAnEdgeIsEmpty() {
         assertEmpty(
                 new LittleTileBox(1, 9, 2, 2, 13, 5),
-                cutout(LittleTileShapeMode.SLOPE, new Vector3i(32, 14, 16), new Vector3i(-10, -9, -2), 35));
+                shape(LittleTileShapeMode.SLOPE, new Vector3i(32, 14, 16), new Vector3i(-10, -9, -2), 35));
     }
 
     /** Rounded flat onto the box's planes, with faces that still have area. */
@@ -115,7 +93,7 @@ public class Mesh3dTests {
     public void roundCornerBarelyReachingIntoTheBoxIsEmpty() {
         assertEmpty(
                 new LittleTileBox(9, 2, 2, 12, 5, 8),
-                cutout(
+                shape(
                         LittleTileShapeMode.SLOPE_CONVEX_OUTER_CORNER,
                         new Vector3i(11, 178, 37),
                         new Vector3i(-2, -78, 0),
@@ -127,7 +105,7 @@ public class Mesh3dTests {
     public void triangleSlopeLeavingASliverInTheBoxIsEmpty() {
         assertEmpty(
                 new LittleTileBox(11, 12, 12, 14, 14, 14),
-                cutout(LittleTileShapeMode.SLOPE_TRIANGLE, new Vector3i(31, 37, 19), new Vector3i(-1, -28, -13), 21));
+                shape(LittleTileShapeMode.SLOPE_TRIANGLE, new Vector3i(31, 37, 19), new Vector3i(-1, -28, -13), 21));
     }
 
     // Cutting a tile down to its box leaves a closed mesh, also where the cuts pass close to its points
@@ -135,14 +113,14 @@ public class Mesh3dTests {
     private static void assertClosed(LittleTileBox box, LittleTileCutoutInfo cutout) {
         Mesh3d mesh = Mesh3dUtil.meshFromTile(box, cutout);
         assertFalse(describe(cutout) + " lost all volume", mesh.getTriangles().isEmpty());
-        assertNull(describe(cutout), MeshGeometry.findOpenEdge(mesh));
+        assertNull(String.valueOf(describe(cutout)), MeshGeometry.findOpenEdge(mesh));
     }
 
     @Test
     public void roundCornerCutToASmallBoxIsClosed() {
         assertClosed(
                 new LittleTileBox(7, 0, 6, 14, 2, 11),
-                cutout(
+                shape(
                         LittleTileShapeMode.SLOPE_CONVEX_OUTER_CORNER,
                         new Vector3i(5, 7, 19),
                         new Vector3i(-2, -5, -17),
@@ -153,12 +131,12 @@ public class Mesh3dTests {
     public void largeRoundSlopeCutToTheBlockIsClosed() {
         assertClosed(
                 BLOCK,
-                cutout(LittleTileShapeMode.SLOPE_CONVEX, new Vector3i(37, 122, 154), new Vector3i(-33, -37, -66), 21));
+                shape(LittleTileShapeMode.SLOPE_CONVEX, new Vector3i(37, 122, 154), new Vector3i(-33, -37, -66), 21));
     }
 
     @Test
     public void warpedDeformedBoxCutToTheBlockIsClosed() {
-        LittleTileCutoutInfo cutout = cutout(
+        LittleTileCutoutInfo cutout = shape(
                 LittleTileShapeMode.DEFORMED_BOX,
                 new Vector3i(26, 18, 19),
                 new Vector3i(-5, -1, -1),
@@ -198,10 +176,11 @@ public class Mesh3dTests {
     /** Its mesh doesn't close when cut, which must not let a copy of it in. */
     @Test
     public void deformedBoxWithItsCornerDraggedInDoesntFitOntoItself() {
-        LittleTileCutoutInfo cutout = cutout(
+        LittleTileCutoutInfo cutout = shape(
                 LittleTileShapeMode.DEFORMED_BOX,
                 new Vector3i(16, 16, 16),
-                new Vector3i(0, 0, 0));
+                new Vector3i(0, 0, 0),
+                0);
         cutout.corners = new Vector3i[Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT];
         for (int corner = 0; corner < cutout.corners.length; corner++) {
             cutout.corners[corner] = new Vector3i(
@@ -218,9 +197,9 @@ public class Mesh3dTests {
         Vector3i size = new Vector3i(781, 156, 78), pos = new Vector3i(-154, -112, -5);
         assertFits(
                 BLOCK,
-                cutout(LittleTileShapeMode.SLOPE, size, pos, 10),
+                shape(LittleTileShapeMode.SLOPE, size, pos, 10),
                 BLOCK,
-                cutout(LittleTileShapeMode.SLOPE, size, pos, 0));
+                shape(LittleTileShapeMode.SLOPE, size, pos, 0));
     }
 
     /** The slope face of the small one lies on that of the big one. */
@@ -228,16 +207,16 @@ public class Mesh3dTests {
     public void differentlySizedCoplanarSlopesFit() {
         assertFits(
                 BLOCK,
-                cutout(LittleTileShapeMode.SLOPE, new Vector3i(16, 10, 12), new Vector3i(2, 9, 0), 27),
+                shape(LittleTileShapeMode.SLOPE, new Vector3i(16, 10, 12), new Vector3i(2, 9, 0), 27),
                 BLOCK,
-                cutout(LittleTileShapeMode.SLOPE, new Vector3i(8, 10, 6), new Vector3i(2, 9, 0), 35));
+                shape(LittleTileShapeMode.SLOPE, new Vector3i(8, 10, 6), new Vector3i(2, 9, 0), 35));
     }
 
     @Test
     public void onePixelBarNextToASlopeFits() {
         assertFits(
                 BLOCK,
-                cutout(LittleTileShapeMode.SLOPE, new Vector3i(6, 18, 30), new Vector3i(10, 0, 10), 43),
+                shape(LittleTileShapeMode.SLOPE, new Vector3i(6, 18, 30), new Vector3i(10, 0, 10), 43),
                 new LittleTileBox(12, 8, 0, 13, 9, 16),
                 null);
     }
@@ -341,8 +320,8 @@ public class Mesh3dTests {
     @Test
     public void complementarySlopeFacesCullEachOther() {
         Vector3i size = new Vector3i(16, 5, 26), pos = new Vector3i(0, 15, -7);
-        LittleTileCutoutInfo first = cutout(LittleTileShapeMode.SLOPE, size, pos, 15);
-        LittleTileCutoutInfo second = cutout(LittleTileShapeMode.SLOPE, size, pos, 35);
+        LittleTileCutoutInfo first = shape(LittleTileShapeMode.SLOPE, size, pos, 15);
+        LittleTileCutoutInfo second = shape(LittleTileShapeMode.SLOPE, size, pos, 35);
         assertCovers(first, second);
         assertCovers(second, first);
     }
@@ -350,8 +329,8 @@ public class Mesh3dTests {
     @Test
     public void complementaryRoundSlopeFacesCullEachOther() {
         Vector3i size = new Vector3i(13, 31, 20), pos = new Vector3i(-2, -15, -5);
-        LittleTileCutoutInfo concave = cutout(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, 39);
-        LittleTileCutoutInfo convex = cutout(LittleTileShapeMode.SLOPE_CONVEX, size, pos, 31);
+        LittleTileCutoutInfo concave = shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, 39);
+        LittleTileCutoutInfo convex = shape(LittleTileShapeMode.SLOPE_CONVEX, size, pos, 31);
         assertCovers(concave, convex);
         assertCovers(convex, concave);
     }
@@ -360,8 +339,8 @@ public class Mesh3dTests {
     @Test
     public void smallerCoplanarSlopeFaceIsCulled() {
         assertCovers(
-                cutout(LittleTileShapeMode.SLOPE, new Vector3i(7, 1, 12), new Vector3i(2, 15, -2), 45),
-                cutout(LittleTileShapeMode.SLOPE, new Vector3i(14, 2, 12), new Vector3i(-5, 14, -2), 41));
+                shape(LittleTileShapeMode.SLOPE, new Vector3i(7, 1, 12), new Vector3i(2, 15, -2), 45),
+                shape(LittleTileShapeMode.SLOPE, new Vector3i(14, 2, 12), new Vector3i(-5, 14, -2), 41));
     }
 
     /**

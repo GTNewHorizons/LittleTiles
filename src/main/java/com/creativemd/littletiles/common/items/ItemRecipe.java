@@ -8,6 +8,7 @@ import java.util.Map;
 
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -17,6 +18,7 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.util.IIcon;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -28,10 +30,12 @@ import com.cleanroommc.modularui.factory.PlayerInventoryGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.Dialog;
 import com.cleanroommc.modularui.widgets.DropDownMenu;
+import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.LittleTilesConfig;
@@ -55,6 +59,13 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
 
     private static final String SYNC_STRUCTURE = "lt_recipe_structure";
     private static final String SYNC_CLEAR = "lt_recipe_clear";
+    /** Set on an open recipe. A recipe with tiles is locked without it, so a new one always starts locked. */
+    public static final String UNLOCKED = "unlocked";
+
+    @SideOnly(Side.CLIENT)
+    public static IIcon lockedIcon;
+    @SideOnly(Side.CLIENT)
+    public static IIcon unlockedIcon;
 
     public ItemRecipe() {
         setCreativeTab(CreativeTabs.tabTools);
@@ -67,9 +78,40 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         return LittleTiles.modid + ":LTRecipe";
     }
 
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister register) {
+        super.registerIcons(register);
+        lockedIcon = register.registerIcon(LittleTiles.modid + ":LTRecipeLocked");
+        unlockedIcon = register.registerIcon(LittleTiles.modid + ":LTRecipeUnlocked");
+    }
+
     /** Whether the recipe holds saved tiles, it can only be configured then. */
     public static boolean hasTiles(ItemStack stack) {
         return stack.stackTagCompound != null && !stack.stackTagCompound.hasKey("x");
+    }
+
+    /** Whether the recipe protects its tiles from being replaced by picking. */
+    public static boolean isLocked(ItemStack stack) {
+        return hasTiles(stack) && !stack.stackTagCompound.getBoolean(UNLOCKED);
+    }
+
+    /**
+     * Copies middle clicked tiles into the recipe, replacing what it held. An empty recipe becomes a new, locked one,
+     * an open recipe stays open.
+     */
+    public static void pickTiles(EntityPlayer player, ItemStack stack, List<LittleTile> tiles) {
+        if (stack == null || !(stack.getItem() instanceof ItemRecipe) || isLocked(stack) || tiles.isEmpty()) return;
+        if (tiles.size() > LittleTilesConfig.maxRecipeTiles) {
+            player.addChatMessage(
+                    new ChatComponentTranslation(
+                            "littletiles.recipe.too_many_tiles",
+                            LittleTilesConfig.maxRecipeTiles));
+            return;
+        }
+        boolean open = hasTiles(stack);
+        saveTiles(player.worldObj, tiles, stack);
+        if (open) stack.stackTagCompound.setBoolean(UNLOCKED, true);
     }
 
     @Override
@@ -297,13 +339,16 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
             }
         }
         if (hasTiles(stack)) {
+            if (isLocked(stack)) list.add("Locked");
+            else list.add("Open: middle click on tiles replaces the content (sneak: whole block)");
             list.add("Right click to place");
-            list.add(keyName(LittleTilesClient.toolConfig) + ": configure structure or clear");
+            list.add(keyName(LittleTilesClient.toolConfig) + ": configure structure, lock or clear");
             list.add("Rotate and flip with the LittleTiles keys");
         } else if (stack.stackTagCompound != null) {
             list.add("Right click on a block to set the second position");
         } else {
             list.add("Right click on a block to set the first position");
+            list.add("Or middle click on tiles to copy them (sneak: whole block)");
         }
     }
 
@@ -368,11 +413,21 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
             configs.put(id, config);
         }
 
+        BoolValue locked = new BoolValue(isLocked(stack));
+        panel.child(IKey.str("Locked").asWidget().pos(155, 11));
+        ToggleButton lockToggle = new ToggleButton().value(locked);
+        lockToggle.pos(190, 8).size(14, 14);
+        lockToggle.background(GuiTextures.CHECK_BOX_EMPTY).hoverBackground(GuiTextures.CHECK_BOX_EMPTY);
+        lockToggle.selectedBackground(GuiTextures.CHECK_BOX_FULL).selectedHoverBackground(GuiTextures.CHECK_BOX_FULL);
+        lockToggle.addTooltipElement("An open recipe can be replaced by middle clicking on tiles");
+        panel.child(lockToggle);
+
         ButtonWidget<?> save = new ButtonWidget<>();
         save.overlay(IKey.str("Save")).pos(155, 152).size(50, 18);
         save.onMousePressed(mouseButton -> {
             String id = ids.get(selected[0]);
             NBTTagCompound nbt = new NBTTagCompound();
+            nbt.setBoolean("locked", locked.getBoolValue());
             LittleStructureEntry entry = LittleStructure.getEntryByID(id);
             LittleStructure structure = entry != null ? entry.parser.parseStructure(configs.get(id)) : null;
             if (structure != null) {
@@ -443,6 +498,11 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         if (stack == null || !(stack.getItem() instanceof ItemRecipe) || nbt == null) return;
         if (stack.stackTagCompound == null) stack.stackTagCompound = new NBTTagCompound();
         NBTTagCompound stackTag = stack.stackTagCompound;
+
+        if (nbt.hasKey("locked")) {
+            if (nbt.getBoolean("locked")) stackTag.removeTag(UNLOCKED);
+            else stackTag.setBoolean(UNLOCKED, true);
+        }
 
         // If new nbt has no (valid) structure, remove it and exit
         if (!nbt.hasKey("structure", 10)) {

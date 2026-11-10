@@ -247,7 +247,10 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         if (structure != null) {
             // Placed from a recipe, the structure still drops as the multi tiles item it used to be crafted into.
             structure.dropStack = isRecipe ? new ItemStack(LittleTiles.multiTiles) : stack.copy();
-            if (isRecipe) structure.dropStack.stackTagCompound = (NBTTagCompound) stack.stackTagCompound.copy();
+            if (isRecipe) {
+                structure.dropStack.stackTagCompound = (NBTTagCompound) stack.stackTagCompound.copy();
+                structure.dropStack.stackTagCompound.removeTag(ItemRecipe.UNLOCKED);
+            }
             structure.dropStack.stackSize = 1;
             structure.setTiles(new ArrayList<>());
         }

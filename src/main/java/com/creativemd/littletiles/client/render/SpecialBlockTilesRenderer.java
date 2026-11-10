@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.IIcon;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.IItemRenderer;
@@ -18,7 +19,9 @@ import net.minecraftforge.client.IItemRenderer;
 import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
+import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
@@ -83,6 +86,7 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
             GL11.glColor4d(1, 1, 1, 1);
 
             if (type == ItemRenderType.INVENTORY) {
+                GL11.glPushMatrix();
                 if (((ITilesRenderer) item.getItem()).hasBackground(item))
                     RenderItem.getInstance().renderItemIntoGUI(mc.fontRenderer, mc.renderEngine, item, 0, 0);
 
@@ -110,7 +114,26 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
                     cubes,
                     Block.getBlockFromItem(item.getItem()),
                     item.getItemDamage());
+
+            if (type == ItemRenderType.INVENTORY) {
+                GL11.glPopMatrix();
+                renderLock(item);
+            }
         }
+    }
+
+    /** The lock of a recipe with tiles, in the top right corner over the tiles. */
+    private static void renderLock(ItemStack item) {
+        if (item.getItem() != LittleTiles.recipe || !ItemRecipe.hasTiles(item)) return;
+        IIcon icon = ItemRecipe.isLocked(item) ? ItemRecipe.lockedIcon : ItemRecipe.unlockedIcon;
+        Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.locationItemsTexture);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glColor4d(1, 1, 1, 1);
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0, 0, 50);
+        RenderItem.getInstance().renderIcon(8, 0, icon, 8, 8);
+        GL11.glPopMatrix();
+        GL11.glEnable(GL11.GL_LIGHTING);
     }
 
     @Override

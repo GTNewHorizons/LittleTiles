@@ -25,6 +25,11 @@ public class Triangle3d {
     private Vector2d tex1, tex2, tex3;
     /** See {@link #getFacePlane}, null until first needed. */
     private Plane3d plane;
+    /**
+     * Shared by the triangles a convex polygon of the mesh was split into, so that {@link MeshCutter} can put it back
+     * together, and {@link MeshCollision} takes its plane once. Null for a triangle that is a face on its own.
+     */
+    private Object polygon;
 
     public Triangle3d(Vector3d p1, Vector3d p2, Vector3d p3) {
         this.p1 = p1;
@@ -89,6 +94,15 @@ public class Triangle3d {
 
     public void setPlane(Plane3d plane) {
         this.plane = plane;
+    }
+
+    /** See {@link #polygon}. */
+    public Object getPolygon() {
+        return polygon;
+    }
+
+    public void setPolygon(Object polygon) {
+        this.polygon = polygon;
     }
 
     /** The plane through the points, facing the way they turn counterclockwise around. */
@@ -379,6 +393,7 @@ public class Triangle3d {
     public Triangle3d copy() {
         Triangle3d copy = new Triangle3d(new Vector3d(p1), new Vector3d(p2), new Vector3d(p3));
         copy.plane = plane;
+        copy.polygon = polygon;
         return copy;
     }
 }

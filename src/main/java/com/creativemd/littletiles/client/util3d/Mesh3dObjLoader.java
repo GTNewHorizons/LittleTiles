@@ -12,6 +12,7 @@ import com.creativemd.littletiles.LittleTiles;
 
 public class Mesh3dObjLoader {
 
+    /** The mesh in the file. Each face is a convex polygon, see {@link Triangle3d#getPolygon}. */
     public static Mesh3d load(String name) {
         String path = "assets/" + LittleTiles.modid + "/models/" + name + ".obj";
         try {
@@ -43,19 +44,19 @@ public class Mesh3dObjLoader {
             }
 
             else if (line.startsWith("f ")) {
-                // face without slashes
+                // a convex polygon, without slashes
                 String[] tok = line.split("\\s+");
-
-                int a = Integer.parseInt(tok[1]) - 1; // OBJ = 1-based
-                int b = Integer.parseInt(tok[2]) - 1;
-                int c = Integer.parseInt(tok[3]) - 1;
-
-                // copies, as the triangles of a mesh must not share points
-                triangles.add(
-                        new Triangle3d(
-                                new Vector3d(vertices.get(a)),
-                                new Vector3d(vertices.get(b)),
-                                new Vector3d(vertices.get(c))));
+                Vector3d first = vertices.get(Integer.parseInt(tok[1]) - 1); // OBJ = 1-based
+                Object polygon = new Object();
+                for (int i = 2; i + 1 < tok.length; i++) {
+                    // copies, as the triangles of a mesh must not share points
+                    Triangle3d triangle = new Triangle3d(
+                            new Vector3d(first),
+                            new Vector3d(vertices.get(Integer.parseInt(tok[i]) - 1)),
+                            new Vector3d(vertices.get(Integer.parseInt(tok[i + 1]) - 1)));
+                    triangle.setPolygon(polygon);
+                    triangles.add(triangle);
+                }
             }
         }
 

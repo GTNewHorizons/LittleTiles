@@ -278,4 +278,19 @@ public class Mesh3dTests {
                         new Vector3i(15, 14, 0), new Vector3i(2, 11, 16), new Vector3i(15, 12, 14),
                         new Vector3i(1, 15, 15), new Vector3i(14, 16, 15) });
     }
+
+    /**
+     * Their shared face is warped, and its diagonals are close in length: the low box is 6 high and the high one 14, so
+     * measured in each box's own unit cube they would split it along different diagonals and overlap between them.
+     */
+    @Test
+    public void deformedNeighboursOfDifferentHeightsSplitTheirSharedFaceAlike() {
+        assertNeighboursFit(
+                new Vector3i[] { new Vector3i(0, 0, 0), new Vector3i(16, 0, 0), new Vector3i(0, 16, 0),
+                        new Vector3i(16, 16, 0), new Vector3i(0, 0, 6), new Vector3i(16, 0, 6),
+                        new Vector3i(0, 15, 2), new Vector3i(16, 16, 5) },
+                new Vector3i[] { new Vector3i(0, 0, 6), new Vector3i(16, 0, 6), new Vector3i(0, 15, 2),
+                        new Vector3i(16, 16, 5), new Vector3i(0, 0, 16), new Vector3i(16, 0, 16),
+                        new Vector3i(0, 16, 16), new Vector3i(16, 16, 16) });
+    }
 }

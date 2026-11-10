@@ -11,6 +11,7 @@ import net.minecraft.world.World;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
+import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -40,6 +41,22 @@ public final class PlacementHelper {
         if (Block.getBlockFromItem(stack.getItem()) instanceof ILittleTile)
             return ((ILittleTile) Block.getBlockFromItem(stack.getItem())).getLittlePreview(stack) != null;
         return false;
+    }
+
+    /**
+     * Whether the stack places at least one tile and all its materials pass the
+     * {@link com.creativemd.littletiles.common.BlockValidator}.
+     */
+    public static boolean hasOnlyValidMaterials(ItemStack stack) {
+        ILittleTile littleTile = getLittleInterface(stack);
+        if (littleTile == null) return false;
+        ArrayList<LittleTilePreview> previews = littleTile.getLittlePreview(stack);
+        if (previews == null || previews.isEmpty()) return false;
+        for (LittleTilePreview preview : previews) {
+            if (preview == null || preview.nbt == null || !LittleMaterial.readFromNBT(preview.nbt).isValid())
+                return false;
+        }
+        return true;
     }
 
     public static LittleTileVec getInternalOffset(ArrayList<LittleTilePreview> tiles) {
@@ -178,6 +195,7 @@ public final class PlacementHelper {
 
             for (LittleTilePreview tile : tiles) {
                 if (tile != null) {
+                    tile.itemBox = tile.getRenderBox().copy();
                     if (tile.box == null) {
                         tile.box = box.copy();
                         preview.add(new PreviewTile(tile.box.copy(), tile));

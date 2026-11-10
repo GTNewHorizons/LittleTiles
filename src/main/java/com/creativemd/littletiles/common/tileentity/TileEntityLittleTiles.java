@@ -588,6 +588,7 @@ public class TileEntityLittleTiles extends TileEntity {
                 if (!(tile instanceof LittleTileBlock) || tile.boundingBox == null) continue;
                 // cut shapes don't connect for now, their bounding box isn't what they show
                 if (tile.getCutoutInfo() != null) continue;
+                if (tile.disableConnection) continue;
                 LittleTileBlock blockTile = (LittleTileBlock) tile;
                 result.add(new LittleTileFacade(blockTile.block, blockTile.meta, tile.boundingBox.copy()));
             }

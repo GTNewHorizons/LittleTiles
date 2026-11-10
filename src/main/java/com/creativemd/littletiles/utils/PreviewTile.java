@@ -42,6 +42,11 @@ public class PreviewTile {
         return white;
     }
 
+    /** Whether the preview shows the tile's block texture, rather than just its shape in {@link #getPreviewColor}. */
+    public boolean isTextured() {
+        return preview != null;
+    }
+
     public boolean needsCollisionTest() {
         return true;
     }

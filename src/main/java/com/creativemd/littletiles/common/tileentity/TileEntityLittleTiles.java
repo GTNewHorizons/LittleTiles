@@ -50,6 +50,9 @@ public class TileEntityLittleTiles extends TileEntity {
     // The monitor must survive list replacement: render snapshots and cut invalidation share it.
     private final List<LittleTile> tiles = createTileList();
     private boolean deferEmptyCleanup;
+    /** Whether {@link #updateTiles} only notes that it is due, see {@link #deferUpdates}. */
+    private boolean deferUpdates;
+    private boolean updateDeferred;
 
     public void setTiles(List<LittleTile> tiles) {
         replaceTiles(tiles);
@@ -132,6 +135,10 @@ public class TileEntityLittleTiles extends TileEntity {
     }
 
     public void updateTiles(boolean cleanupTileEntityIfLast) {
+        if (deferUpdates) {
+            updateDeferred = true;
+            return;
+        }
         if (worldObj != null) {
             if (recalculateMaxLightValue()) {
                 worldObj.updateLightByType(EnumSkyBlock.Block, xCoord, yCoord, zCoord);
@@ -154,6 +161,23 @@ public class TileEntityLittleTiles extends TileEntity {
     /** Keep this block alive while a multi-block plan removes and places tiles. */
     public void deferEmptyCleanup() {
         deferEmptyCleanup = true;
+    }
+
+    /**
+     * Update once when a plan is done instead of after every tile it adds or removes: each update goes through all
+     * tiles of the block, which made placing many tiles into one block quadratic.
+     */
+    public void deferUpdates() {
+        deferUpdates = true;
+    }
+
+    /** Run the update {@link #deferUpdates} held back, if anything changed. */
+    public void finishDeferredUpdates() {
+        deferUpdates = false;
+        if (updateDeferred) {
+            updateDeferred = false;
+            updateTiles();
+        }
     }
 
     /** Remove the block if the completed plan left it empty. */

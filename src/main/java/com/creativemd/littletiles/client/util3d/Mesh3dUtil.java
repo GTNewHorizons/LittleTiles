@@ -340,43 +340,45 @@ public class Mesh3dUtil {
         return new Mesh3d(createBoxTriangles());
     }
 
+    /** The solid of the tile before it is cut to its box, in blocks. */
+    public static Mesh3d solid(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
+        Mesh3d mesh = shapeMesh(cutoutInfo);
+        place(
+                mesh,
+                cutoutInfo,
+                cutoutInfo.size,
+                cutoutInfo.pos,
+                new Vector3i(box.minX, box.minY, box.minZ),
+                cutoutInfo.orientation);
+        return mesh;
+    }
+
+    /**
+     * The tetrahedra from the first point of the closed mesh to each of its triangles. Those of triangles facing away
+     * from that point are wound inside out, so that they count negatively, and all of them add up to the mesh.
+     */
+    public static List<Mesh3d> tetrahedra(Mesh3d mesh) {
+        List<Mesh3d> tetrahedra = new ArrayList<>();
+        if (mesh.getTriangles().isEmpty()) return tetrahedra;
+        Vector3d apex = mesh.getTriangles().get(0).getP1();
+        for (Triangle3d triangle : mesh.getTriangles()) {
+            Vector3d a = triangle.getP1(), b = triangle.getP2(), c = triangle.getP3();
+            if (MeshCutter.det(a, b, c, apex) == 0) continue;
+            List<Triangle3d> faces = new ArrayList<>(4);
+            faces.add(new Triangle3d(new Vector3d(a), new Vector3d(b), new Vector3d(c)));
+            faces.add(new Triangle3d(new Vector3d(apex), new Vector3d(b), new Vector3d(a)));
+            faces.add(new Triangle3d(new Vector3d(apex), new Vector3d(c), new Vector3d(b)));
+            faces.add(new Triangle3d(new Vector3d(apex), new Vector3d(a), new Vector3d(c)));
+            tetrahedra.add(new Mesh3d(faces));
+        }
+        return tetrahedra;
+    }
+
     /** @param cutoutSize the size of the whole cutout, in tile pixels */
     public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3i cutoutSize, Vector3i posCutout,
             Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
-        Vector3d cutoutScale = new Vector3d(cutoutSize.x / 16.0, cutoutSize.y / 16.0, cutoutSize.z / 16.0);
-        Mesh3d mesh = switch (cutoutInfo.type) {
-            case SLOPE -> MESH_SLOPE.copy();
-            case PILLAR -> {
-                cutoutScale = new Vector3d(1, 1, 1);
-                yield createWallMesh(cutoutInfo);
-            }
-            case SLOPE_CONCAVE -> MESH_SLOPE_CONCAVE.copy();
-            case SLOPE_CONVEX -> MESH_SLOPE_CONVEX.copy();
-            case SLOPE_CONVEX_INNER_CORNER -> MESH_SLOPE_CONVEX_INNER_CORNER.copy();
-            case SLOPE_CONVEX_OUTER_CORNER -> MESH_SLOPE_CONVEX_OUTER_CORNER.copy();
-            case SLOPE_CONCAVE_INNER_CORNER -> MESH_SLOPE_CONCAVE_INNER_CORNER.copy();
-            case SLOPE_CONCAVE_OUTER_CORNER -> MESH_SLOPE_CONCAVE_OUTER_CORNER.copy();
-            case SLOPE_TRIANGLE -> MESH_SLOPE_TRIANGLE.copy();
-            case SLOPE_TRIANGLE_CORNER -> MESH_SLOPE_TRIANGLE_CORNER.copy();
-            case SLOPE_TRIANGLE_ALT -> MESH_SLOPE_TRIANGLE_ALT.copy();
-            case SLOPE_OUTER_CORNER -> MESH_SLOPE_OUTER_CORNER.copy();
-            case SLOPE_INNER_CORNER -> MESH_SLOPE_INNER_CORNER.copy();
-            case DEFORMED_BOX -> createDeformedBoxMesh(cutoutInfo);
-            case BOX -> throw new RuntimeException("Invalid cutout BOX");
-            default -> throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
-        };
-
-        if (cutoutInfo.type != LittleTileShapeMode.PILLAR) {
-            mesh.rotate(orientation, new Vector3d(1, 1, 1));
-        }
-
-        mesh.scale(cutoutScale);
-        // In one step, so the same tile in neighbouring boxes ends up with the very same points
-        mesh.translate(
-                new Vector3d(
-                        (posCutout.x + posSubMin.x) / 16.0,
-                        (posCutout.y + posSubMin.y) / 16.0,
-                        (posCutout.z + posSubMin.z) / 16.0));
+        Mesh3d mesh = shapeMesh(cutoutInfo);
+        place(mesh, cutoutInfo, cutoutSize, posCutout, posSubMin, orientation);
 
         int meshMinX = posCutout.x + posSubMin.x;
         int meshMaxX = meshMinX + cutoutInfo.size.x;
@@ -407,5 +409,43 @@ public class Mesh3dUtil {
         }
 
         return mesh;
+    }
+
+    /** The surface of the shape, before {@link #place}. */
+    private static Mesh3d shapeMesh(LittleTileCutoutInfo cutoutInfo) {
+        return switch (cutoutInfo.type) {
+            case SLOPE -> MESH_SLOPE.copy();
+            case PILLAR -> createWallMesh(cutoutInfo);
+            case SLOPE_CONCAVE -> MESH_SLOPE_CONCAVE.copy();
+            case SLOPE_CONVEX -> MESH_SLOPE_CONVEX.copy();
+            case SLOPE_CONVEX_INNER_CORNER -> MESH_SLOPE_CONVEX_INNER_CORNER.copy();
+            case SLOPE_CONVEX_OUTER_CORNER -> MESH_SLOPE_CONVEX_OUTER_CORNER.copy();
+            case SLOPE_CONCAVE_INNER_CORNER -> MESH_SLOPE_CONCAVE_INNER_CORNER.copy();
+            case SLOPE_CONCAVE_OUTER_CORNER -> MESH_SLOPE_CONCAVE_OUTER_CORNER.copy();
+            case SLOPE_TRIANGLE -> MESH_SLOPE_TRIANGLE.copy();
+            case SLOPE_TRIANGLE_CORNER -> MESH_SLOPE_TRIANGLE_CORNER.copy();
+            case SLOPE_TRIANGLE_ALT -> MESH_SLOPE_TRIANGLE_ALT.copy();
+            case SLOPE_OUTER_CORNER -> MESH_SLOPE_OUTER_CORNER.copy();
+            case SLOPE_INNER_CORNER -> MESH_SLOPE_INNER_CORNER.copy();
+            case DEFORMED_BOX -> createDeformedBoxMesh(cutoutInfo);
+            case BOX -> throw new RuntimeException("Invalid cutout BOX");
+            default -> throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
+        };
+    }
+
+    /** Moves a mesh made for the shape, see {@link #createMesh}, to where the tile has it, in blocks. */
+    private static void place(Mesh3d mesh, LittleTileCutoutInfo cutoutInfo, Vector3i cutoutSize, Vector3i posCutout,
+            Vector3i posSubMin, int orientation) {
+        // A pillar is made at its size, the other shapes in the unit cube
+        if (cutoutInfo.type != LittleTileShapeMode.PILLAR) {
+            mesh.rotate(orientation, new Vector3d(1, 1, 1));
+            mesh.scale(cutoutSize);
+        }
+        // In one step, so the same tile in neighbouring boxes ends up with the very same points
+        mesh.translate(
+                new Vector3d(
+                        (posCutout.x + posSubMin.x) / 16.0,
+                        (posCutout.y + posSubMin.y) / 16.0,
+                        (posCutout.z + posSubMin.z) / 16.0));
     }
 }

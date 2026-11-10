@@ -10,7 +10,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Matrix3f;
 import org.joml.Vector2d;
-import org.joml.Vector3f;
 
 import com.creativemd.creativecore.lib.Vector3d;
 
@@ -83,6 +82,15 @@ public class Triangle3d {
         this.plane = plane;
     }
 
+    /** The plane through the points, facing the way they turn counterclockwise around. */
+    public static Plane3d planeThrough(Vector3d a, Vector3d b, Vector3d c) {
+        Vector3d ab = new Vector3d(b);
+        ab.sub(a);
+        Vector3d ac = new Vector3d(c);
+        ac.sub(a);
+        return new Plane3d(null, ab, ac, null, null, false, false, new Vector3d(a));
+    }
+
     private void scaleVector(Vector3d vec, Vector3d scale) {
         vec.x *= scale.x;
         vec.y *= scale.y;
@@ -115,42 +123,6 @@ public class Triangle3d {
 
     public double getArea() {
         return unnormalizedNormal().length() / 2;
-    }
-
-    /**
-     * Computes this triangle's signed solid angle relative to a point.
-     *
-     * The value is used by {@link Mesh3d#containsPoint(Vector3f)}: a closed mesh sums the signed solid angles from all
-     * its triangles, producing a large absolute value for interior points and approximately zero for exterior points.
-     * The sign depends on the triangle winding order.
-     *
-     * @param point The point to measure from.
-     * @return The signed solid angle in radians.
-     */
-    public double signedSolidAngle(Vector3f point) {
-        double ax = p1.x - point.x;
-        double ay = p1.y - point.y;
-        double az = p1.z - point.z;
-
-        double bx = p2.x - point.x;
-        double by = p2.y - point.y;
-        double bz = p2.z - point.z;
-
-        double cx = p3.x - point.x;
-        double cy = p3.y - point.y;
-        double cz = p3.z - point.z;
-
-        double al = Math.sqrt(ax * ax + ay * ay + az * az);
-        double bl = Math.sqrt(bx * bx + by * by + bz * bz);
-        double cl = Math.sqrt(cx * cx + cy * cy + cz * cz);
-
-        double det = ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx);
-
-        double denom = al * bl * cl + (ax * bx + ay * by + az * bz) * cl
-                + (bx * cx + by * cy + bz * cz) * al
-                + (cx * ax + cy * ay + cz * az) * bl;
-
-        return 2.0 * Math.atan2(det, denom);
     }
 
     private void flipWindingOrder() {

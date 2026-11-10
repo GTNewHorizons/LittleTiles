@@ -19,7 +19,6 @@ import org.joml.Vector2d;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
-import com.creativemd.creativecore.client.block.IBlockAccessFake;
 import com.creativemd.creativecore.client.rendering.ExtendedRenderBlocks;
 import com.creativemd.creativecore.client.rendering.IFaceClipper;
 import com.creativemd.creativecore.client.rendering.RenderHelper3D;
@@ -42,8 +41,11 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class LittleTilesBlockRenderHelper {
 
-    private static final ThreadLocal<ExtendedRenderBlocks> extraRendererThreadLocal = ThreadLocal
-            .withInitial(ExtendedRenderBlocks::new);
+    private static final ThreadLocal<ExtendedRenderBlocks> extraRendererThreadLocal = ThreadLocal.withInitial(() -> {
+        ExtendedRenderBlocks renderer = new ExtendedRenderBlocks();
+        renderer.blockAccess = new LittleTilesBlockAccess();
+        return renderer;
+    });
     /** How far preview overlays are pulled off the grid planes to prevent z-fighting, in blocks. */
     static final double Z_FIGHT_EPSILON = 0.002;
 
@@ -276,7 +278,7 @@ public class LittleTilesBlockRenderHelper {
         final ExtendedRenderBlocks extraRenderer = extraRendererThreadLocal.get();
         extraRenderer.updateRenderer(renderer);
 
-        final IBlockAccessFake fake = (IBlockAccessFake) extraRenderer.blockAccess;
+        final LittleTilesBlockAccess fake = (LittleTilesBlockAccess) extraRenderer.blockAccess;
         fake.setWorld(renderer.blockAccess, x, y, z);
 
         int pass = ForgeHooksClient.getWorldRenderPass();
@@ -296,7 +298,7 @@ public class LittleTilesBlockRenderHelper {
                     continue;
                 }
 
-                fake.setBlock(cube.block, cube.meta);
+                fake.setCube(cube);
                 if (LittleTiles.angelicaCompat != null) {
                     LittleTiles.angelicaCompat.setShaderMaterialOverride(cube.block, cube.meta);
                 }

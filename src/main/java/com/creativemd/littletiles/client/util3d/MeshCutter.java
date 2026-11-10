@@ -2,7 +2,9 @@ package com.creativemd.littletiles.client.util3d;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.creativemd.creativecore.lib.Vector3d;
 
@@ -16,6 +18,11 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  * While cutting, faces refer to their corners by index into one shared list of points. A plane crossing an edge makes
  * one new point, which both faces along that edge use, and caps are joined from edges by index. So which faces fit
  * together never depends on comparing positions, and a closed mesh stays closed.
+ * <p>
+ * Faces are convex polygons rather than triangles: the polygons of the mesh are put back together from the triangles
+ * they were split into, see {@link Triangle3d#getPolygon}, and stay polygons until all cuts are done. A plane then only
+ * ever crosses the edges of the polygons and of earlier caps, never the diagonals of a triangulation, and fewer points
+ * make fewer triangles to draw and cull.
  */
 public final class MeshCutter {
 
@@ -55,12 +62,30 @@ public final class MeshCutter {
         // Corners at the same position are the same point: the triangles of a mesh get them from the same vertex
         Object2IntOpenHashMap<Vector3d> indices = new Object2IntOpenHashMap<>();
         indices.defaultReturnValue(-1);
+        // The edges around each polygon: those of its triangles, less the diagonals between them, walked both ways
+        Map<Object, LongArrayList> outlines = new LinkedHashMap<>();
+        List<Plane3d> planes = new ArrayList<>();
         for (Triangle3d triangle : mesh) {
             int a = index(indices, triangle.getP1()), b = index(indices, triangle.getP2()),
                     c = index(indices, triangle.getP3());
             // A triangle without a side has its other two cancel out
             if (a == b || b == c || c == a) continue;
-            faces.add(new Face(new int[] { a, b, c }, triangle.getFacePlane()));
+            Object polygon = triangle.getPolygon() != null ? triangle.getPolygon() : triangle;
+            LongArrayList outline = outlines.get(polygon);
+            if (outline == null) {
+                outlines.put(polygon, outline = new LongArrayList());
+                planes.add(triangle.getFacePlane());
+            }
+            walk(outline, a, b);
+            walk(outline, b, c);
+            walk(outline, c, a);
+        }
+        int polygon = 0;
+        for (LongArrayList outline : outlines.values()) {
+            for (int[] face : loops(outline)) {
+                faces.add(new Face(face, planes.get(polygon)));
+            }
+            polygon++;
         }
     }
 

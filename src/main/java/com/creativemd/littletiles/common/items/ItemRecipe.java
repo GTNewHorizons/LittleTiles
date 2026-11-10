@@ -6,9 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -111,6 +111,25 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         }
         boolean open = hasTiles(stack);
         saveTiles(player.worldObj, tiles, stack);
+        if (open) stack.stackTagCompound.setBoolean(UNLOCKED, true);
+    }
+
+    /**
+     * Copies a middle clicked structure into the recipe, from the item it drops, like the creative pick would. Same
+     * rules as {@link #pickTiles}.
+     */
+    public static void pickStructure(EntityPlayer player, ItemStack stack, ItemStack drop) {
+        if (stack == null || !(stack.getItem() instanceof ItemRecipe) || isLocked(stack)) return;
+        if (drop == null || drop.stackTagCompound == null || !drop.stackTagCompound.hasKey("structure", 10)) return;
+        if (drop.stackTagCompound.getInteger("tiles") > LittleTilesConfig.maxRecipeTiles) {
+            player.addChatMessage(
+                    new ChatComponentTranslation(
+                            "littletiles.recipe.too_many_tiles",
+                            LittleTilesConfig.maxRecipeTiles));
+            return;
+        }
+        boolean open = hasTiles(stack);
+        stack.stackTagCompound = (NBTTagCompound) drop.stackTagCompound.copy();
         if (open) stack.stackTagCompound.setBoolean(UNLOCKED, true);
     }
 

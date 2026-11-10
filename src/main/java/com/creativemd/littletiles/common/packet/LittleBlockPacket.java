@@ -292,6 +292,12 @@ public class LittleBlockPacket extends CreativeCorePacket {
                         }
                         break;
                     case RECIPE_PICK:
+                        // A structure tile picks the whole structure, like the creative pick
+                        if (tile.isStructureBlock) {
+                            if (tile.isLoaded()) ItemRecipe
+                                    .pickStructure(player, player.getHeldItem(), tile.structure.getStructureDrop());
+                            break;
+                        }
                         boolean pickBlock = nbt.getBoolean(ENTIRE_BLOCK) && BlockTile.takesEntireBlock(player, tile);
                         List<LittleTile> picked = pickBlock ? BlockTile.selectEntireBlock(littleEntity)
                                 : Collections.singletonList(tile);

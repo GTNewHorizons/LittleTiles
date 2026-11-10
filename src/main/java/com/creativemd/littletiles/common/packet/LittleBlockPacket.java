@@ -159,6 +159,12 @@ public class LittleBlockPacket extends CreativeCorePacket {
                         if (creative) recorder.watch(littleEntity.getCoord());
                         if (entireBlock) {
                             List<LittleTile> tiles = BlockTile.selectEntireBlock(littleEntity);
+                            if (!creative && !BlockTile.fitsOneItem(tiles)) {
+                                BlockTile.tellTooManyTiles(player);
+                                // A client with a higher limit already removed the tiles, so they are sent back.
+                                player.worldObj.markBlockForUpdate(x, y, z);
+                                break;
+                            }
                             // The item is made before the tiles leave the block they are saved from
                             ItemStack drop = creative ? null : BlockTile.getEntireBlockDrop(player.worldObj, tiles);
                             littleEntity.removeTiles(tiles);

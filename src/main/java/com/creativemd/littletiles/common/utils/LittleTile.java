@@ -125,6 +125,9 @@ public abstract class LittleTile {
 
     public boolean disableCollision = false;
 
+    /** Connected textures neither connect from this tile nor to it. */
+    public boolean disableConnection = false;
+
     private LittleTileCutoutInfo cutoutInfo = null;
 
     private final LittleTileGeometryCache geometryCache = new LittleTileGeometryCache(
@@ -160,6 +163,7 @@ public abstract class LittleTile {
         if (isStructureBlock && isMainBlock) return false;
         if (isStructureBlock != tile.isStructureBlock) return false;
         if (disableCollision != tile.disableCollision) return false;
+        if (disableConnection != tile.disableConnection) return false;
         return !isStructureBlock || structure == tile.structure;
     }
     // public abstract boolean canBeCombined(LittleTile tile);
@@ -199,6 +203,7 @@ public abstract class LittleTile {
         saveTile(nbt);
         // To prevent abuse, collision disabling is placed block only
         nbt.removeTag("disableCollision");
+        nbt.removeTag("disableConnection");
     }
 
     public abstract void saveTileExtra(NBTTagCompound nbt);
@@ -211,6 +216,7 @@ public abstract class LittleTile {
             boundingBox.writeToNBT("bBox" + 0, nbt);
         }
         if (disableCollision) nbt.setBoolean("disableCollision", true);
+        if (disableConnection) nbt.setBoolean("disableConnection", true);
 
         if (isStructureBlock) {
             nbt.setBoolean("isStructure", true);
@@ -243,6 +249,7 @@ public abstract class LittleTile {
             boundingBox = new LittleTileBox("bBox" + 0, nbt);
         }
         disableCollision = nbt.getBoolean("disableCollision");
+        disableConnection = nbt.getBoolean("disableConnection");
         updateCorner();
 
         isStructureBlock = nbt.getBoolean("isStructure");
@@ -331,6 +338,7 @@ public abstract class LittleTile {
         tile.cornerVec = this.cornerVec.copy();
         tile.te = this.te;
         tile.disableCollision = this.disableCollision;
+        tile.disableConnection = this.disableConnection;
         tile.cutoutInfo = cutoutInfo == null ? null : new LittleTileCutoutInfo(cutoutInfo);
         tile.invalidateClientMeshCache();
 

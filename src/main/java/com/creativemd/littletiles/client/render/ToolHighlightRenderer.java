@@ -3,6 +3,7 @@ package com.creativemd.littletiles.client.render;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
+import java.util.function.Predicate;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -34,7 +35,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public class CollisionHighlightRenderer {
+public class ToolHighlightRenderer {
 
     private static final int RADIUS_CHUNKS = 2;
     private static final int REFRESH_INTERVAL_TICKS = 5;
@@ -46,6 +47,8 @@ public class CollisionHighlightRenderer {
     private final List<PlacedMesh> cachedMeshes = new ArrayList<>();
     private final WeakHashMap<LittleTile, TileCache> tileCache = new WeakHashMap<>();
     private int ticksSinceRefresh = REFRESH_INTERVAL_TICKS;
+    /** Which tiles the held tool highlights, null while no such tool is held. */
+    private Predicate<LittleTile> highlighted;
 
     private static final class TileCache {
 
@@ -79,8 +82,10 @@ public class CollisionHighlightRenderer {
         final EntityPlayer player = mc.thePlayer;
         if (player == null || player.worldObj == null) return;
 
-        final ItemStack held = player.getHeldItem();
-        if (held == null || held.getItem() != LittleTiles.collisionTool) {
+        final Predicate<LittleTile> wanted = getHighlighted(player.getHeldItem());
+        if (wanted != highlighted) ticksSinceRefresh = REFRESH_INTERVAL_TICKS;
+        highlighted = wanted;
+        if (wanted == null) {
             cachedBoxes.clear();
             cachedMeshes.clear();
             tileCache.clear();
@@ -92,6 +97,16 @@ public class CollisionHighlightRenderer {
             refreshCache(player);
             ticksSinceRefresh = 0;
         }
+    }
+
+    private static final Predicate<LittleTile> COLLISION_DISABLED = tile -> tile.disableCollision;
+    private static final Predicate<LittleTile> CONNECTION_DISABLED = tile -> tile.disableConnection;
+
+    private static Predicate<LittleTile> getHighlighted(ItemStack held) {
+        if (held == null) return null;
+        if (held.getItem() == LittleTiles.collisionTool) return COLLISION_DISABLED;
+        if (held.getItem() == LittleTiles.connectionTool) return CONNECTION_DISABLED;
+        return null;
     }
 
     @SubscribeEvent
@@ -164,7 +179,7 @@ public class CollisionHighlightRenderer {
                         snapshot = new ArrayList<>(tiles);
                     }
                     for (LittleTile tile : snapshot) {
-                        if (!tile.disableCollision) continue;
+                        if (!highlighted.test(tile)) continue;
                         TileCache cached = tileCache.get(tile);
                         if (cached == null) {
                             cached = new TileCache();

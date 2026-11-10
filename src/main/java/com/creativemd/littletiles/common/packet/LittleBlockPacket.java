@@ -58,7 +58,8 @@ public class LittleBlockPacket extends CreativeCorePacket {
         SAW,
         COLOR,
         SPLIT,
-        TOGGLE_COLLISION;
+        TOGGLE_COLLISION,
+        TOGGLE_CONNECTION;
 
         public static Action get(int ordinal) {
             if (ordinal >= 0 && ordinal < values().length) return values()[ordinal];
@@ -300,6 +301,21 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                             collisionTE.loadedTile.disableCollision
                                                     ? "message.littletiles.tile_collision.disabled"
                                                     : "message.littletiles.tile_collision.enabled"));
+                        }
+                        break;
+                    case TOGGLE_CONNECTION:
+                        if (!player.capabilities.isCreativeMode || player.getCurrentEquippedItem() == null
+                                || player.getCurrentEquippedItem().getItem() != LittleTiles.connectionTool)
+                            break;
+                        TileEntityLittleTiles connectionTE = (TileEntityLittleTiles) tileEntity;
+                        if (connectionTE.updateLoadedTileServer(pos, look)) {
+                            connectionTE.loadedTile.disableConnection = !connectionTE.loadedTile.disableConnection;
+                            connectionTE.update();
+                            player.addChatComponentMessage(
+                                    new ChatComponentTranslation(
+                                            connectionTE.loadedTile.disableConnection
+                                                    ? "message.littletiles.tile_connection.disabled"
+                                                    : "message.littletiles.tile_connection.enabled"));
                         }
                         break;
                 }

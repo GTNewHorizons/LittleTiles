@@ -130,10 +130,7 @@ public class LittleDeformedBoxPreviewRenderer {
      */
     private static void renderFaceDiagonals(double width) {
         LittleTileCutoutInfo cutout = LittleDeformedBoxHelper.currentCutout();
-        Vector3d[] local = new Vector3d[cutout.corners.length];
-        for (int i = 0; i < local.length; i++) {
-            local[i] = Mesh3dUtil.toLocal(cutout.corners[i], cutout.size);
-        }
+        Vector3i[] corners = cutout.corners;
 
         boolean valid = LittleDeformedBoxHelper.hasValidGeometry();
         GL11.glColor4d(valid ? 0.2 : 1, valid ? 0.8 : 0.1, valid ? 1 : 0.1, 0.45);
@@ -143,7 +140,7 @@ public class LittleDeformedBoxPreviewRenderer {
                 continue;
             }
             boolean first = Mesh3dUtil
-                    .splitsAlongFirstDiagonal(local[face[0]], local[face[1]], local[face[2]], local[face[3]]);
+                    .splitsAlongFirstDiagonal(corners[face[0]], corners[face[1]], corners[face[2]], corners[face[3]]);
             renderBeam(cornerFromCamera(first ? face[0] : face[1]), cornerFromCamera(first ? face[2] : face[3]), width);
         }
         GL11.glEnd();

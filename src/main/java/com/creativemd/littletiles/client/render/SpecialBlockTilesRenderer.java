@@ -100,20 +100,23 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
             }
             mc.renderEngine.bindTexture(TextureMap.locationBlocksTexture);
 
-            ArrayList<CubeObject> cubes = ((ITilesRenderer) item.getItem()).getRenderingCubes(item);
+            TileGeometryBuffer buffer = TileGeometryBuffer.get(item);
+            if (buffer != null) {
+                scaleToBlock(buffer.getLargestSide());
+                // drawn around the center of the block, like renderInventoryCubes
+                GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
+                buffer.render();
+            } else {
+                ArrayList<CubeObject> cubes = ((ITilesRenderer) item.getItem()).getRenderingCubes(item);
 
-            Vec3 size = CubeObject.getSizeOfCubes(cubes);
-            double largestSide = Math.max(size.xCoord, Math.max(size.yCoord, size.zCoord));
-            if (largestSide > 1) {
-                double scaler = 1 / largestSide;
-                GL11.glScaled(scaler, scaler, scaler);
-                GL11.glTranslated(0.5 - largestSide / 2D, 0.5 - largestSide / 2D, 0.5 - largestSide / 2D);
+                Vec3 size = CubeObject.getSizeOfCubes(cubes);
+                scaleToBlock(Math.max(size.xCoord, Math.max(size.yCoord, size.zCoord)));
+                LittleTilesBlockRenderHelper.renderInventoryCubes(
+                        (RenderBlocks) data[0],
+                        cubes,
+                        Block.getBlockFromItem(item.getItem()),
+                        item.getItemDamage());
             }
-            LittleTilesBlockRenderHelper.renderInventoryCubes(
-                    (RenderBlocks) data[0],
-                    cubes,
-                    Block.getBlockFromItem(item.getItem()),
-                    item.getItemDamage());
 
             if (type == ItemRenderType.INVENTORY) {
                 GL11.glPopMatrix();
@@ -134,6 +137,14 @@ public class SpecialBlockTilesRenderer extends TileEntitySpecialRenderer
         RenderItem.getInstance().renderIcon(8, 0, icon, 8, 8);
         GL11.glPopMatrix();
         GL11.glEnable(GL11.GL_LIGHTING);
+    }
+
+    private static void scaleToBlock(double largestSide) {
+        if (largestSide > 1) {
+            double scaler = 1 / largestSide;
+            GL11.glScaled(scaler, scaler, scaler);
+            GL11.glTranslated(0.5 - largestSide / 2D, 0.5 - largestSide / 2D, 0.5 - largestSide / 2D);
+        }
     }
 
     @Override

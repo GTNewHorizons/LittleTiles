@@ -244,7 +244,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
             if (version != TILE_DATA_VERSION) throw new IOException("Unknown tile data version " + version);
             NBTTagList list = CompressedStreamTools.read(in).getTagList("tiles", Constants.NBT.TAG_COMPOUND);
             for (int i = 0; i < list.tagCount(); i++) tiles.add(list.getCompoundTagAt(i));
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             LittleTiles.logger.error("Could not read the tiles of a recipe", e);
             tiles.clear();
         }

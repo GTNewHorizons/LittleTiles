@@ -5,10 +5,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
+
 import org.joml.Vector3i;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.MeshGeometry.FaceFilter;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
@@ -359,5 +362,25 @@ public class Mesh3dTests {
         assertCovers(
                 cutout(LittleTileShapeMode.SLOPE, new Vector3i(7, 1, 12), new Vector3i(2, 15, -2), 45),
                 cutout(LittleTileShapeMode.SLOPE, new Vector3i(14, 2, 12), new Vector3i(-5, 14, -2), 41));
+    }
+
+    /**
+     * A sliver, 1.5e-5 blocks thin, lies against the west edge of a face turned towards it, sharing no area with it. The
+     * face's other edges, cut along before the west one, run across it and leave pieces thinner than the split
+     * tolerance.
+     */
+    @Test
+    public void sliverOnlyTouchingAFaceStaysWhole() {
+        double thickness = 1.5E-5;
+        Triangle3d sliver = new Triangle3d(
+                new Vector3d(0, -0.5, 0),
+                new Vector3d(0, 1.5, 0),
+                new Vector3d(-thickness, 0.5, 0));
+        Triangle3d facingIt = new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(1, 0, 0), new Vector3d(0, 0, 0));
+        Mesh3d sliverMesh = new Mesh3d(Collections.singletonList(sliver));
+        double area = MeshGeometry.area(sliverMesh);
+        double visible = MeshGeometry.area(
+                MeshGeometry.visiblePart(sliverMesh, new Mesh3d(Collections.singletonList(facingIt))));
+        assertTrue("area=" + area + " visible=" + visible, Math.abs(visible - area) <= area * 1.0E-6);
     }
 }

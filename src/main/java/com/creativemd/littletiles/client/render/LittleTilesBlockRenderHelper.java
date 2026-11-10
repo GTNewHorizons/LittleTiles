@@ -133,8 +133,7 @@ public class LittleTilesBlockRenderHelper {
         Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
         GL11.glBegin(GL11.GL_TRIANGLES);
         for (Triangle3d triangle : mesh.getTriangles()) {
-            int faceColor = topTintOnly && triangle.getFaceDirection() != ForgeDirection.UP ? ColorUtils.WHITE
-                    : color;
+            int faceColor = topTintOnly && triangle.getFaceDirection() != ForgeDirection.UP ? ColorUtils.WHITE : color;
             GL11.glColor4ub(
                     (byte) (faceColor >> 16 & 255),
                     (byte) (faceColor >> 8 & 255),

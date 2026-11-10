@@ -59,7 +59,10 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
 
     private static final String SYNC_STRUCTURE = "lt_recipe_structure";
     private static final String SYNC_CLEAR = "lt_recipe_clear";
-    /** Set on an open recipe. A recipe with tiles is locked without it, so a new one always starts locked. */
+    /**
+     * Set on an open recipe. A recipe with tiles is locked without it, so one filled by selecting two positions starts
+     * locked, while picking keeps it open.
+     */
     public static final String UNLOCKED = "unlocked";
 
     @SideOnly(Side.CLIENT)
@@ -97,8 +100,8 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
     }
 
     /**
-     * Copies middle clicked tiles into the recipe, replacing what it held. An empty recipe becomes a new, locked one,
-     * an open recipe stays open.
+     * Copies middle clicked tiles into the recipe, replacing what it held. The recipe stays open, so picking again
+     * replaces it until it is locked.
      */
     public static void pickTiles(EntityPlayer player, ItemStack stack, List<LittleTile> tiles) {
         if (stack == null || !(stack.getItem() instanceof ItemRecipe) || isLocked(stack) || tiles.isEmpty()) return;
@@ -109,9 +112,8 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
                             LittleTilesConfig.maxRecipeTiles));
             return;
         }
-        boolean open = hasTiles(stack);
         saveTiles(player.worldObj, tiles, stack);
-        if (open) stack.stackTagCompound.setBoolean(UNLOCKED, true);
+        stack.stackTagCompound.setBoolean(UNLOCKED, true);
     }
 
     /**
@@ -128,9 +130,8 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
                             LittleTilesConfig.maxRecipeTiles));
             return;
         }
-        boolean open = hasTiles(stack);
         stack.stackTagCompound = (NBTTagCompound) drop.stackTagCompound.copy();
-        if (open) stack.stackTagCompound.setBoolean(UNLOCKED, true);
+        stack.stackTagCompound.setBoolean(UNLOCKED, true);
     }
 
     @Override

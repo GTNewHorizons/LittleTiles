@@ -8,6 +8,8 @@ import org.joml.Vector3i;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -41,7 +43,11 @@ public class Mesh3dTests {
     }
 
     private static void assertEmpty(LittleTileCutoutInfo cutout) {
-        Mesh3d mesh = Mesh3dUtil.meshFromTile(BLOCK, cutout);
+        assertEmpty(BLOCK, cutout);
+    }
+
+    private static void assertEmpty(LittleTileBox box, LittleTileCutoutInfo cutout) {
+        Mesh3d mesh = Mesh3dUtil.meshFromTile(box, cutout);
         assertTrue(
                 cutout.type + " size="
                         + cutout.size
@@ -86,6 +92,37 @@ public class Mesh3dTests {
         assertEmpty(cutout);
     }
 
+    // Tiles reaching into their box by less than the rounding grid are rounded flat onto its planes, and those reaching
+    // in by far less than anything visible leave a sliver: neither is a tile there
+
+    /** Its slope face only touches the box along an edge, which is left as triangles without area. */
+    @Test
+    public void slopeTouchingTheBoxAlongAnEdgeIsEmpty() {
+        assertEmpty(
+                new LittleTileBox(1, 9, 2, 2, 13, 5),
+                cutout(LittleTileShapeMode.SLOPE, new Vector3i(32, 14, 16), new Vector3i(-10, -9, -2), 35));
+    }
+
+    /** Rounded flat onto the box's planes, with faces that still have area. */
+    @Test
+    public void roundCornerBarelyReachingIntoTheBoxIsEmpty() {
+        assertEmpty(
+                new LittleTileBox(9, 2, 2, 12, 5, 8),
+                cutout(
+                        LittleTileShapeMode.SLOPE_CONVEX_OUTER_CORNER,
+                        new Vector3i(11, 178, 37),
+                        new Vector3i(-2, -78, 0),
+                        38));
+    }
+
+    /** Leaves a sliver of less than a millionth of a cubic pixel in the box. */
+    @Test
+    public void triangleSlopeLeavingASliverInTheBoxIsEmpty() {
+        assertEmpty(
+                new LittleTileBox(11, 12, 12, 14, 14, 14),
+                cutout(LittleTileShapeMode.SLOPE_TRIANGLE, new Vector3i(31, 37, 19), new Vector3i(-1, -28, -13), 21));
+    }
+
     // Cutting a tile down to its box leaves a closed mesh, also where the cuts pass close to its points
 
     private static void assertClosed(LittleTileBox box, LittleTileCutoutInfo cutout) {
@@ -123,5 +160,78 @@ public class Mesh3dTests {
                 new Vector3i(15, 14, -1), new Vector3i(-1, 1, 17), new Vector3i(17, 2, 17), new Vector3i(1, 16, 18),
                 new Vector3i(18, 18, 17) };
         assertClosed(BLOCK, cutout);
+    }
+
+    // Tiles that only touch can be placed next to each other
+
+    private static void assertFits(LittleTileBox existingBox, LittleTileCutoutInfo existing, LittleTileBox candidateBox,
+            LittleTileCutoutInfo candidate) {
+        LittleTileBlock tile = new LittleTileBlock();
+        tile.boundingBox = existingBox.copy();
+        tile.setCutoutInfo(existing);
+        TileEntityLittleTiles tiles = new TileEntityLittleTiles();
+        tiles.getTiles().add(tile);
+        assertTrue(
+                describe(existing) + " " + (candidate == null ? candidateBox : describe(candidate)),
+                tiles.isSpaceForLittleTile(candidateBox.copy(), candidate));
+    }
+
+    private static void assertDoesntFit(LittleTileBox existingBox, LittleTileCutoutInfo existing,
+            LittleTileBox candidateBox, LittleTileCutoutInfo candidate) {
+        LittleTileBlock tile = new LittleTileBlock();
+        tile.boundingBox = existingBox.copy();
+        tile.setCutoutInfo(existing);
+        TileEntityLittleTiles tiles = new TileEntityLittleTiles();
+        tiles.getTiles().add(tile);
+        assertFalse(
+                describe(existing) + " " + (candidate == null ? candidateBox : describe(candidate)),
+                tiles.isSpaceForLittleTile(candidateBox.copy(), candidate));
+    }
+
+    /** Its mesh doesn't close when cut, which must not let a copy of it in. */
+    @Test
+    public void deformedBoxWithItsCornerDraggedInDoesntFitOntoItself() {
+        LittleTileCutoutInfo cutout = cutout(
+                LittleTileShapeMode.DEFORMED_BOX,
+                new Vector3i(16, 16, 16),
+                new Vector3i(0, 0, 0));
+        cutout.corners = new Vector3i[Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT];
+        for (int corner = 0; corner < cutout.corners.length; corner++) {
+            cutout.corners[corner] = new Vector3i(
+                    (corner & 1) != 0 ? 16 : 0,
+                    (corner & 2) != 0 ? 16 : 0,
+                    (corner & 4) != 0 ? 16 : 0);
+        }
+        cutout.corners[0].set(13, 13, 13);
+        assertDoesntFit(BLOCK, cutout, BLOCK, cutout);
+    }
+
+    @Test
+    public void largeComplementarySlopesFit() {
+        Vector3i size = new Vector3i(781, 156, 78), pos = new Vector3i(-154, -112, -5);
+        assertFits(
+                BLOCK,
+                cutout(LittleTileShapeMode.SLOPE, size, pos, 10),
+                BLOCK,
+                cutout(LittleTileShapeMode.SLOPE, size, pos, 0));
+    }
+
+    /** The slope face of the small one lies on that of the big one. */
+    @Test
+    public void differentlySizedCoplanarSlopesFit() {
+        assertFits(
+                BLOCK,
+                cutout(LittleTileShapeMode.SLOPE, new Vector3i(16, 10, 12), new Vector3i(2, 9, 0), 27),
+                BLOCK,
+                cutout(LittleTileShapeMode.SLOPE, new Vector3i(8, 10, 6), new Vector3i(2, 9, 0), 35));
+    }
+
+    @Test
+    public void onePixelBarNextToASlopeFits() {
+        assertFits(
+                BLOCK,
+                cutout(LittleTileShapeMode.SLOPE, new Vector3i(6, 18, 30), new Vector3i(10, 0, 10), 43),
+                new LittleTileBox(12, 8, 0, 13, 9, 16),
+                null);
     }
 }

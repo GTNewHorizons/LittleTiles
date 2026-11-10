@@ -9,9 +9,9 @@ import net.minecraftforge.common.MinecraftForge;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.command.DumpMeshCommand;
 import com.creativemd.littletiles.client.render.BlockOverlayRenderer;
-import com.creativemd.littletiles.client.render.ToolHighlightRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.client.render.SpecialBlockTilesRenderer;
+import com.creativemd.littletiles.client.render.ToolHighlightRenderer;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.server.LittleTilesServer;
 

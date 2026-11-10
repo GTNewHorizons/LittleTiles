@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 import net.minecraftforge.common.util.ForgeDirection;
@@ -233,17 +234,19 @@ public final class MeshGeometry {
         private static final double TILT_EPSILON = 1.0E-7;
 
         /**
-         * The faces parallel to a block face. Unlike how far the corners spread, the normal stays exact however thin a
-         * face is, so a long sliver of a barely tilted face still counts as tilted.
+         * The faces parallel to a block face, by the plane of the face they are a piece of, see
+         * {@link Triangle3d#getFacePlane}: rounding can turn a sliver of a tilted face parallel to one. Unlike how far
+         * the corners spread, the normal stays exact however thin a face is, so a long sliver of a barely tilted face
+         * still counts as tilted.
          */
-        public static final FaceFilter FLAT = new FaceFilter(FaceFilter::isFlat);
+        public static final FaceFilter FLAT = new FaceFilter((face, corners) -> isFlat(face));
 
         /** The faces not parallel to any block face, see {@link #FLAT}. */
-        public static final FaceFilter TILTED = new FaceFilter(corners -> !isFlat(corners));
+        public static final FaceFilter TILTED = new FaceFilter((face, corners) -> !isFlat(face));
 
-        private final Predicate<Vector3d[]> accepts;
+        private final BiPredicate<Triangle3d, Vector3d[]> accepts;
 
-        private FaceFilter(Predicate<Vector3d[]> accepts) {
+        private FaceFilter(BiPredicate<Triangle3d, Vector3d[]> accepts) {
             this.accepts = accepts;
         }
 
@@ -253,12 +256,12 @@ public final class MeshGeometry {
         public static FaceFilter onPlane(int axis, int pixel) {
             double plane = BlockSpace.toBlocks(pixel);
             return new FaceFilter(
-                    corners -> allMatch(corners, corner -> Math.abs(corner.get(axis) - plane) <= EPSILON));
+                    (face, corners) -> allMatch(corners, corner -> Math.abs(corner.get(axis) - plane) <= EPSILON));
         }
 
         /** The faces whose corners all lie on the given points, in pixels. */
         public static FaceFilter between(Vector3i... points) {
-            return new FaceFilter(corners -> allMatch(corners, corner -> isAtAnyOf(corner, points)));
+            return new FaceFilter((face, corners) -> allMatch(corners, corner -> isAtAnyOf(corner, points)));
         }
 
         /** The faces this filter picks, copied into a mesh of their own. */
@@ -275,8 +278,9 @@ public final class MeshGeometry {
             Vector3d[] vertices = mesh.getVertices();
             List<Triangle3d> faces = new ArrayList<>();
             for (int face = 0; face < mesh.getTriangles().size(); face++) {
+                Triangle3d triangle = mesh.getTriangles().get(face);
                 Vector3d[] corners = { vertices[face * 3], vertices[face * 3 + 1], vertices[face * 3 + 2] };
-                if (accepts.test(corners) == picked) faces.add(mesh.getTriangles().get(face).copy());
+                if (accepts.test(triangle, corners) == picked) faces.add(triangle.copy());
             }
             return new Mesh3d(faces);
         }
@@ -288,12 +292,13 @@ public final class MeshGeometry {
             return true;
         }
 
-        /** Whether the face's normal points along an axis: it leans towards at most one. */
-        private static boolean isFlat(Vector3d[] corners) {
-            Vector3d normal = normal(corners[0], corners[1], corners[2]).normalize();
+        /** Whether the normal of the face's plane points along an axis: it leans towards at most one. */
+        private static boolean isFlat(Triangle3d face) {
+            com.creativemd.creativecore.lib.Vector3d normal = face.getFacePlane().getNormal();
+            double[] components = { normal.x, normal.y, normal.z };
             int axesLeanedTowards = 0;
-            for (int axis = 0; axis < BlockSpace.AXES; axis++) {
-                if (Math.abs(normal.get(axis)) > TILT_EPSILON) axesLeanedTowards++;
+            for (double component : components) {
+                if (Math.abs(component) > TILT_EPSILON) axesLeanedTowards++;
             }
             return axesLeanedTowards <= 1;
         }

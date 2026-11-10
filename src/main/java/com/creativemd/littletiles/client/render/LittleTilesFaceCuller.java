@@ -508,6 +508,11 @@ public final class LittleTilesFaceCuller {
             if (!triangle.boundsOverlap(occludingTriangle) || !triangle.isCoplanar(occludingTriangle)) {
                 continue;
             }
+            // Only a face lying against this one, turned towards it, hides it. One facing the same way is the surface
+            // of another tile right beside this one's, such as a sliver lying along a face, and hides nothing
+            if (triangle.getFacePlane().getNormal().dot(occludingTriangle.getFacePlane().getNormal()) > 0) {
+                continue;
+            }
             List<Triangle3d> next = new ArrayList<>();
             for (Triangle3d piece : remaining) {
                 if (piece.boundsOverlap(occludingTriangle)) {

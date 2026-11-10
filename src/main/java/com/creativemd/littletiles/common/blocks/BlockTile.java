@@ -23,6 +23,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.MathHelper;
@@ -35,6 +36,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.LittleTilesConfig;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.packet.LittleBlockPacket;
@@ -319,8 +321,15 @@ public class BlockTile extends BlockContainer implements IFacade {
             if (littleTile != null && littleTile.updateLoadedTile(player)) {
                 try {
                     boolean entireBlock = takesEntireBlock(player, littleTile.loadedTile);
-                    if (entireBlock) littleTile.removeTiles(selectEntireBlock(littleTile));
-                    else littleTile.loadedTile.destroy();
+                    if (entireBlock) {
+                        List<LittleTile> tiles = selectEntireBlock(littleTile);
+                        // Only survival gets the tiles as an item, creative just removes them.
+                        if (!player.capabilities.isCreativeMode && !fitsOneItem(tiles)) {
+                            tellTooManyTiles(player);
+                            return false;
+                        }
+                        littleTile.removeTiles(tiles);
+                    } else littleTile.loadedTile.destroy();
                     NBTTagCompound nbt = new NBTTagCompound();
                     littleTile.writeToNBT(nbt);
                     NBTTagCompound packetNbt = new NBTTagCompound();
@@ -355,6 +364,20 @@ public class BlockTile extends BlockContainer implements IFacade {
             }
         }
         return tiles;
+    }
+
+    /**
+     * Whether the tiles taken at once fit into one item, which can only be placed again up to
+     * {@link LittleTilesConfig#maxRecipeTiles}.
+     */
+    public static boolean fitsOneItem(List<LittleTile> tiles) {
+        return tiles.size() <= LittleTilesConfig.maxRecipeTiles;
+    }
+
+    /** Tells the player why the entire block was not taken, see {@link #fitsOneItem}. */
+    public static void tellTooManyTiles(EntityPlayer player) {
+        player.addChatMessage(
+                new ChatComponentTranslation("littletiles.block.too_many_tiles", LittleTilesConfig.maxRecipeTiles));
     }
 
     /** One item holding all the given tiles, or the tile's own item if there is only one. */
@@ -421,8 +444,11 @@ public class BlockTile extends BlockContainer implements IFacade {
         if (littleTile != null && littleTile.updateLoadedTile(player)) {
             try {
                 // Survival picks from the inventory and could never find the item, so only creative gets the block
-                if (player.capabilities.isCreativeMode && takesEntireBlock(player, littleTile.loadedTile))
-                    return getEntireBlockDrop(world, selectEntireBlock(littleTile));
+                if (player.capabilities.isCreativeMode && takesEntireBlock(player, littleTile.loadedTile)) {
+                    List<LittleTile> tiles = selectEntireBlock(littleTile);
+                    // Silent, as tooltips like NEI's call this every frame. The actual pick tells the player.
+                    return fitsOneItem(tiles) ? getEntireBlockDrop(world, tiles) : null;
+                }
                 ArrayList<ItemStack> drops = littleTile.loadedTile.getDrops();
                 if (!drops.isEmpty()) return drops.get(0);
             } catch (Exception ignored) {

@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.BlockValidator;
+import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
@@ -57,6 +58,15 @@ public class MixinForgeHooks_PickBlock {
                 }
             }
         }
-        return original.call(instance, target, world, x, y, z, player);
+        ItemStack picked = original.call(instance, target, world, x, y, z, player);
+        // getPickBlock refuses an entire block with too many tiles silently, so only this actual pick tells why.
+        if (picked == null && instance == LittleTiles.blockTile
+                && player.capabilities.isCreativeMode
+                && world.getTileEntity(x, y, z) instanceof TileEntityLittleTiles littleTile
+                && littleTile.loadedTile != null
+                && BlockTile.takesEntireBlock(player, littleTile.loadedTile)
+                && !BlockTile.fitsOneItem(BlockTile.selectEntireBlock(littleTile)))
+            BlockTile.tellTooManyTiles(player);
+        return picked;
     }
 }

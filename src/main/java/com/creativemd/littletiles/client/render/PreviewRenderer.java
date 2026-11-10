@@ -34,12 +34,16 @@ import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
+import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTileBounds;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
+import com.creativemd.littletiles.common.utils.small.LittleTileSize;
+import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import com.creativemd.littletiles.utils.PreviewTile;
 import com.creativemd.littletiles.utils.ShiftHandler;
 
@@ -63,6 +67,8 @@ public class PreviewRenderer {
     public static LittleTileBlockPos firstHit = null;
     private static Item lastItem = null;
     private static NBTTagCompound lastNbt = null;
+    /** Bounds of the held multi tile item, so its tiles are not read every frame. Reset when the item changes. */
+    private static LittleTileBounds heldBounds = null;
 
     private static ForgeDirection rotateDirection(ForgeDirection direction) {
         return switch (direction) {
@@ -414,6 +420,7 @@ public class PreviewRenderer {
                 lastItem = item;
                 // Copy the tags so in-place tool setting changes are detected on the next tick.
                 lastNbt = nbt != null ? (NBTTagCompound) nbt.copy() : null;
+                heldBounds = null;
             }
 
             if (mc.thePlayer.getHeldItem() != null) {
@@ -543,8 +550,30 @@ public class PreviewRenderer {
 
                     ArrayList<PreviewTile> previews;
 
-                    previews = PlacementHelper
-                            .getPreviewTiles(mc.thePlayer, mc.thePlayer.getHeldItem(), pos, markedHit != null);
+                    // A multi tile item is drawn from its buffer, so one tile spanning its bounds is enough to place
+                    // it. The bounds are read once instead of every frame.
+                    TileGeometryBuffer itemBuffer = itemBuffer(held);
+                    if (itemBuffer != null && held.getItem() == LittleTiles.multiTiles) {
+                        if (heldBounds == null) heldBounds = new LittleTileBounds(ItemRecipe.getPreview(held));
+                        LittleTileVec min = heldBounds.min;
+                        LittleTileSize size = heldBounds.size;
+                        ArrayList<LittleTilePreview> boundsTile = new ArrayList<>();
+                        boundsTile.add(
+                                new LittleTilePreview(
+                                        new LittleTileBox(
+                                                min.x,
+                                                min.y,
+                                                min.z,
+                                                min.x + size.sizeX,
+                                                min.y + size.sizeY,
+                                                min.z + size.sizeZ),
+                                        new NBTTagCompound()));
+                        previews = PlacementHelper
+                                .getPreviewTiles(mc.thePlayer, held, pos, markedHit != null, boundsTile, heldBounds);
+                    } else {
+                        previews = PlacementHelper
+                                .getPreviewTiles(mc.thePlayer, mc.thePlayer.getHeldItem(), pos, markedHit != null);
+                    }
 
                     double x = (double) pos.getPosX() - TileEntityRendererDispatcher.staticPlayerX;
                     double y = (double) pos.getPosY() - TileEntityRendererDispatcher.staticPlayerY;
@@ -557,7 +586,6 @@ public class PreviewRenderer {
                         // touching tiles, would otherwise show through the alpha and add up with the ones in front.
                         // So they go into depth first, then in color only where they are in front. The depth buffer
                         // is cleared for the hand right after this event, so writing to it leaves nothing behind.
-                        TileGeometryBuffer itemBuffer = itemBuffer(mc.thePlayer.getHeldItem());
                         // The color mask is restored, not reset, as anaglyph 3D only lets each eye write its channels.
                         GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT);
                         GL11.glColorMask(false, false, false, false);

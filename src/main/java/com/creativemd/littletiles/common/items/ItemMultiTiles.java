@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -69,8 +70,19 @@ public class ItemMultiTiles extends Item implements ITilesRenderer, ILittleTile 
     }
 
     @Override
+    public void onUpdate(ItemStack stack, World world, Entity entity, int slot, boolean isHeld) {
+        ItemRecipe.convertOldTiles(stack, world);
+    }
+
+    @Override
     public ArrayList<LittleTilePreview> getLittlePreview(ItemStack stack) {
         return ItemRecipe.getPreview(stack);
+    }
+
+    /** Checked every frame while held: the tiles only have to be read when they are placed or previewed. */
+    @Override
+    public boolean hasLittlePreview(ItemStack stack) {
+        return stack.hasTagCompound();
     }
 
     @Override

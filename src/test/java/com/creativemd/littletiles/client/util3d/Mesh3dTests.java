@@ -176,6 +176,36 @@ public class Mesh3dTests {
                 tiles.isSpaceForLittleTile(candidateBox.copy(), candidate));
     }
 
+    private static void assertDoesntFit(LittleTileBox existingBox, LittleTileCutoutInfo existing,
+            LittleTileBox candidateBox, LittleTileCutoutInfo candidate) {
+        LittleTileBlock tile = new LittleTileBlock();
+        tile.boundingBox = existingBox.copy();
+        tile.setCutoutInfo(existing);
+        TileEntityLittleTiles tiles = new TileEntityLittleTiles();
+        tiles.getTiles().add(tile);
+        assertFalse(
+                describe(existing) + " " + (candidate == null ? candidateBox : describe(candidate)),
+                tiles.isSpaceForLittleTile(candidateBox.copy(), candidate));
+    }
+
+    /** Its mesh doesn't close when cut, which must not let a copy of it in. */
+    @Test
+    public void deformedBoxWithItsCornerDraggedInDoesntFitOntoItself() {
+        LittleTileCutoutInfo cutout = cutout(
+                LittleTileShapeMode.DEFORMED_BOX,
+                new Vector3i(16, 16, 16),
+                new Vector3i(0, 0, 0));
+        cutout.corners = new Vector3i[Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT];
+        for (int corner = 0; corner < cutout.corners.length; corner++) {
+            cutout.corners[corner] = new Vector3i(
+                    (corner & 1) != 0 ? 16 : 0,
+                    (corner & 2) != 0 ? 16 : 0,
+                    (corner & 4) != 0 ? 16 : 0);
+        }
+        cutout.corners[0].set(13, 13, 13);
+        assertDoesntFit(BLOCK, cutout, BLOCK, cutout);
+    }
+
     @Test
     public void largeComplementarySlopesFit() {
         Vector3i size = new Vector3i(781, 156, 78), pos = new Vector3i(-154, -112, -5);

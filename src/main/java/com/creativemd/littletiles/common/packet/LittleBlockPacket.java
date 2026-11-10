@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -11,6 +12,7 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
+import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
@@ -131,6 +133,18 @@ public class LittleBlockPacket extends CreativeCorePacket {
                             BlockTile.cancelNext = true;
                         break;
                     case DESTROY:
+                        // The client removes the tile on its own, so this is the only place the server
+                        // can refuse, as it would a vanilla block break: claims, other protection, or a
+                        // WorldEdit wand. A refused break resends the block to the client.
+                        if (!(player instanceof EntityPlayerMP playerMP)) break;
+                        if (ForgeHooks.onBlockBreakEvent(
+                                player.worldObj,
+                                playerMP.theItemInWorldManager.getGameType(),
+                                playerMP,
+                                x,
+                                y,
+                                z).isCanceled())
+                            break;
                         boolean creative = player.capabilities.isCreativeMode;
                         LittleTileChangeRecorder recorder = new LittleTileChangeRecorder(player.worldObj);
                         if (creative) recorder.watch(littleEntity.getCoord());

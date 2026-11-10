@@ -1,5 +1,7 @@
 package com.creativemd.littletiles.client.util3d;
 
+import static com.creativemd.littletiles.client.util3d.BlockSpace.PIXELS;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -80,6 +82,19 @@ public final class Tile {
     /** Whether nothing of the shape lies in the box. */
     public boolean isEmpty() {
         return mesh().getTriangles().isEmpty();
+    }
+
+    /** The volume of the shape within the box, in cubic pixels, as collision measures it. */
+    public double volume() {
+        return MeshCollision.sharedVolume(box, shape, box, null) * PIXELS * PIXELS * PIXELS;
+    }
+
+    /** The tile with its box shrunk to its mesh, see {@link Mesh3dUtil#fitToMesh}. */
+    public Tile fittedToMesh() {
+        LittleTileBox fitted = box.copy();
+        LittleTileCutoutInfo moved = new LittleTileCutoutInfo(shape);
+        Mesh3dUtil.fitToMesh(fitted, moved, mesh());
+        return new Tile(fitted, moved);
     }
 
     /** Whether some faces are tilted, so the shape's surface crosses the box. */

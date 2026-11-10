@@ -2,6 +2,8 @@ package com.creativemd.littletiles.client.util3d;
 
 import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
 import static com.creativemd.littletiles.client.util3d.BlockSpace.PIXELS;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.EXACT_VOLUME;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.ROUNDING_VOLUME;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertClosedAndVolumesAddUp;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollide;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollideEitherWay;
@@ -31,6 +33,7 @@ import org.junit.Test;
 import com.creativemd.littletiles.client.util3d.BlockSpace.Split;
 import com.creativemd.littletiles.client.util3d.MeshGeometry.FaceFilter;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 /** Opt-in mesh permutation tests, see {@link Sweep}. Failures include the seed and generated inputs. */
@@ -518,6 +521,41 @@ public class MeshPermutationTest {
             assertFit(boxes.low, boxes.high);
             assertCollide(boxes.low, boxes.highMovedIntoLow());
             assertOnlySharedFacesHideEachOther(boxes.low.mesh(), boxes.high.mesh(), boxes.sharedFace());
+        });
+    }
+
+    /**
+     * Places every shape in turn, pillars and deformed boxes included, into a random box in the block, the way placing
+     * splits it into fragments. A fragment the shape misses must have no mesh, one it fills must have the whole box as
+     * its mesh, and the others the volume they share with the shape, which shrinking them to their mesh must keep.
+     */
+    @Test
+    public void placedFragmentsKeepTheirShape() {
+        Sweep.run("TEST_PERMUTATIONS_FRAGMENTS", "fragments", trial -> {
+            Random random = trial.random();
+            LittleTileShapeMode kind = Shapes.ALL_SHAPES[trial.inTurn(Shapes.ALL_SHAPES.length)];
+            LittleTileCutoutInfo shape = Draw.shapeReachingIntoBlock(random, kind);
+            Tile fragment = trial.input("fragment", Tile.of(shape, Draw.boxWithin(random, BLOCK)));
+            double meshVolume = MeshGeometry.volume(fragment.mesh());
+            switch (Mesh3dUtil.classifyTile(fragment.box, fragment.shape)) {
+                case EMPTY -> check(
+                        Math.abs(meshVolume) <= ROUNDING_VOLUME,
+                        Message.of("empty, but mesh volume=", meshVolume));
+                case FULL -> check(
+                        Math.abs(meshVolume - BlockSpace.volume(fragment.box)) <= ROUNDING_VOLUME,
+                        Message.of("full, but mesh volume=", meshVolume));
+                case PARTIAL -> {
+                    check(!fragment.isEmpty(), "partial, but no mesh");
+                    double volume = fragment.volume();
+                    check(
+                            Math.abs(meshVolume - volume) <= ROUNDING_VOLUME,
+                            Message.of("mesh volume=", meshVolume, " expected=", volume));
+                    Tile fitted = fragment.fittedToMesh();
+                    check(
+                            Math.abs(fitted.volume() - volume) <= EXACT_VOLUME,
+                            Message.of("fitted=", fitted, " volume=", fitted.volume(), " expected=", volume));
+                }
+            }
         });
     }
 }

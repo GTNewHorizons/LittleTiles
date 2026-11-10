@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.client.util3d;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
@@ -359,35 +360,92 @@ public class Mesh3dUtil {
         Mesh3d mesh = shapeMesh(cutoutInfo);
         place(mesh, cutoutInfo, cutoutSize, posCutout, posSubMin, orientation);
 
-        int meshMinX = posCutout.x + posSubMin.x;
-        int meshMaxX = meshMinX + cutoutInfo.size.x;
-        int meshMinY = posCutout.y + posSubMin.y;
-        int meshMaxY = meshMinY + cutoutInfo.size.y;
-        int meshMinZ = posCutout.z + posSubMin.z;
-        int meshMaxZ = meshMinZ + cutoutInfo.size.z;
-
-        // Bounds that only touch the box share no volume with it
-        if (meshMinY >= posSubMax.y || meshMaxY <= posSubMin.y
-                || meshMinX >= posSubMax.x
-                || meshMaxX <= posSubMin.x
-                || meshMinZ >= posSubMax.z
-                || meshMaxZ <= posSubMin.z) {
-            return new Mesh3d(new ArrayList<>());
+        // From the points, as a pillar thicker than its bounds reaches past them
+        double[] min = new double[3], max = new double[3];
+        pixelBounds(mesh, min, max);
+        int[] subMin = { posSubMin.x, posSubMin.y, posSubMin.z }, subMax = { posSubMax.x, posSubMax.y, posSubMax.z };
+        for (int axis = 0; axis < 3; axis++) {
+            // Bounds that only touch the box share no volume with it
+            if (min[axis] >= subMax[axis] || max[axis] <= subMin[axis]) return new Mesh3d(new ArrayList<>());
         }
 
         List<Plane3d> planes = new ArrayList<>(6);
-        if (meshMaxY > posSubMax.y) planes.add(Plane3d.UP.moveAlongNormal(-(16 - posSubMax.y) / 16.0));
-        if (meshMinY < posSubMin.y) planes.add(Plane3d.DOWN.moveAlongNormal(-posSubMin.y / 16.0));
-        if (meshMinX < posSubMin.x) planes.add(Plane3d.WEST.moveAlongNormal(-posSubMin.x / 16.0));
-        if (meshMaxX > posSubMax.x) planes.add(Plane3d.EAST.moveAlongNormal(-(16 - posSubMax.x) / 16.0));
-        if (meshMaxZ > posSubMax.z) planes.add(Plane3d.SOUTH.moveAlongNormal(-(16 - posSubMax.z) / 16.0));
-        if (meshMinZ < posSubMin.z) planes.add(Plane3d.NORTH.moveAlongNormal(-posSubMin.z / 16.0));
+        if (max[1] > subMax[1]) planes.add(Plane3d.UP.moveAlongNormal(-(16 - subMax[1]) / 16.0));
+        if (min[1] < subMin[1]) planes.add(Plane3d.DOWN.moveAlongNormal(-subMin[1] / 16.0));
+        if (min[0] < subMin[0]) planes.add(Plane3d.WEST.moveAlongNormal(-subMin[0] / 16.0));
+        if (max[0] > subMax[0]) planes.add(Plane3d.EAST.moveAlongNormal(-(16 - subMax[0]) / 16.0));
+        if (max[2] > subMax[2]) planes.add(Plane3d.SOUTH.moveAlongNormal(-(16 - subMax[2]) / 16.0));
+        if (min[2] < subMin[2]) planes.add(Plane3d.NORTH.moveAlongNormal(-subMin[2] / 16.0));
         mesh = mesh.cutByPlanes(planes);
         if (block != null) {
             mesh.setTextures(block, meta);
         }
 
         return mesh;
+    }
+
+    /** How much of its tile box a cutout covers, see {@link #classifyTile}. */
+    public enum TileCoverage {
+        /** Nothing of the shape is inside the box, so there is nothing to place. */
+        EMPTY,
+        /** The shape crosses the box and has to be cut to it. */
+        PARTIAL,
+        /** The shape fills the whole box, so a plain box tile looks the same. */
+        FULL
+    }
+
+    /**
+     * How much of the box the cutout covers, from the volume they share. A big shape split across many blocks leaves
+     * most of them either empty or completely filled, which need no mesh at all.
+     */
+    public static TileCoverage classifyTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
+        double shared = MeshCollision.sharedVolume(box, cutoutInfo, box, null);
+        if (shared <= MeshCutter.VOLUME_EPSILON) return TileCoverage.EMPTY;
+        return shared >= MeshCollision.volume(box) - MeshCutter.VOLUME_EPSILON ? TileCoverage.FULL
+                : TileCoverage.PARTIAL;
+    }
+
+    /**
+     * Shrinks {@code box} to the tile pixels {@code mesh} reaches and moves the cutout along, so both still describe
+     * the same shape. A cut can leave a thin sliver of a big shape in a tile, which would otherwise keep the whole box.
+     *
+     * @param mesh the mesh {@link #meshFromTile} builds for the box and cutout, must not be empty
+     */
+    public static void fitToMesh(LittleTileBox box, LittleTileCutoutInfo cutoutInfo, Mesh3d mesh) {
+        double[] min = new double[3], max = new double[3];
+        pixelBounds(mesh, min, max);
+
+        // rounded outwards, as points where the mesh was cut can sit between pixels
+        int minX = Math.max(box.minX, (int) Math.floor(min[0]));
+        int minY = Math.max(box.minY, (int) Math.floor(min[1]));
+        int minZ = Math.max(box.minZ, (int) Math.floor(min[2]));
+        int maxX = Math.min(box.maxX, (int) Math.ceil(max[0]));
+        int maxY = Math.min(box.maxY, (int) Math.ceil(max[1]));
+        int maxZ = Math.min(box.maxZ, (int) Math.ceil(max[2]));
+
+        // the cutout is relative to the box's min corner
+        cutoutInfo.pos.add(box.minX - minX, box.minY - minY, box.minZ - minZ);
+        box.minX = minX;
+        box.minY = minY;
+        box.minZ = minZ;
+        box.maxX = maxX;
+        box.maxY = maxY;
+        box.maxZ = maxZ;
+    }
+
+    /** The bounds of the points of the mesh, in pixels. */
+    private static void pixelBounds(Mesh3d mesh, double[] min, double[] max) {
+        Arrays.fill(min, Double.POSITIVE_INFINITY);
+        Arrays.fill(max, Double.NEGATIVE_INFINITY);
+        for (Triangle3d triangle : mesh.getTriangles()) {
+            for (Vector3d point : new Vector3d[] { triangle.getP1(), triangle.getP2(), triangle.getP3() }) {
+                double[] pixels = { point.x * 16, point.y * 16, point.z * 16 };
+                for (int axis = 0; axis < 3; axis++) {
+                    min[axis] = Math.min(min[axis], pixels[axis]);
+                    max[axis] = Math.max(max[axis], pixels[axis]);
+                }
+            }
+        }
     }
 
     /** The surface of the shape, before {@link #place}. */

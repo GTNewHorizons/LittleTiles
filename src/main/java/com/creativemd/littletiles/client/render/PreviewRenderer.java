@@ -24,6 +24,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
+import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
@@ -197,6 +198,35 @@ public class PreviewRenderer {
         } else {
             toolHandler = new LittleToolHandler(Minecraft.getMinecraft().thePlayer.getHeldItem());
         }
+
+        // The chisel keeps its plain preview: its shape is still being chosen, there is no tile to show yet.
+        ItemStack held = Minecraft.getMinecraft().thePlayer.getHeldItem();
+        if (previewTile.isTextured() && (held == null || held.getItem() != LittleTiles.chisel)) {
+            // Textured as the item shows the tile, from where it sits in its own block.
+            CubeObject cube = previewTile.preview.getCubeBlock();
+            int meta = cube.meta == -1 ? 0 : cube.meta;
+            LittleTilesBlockRenderHelper.renderTexturedShape(
+                    toolHandler.getShape(),
+                    center.xCoord,
+                    center.yCoord,
+                    center.zCoord,
+                    size,
+                    toolHandler.getTileSize(),
+                    toolHandler.getOrientation(),
+                    toolHandler.getTileOriginal(),
+                    cutoutInfo,
+                    cube.block,
+                    meta,
+                    LittleTilesBlockRenderHelper.resolveRenderColor(cube.color, cube.block, meta),
+                    new Vector3d(
+                            cube.minX - Math.floor(cube.minX),
+                            cube.minY - Math.floor(cube.minY),
+                            cube.minZ - Math.floor(cube.minZ)),
+                    alpha);
+            GL11.glPopMatrix();
+            return;
+        }
+
         LittleTilesBlockRenderHelper.renderShape(
                 toolHandler.getShape(),
                 center.xCoord,

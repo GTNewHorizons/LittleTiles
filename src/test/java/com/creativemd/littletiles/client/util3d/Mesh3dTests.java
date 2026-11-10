@@ -383,4 +383,19 @@ public class Mesh3dTests {
                 MeshGeometry.visiblePart(sliverMesh, new Mesh3d(Collections.singletonList(facingIt))));
         assertTrue("area=" + area + " visible=" + visible, Math.abs(visible - area) <= area * 1.0E-6);
     }
+
+    /**
+     * Only a face turned towards another hides it. One in the same plane facing the same way is the surface of a tile
+     * right beside it, such as a sliver lying along it, and hides none of it where the two overlap.
+     */
+    @Test
+    public void faceFacingTheSameWayCullsNothing() {
+        Triangle3d face = new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(0, 1, 0));
+        Triangle3d alongIt = new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(0, 0.5, 0));
+        Mesh3d faceMesh = new Mesh3d(Collections.singletonList(face));
+        double area = MeshGeometry.area(faceMesh);
+        double visible = MeshGeometry.area(
+                MeshGeometry.visiblePart(faceMesh, new Mesh3d(Collections.singletonList(alongIt))));
+        assertTrue("area=" + area + " visible=" + visible, Math.abs(visible - area) <= area * 1.0E-6);
+    }
 }

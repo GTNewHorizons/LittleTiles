@@ -365,8 +365,8 @@ public class Mesh3dTests {
     }
 
     /**
-     * A sliver, 1.5e-5 blocks thin, lies against the west edge of a face turned towards it, sharing no area with it. The
-     * face's other edges, cut along before the west one, run across it and leave pieces thinner than the split
+     * A sliver, 1.5e-5 blocks thin, lies against the west edge of a face turned towards it, sharing no area with it.
+     * The face's other edges, cut along before the west one, run across it and leave pieces thinner than the split
      * tolerance.
      */
     @Test
@@ -379,8 +379,8 @@ public class Mesh3dTests {
         Triangle3d facingIt = new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(1, 0, 0), new Vector3d(0, 0, 0));
         Mesh3d sliverMesh = new Mesh3d(Collections.singletonList(sliver));
         double area = MeshGeometry.area(sliverMesh);
-        double visible = MeshGeometry.area(
-                MeshGeometry.visiblePart(sliverMesh, new Mesh3d(Collections.singletonList(facingIt))));
+        double visible = MeshGeometry
+                .area(MeshGeometry.visiblePart(sliverMesh, new Mesh3d(Collections.singletonList(facingIt))));
         assertTrue("area=" + area + " visible=" + visible, Math.abs(visible - area) <= area * 1.0E-6);
     }
 
@@ -394,8 +394,8 @@ public class Mesh3dTests {
         Triangle3d alongIt = new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(0, 0.5, 0));
         Mesh3d faceMesh = new Mesh3d(Collections.singletonList(face));
         double area = MeshGeometry.area(faceMesh);
-        double visible = MeshGeometry.area(
-                MeshGeometry.visiblePart(faceMesh, new Mesh3d(Collections.singletonList(alongIt))));
+        double visible = MeshGeometry
+                .area(MeshGeometry.visiblePart(faceMesh, new Mesh3d(Collections.singletonList(alongIt))));
         assertTrue("area=" + area + " visible=" + visible, Math.abs(visible - area) <= area * 1.0E-6);
     }
 }

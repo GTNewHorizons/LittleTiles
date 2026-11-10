@@ -4,7 +4,9 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.Vec3;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Matrix3f;
@@ -232,7 +234,27 @@ public class LittleToolHandler {
 
         // Handle transform for block-picked tiles. We need to transform the cutout pos/size as well...
         if (nbt.hasKey("cutoutPosX") && oldSize != null) {
+            int oldPosX = nbt.getInteger("cutoutPosX");
+            int oldPosY = nbt.getInteger("cutoutPosY");
+            int oldPosZ = nbt.getInteger("cutoutPosZ");
             transformCuboid(nbt, transform, oldSize);
+
+            // The further shapes of an anti tile are positioned relative to the cutout, see
+            // LittleTileCutoutInfo#furtherShapes, so they turn with the tile around it rather than around the cutout
+            NBTTagList furtherShapes = nbt.getTagList("cutoutFurtherShapes", Constants.NBT.TAG_COMPOUND);
+            for (int i = 0; i < furtherShapes.tagCount(); i++) {
+                NBTTagCompound shape = furtherShapes.getCompoundTagAt(i);
+                Matrix3f shapeMatrix = new Matrix3f(transform)
+                        .mul(OrientationMapper.fromId(shape.getByte("cutoutOrientation")));
+                shape.setByte("cutoutOrientation", (byte) OrientationMapper.toId(shapeMatrix));
+                shape.setInteger("cutoutPosX", shape.getInteger("cutoutPosX") + oldPosX);
+                shape.setInteger("cutoutPosY", shape.getInteger("cutoutPosY") + oldPosY);
+                shape.setInteger("cutoutPosZ", shape.getInteger("cutoutPosZ") + oldPosZ);
+                transformCuboid(shape, transform, oldSize);
+                shape.setInteger("cutoutPosX", shape.getInteger("cutoutPosX") - nbt.getInteger("cutoutPosX"));
+                shape.setInteger("cutoutPosY", shape.getInteger("cutoutPosY") - nbt.getInteger("cutoutPosY"));
+                shape.setInteger("cutoutPosZ", shape.getInteger("cutoutPosZ") - nbt.getInteger("cutoutPosZ"));
+            }
         }
     }
 

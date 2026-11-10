@@ -7,6 +7,8 @@ import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 /**
  * Whether tiles overlap, measured by the volume they share. Tiles that only touch share none, however their surfaces
  * are triangulated and rounded, so this needs no tolerances for touching faces, edges or corners.
@@ -44,8 +46,10 @@ public final class MeshCollision {
         if (cutoutA == null && cutoutB == null) return volume(common);
 
         List<Piece> piecesA = pieces(boxA, cutoutA, common);
+        if (piecesA == null) return Double.POSITIVE_INFINITY;
         if (piecesA.isEmpty()) return 0;
         List<Piece> piecesB = pieces(boxB, cutoutB, common);
+        if (piecesB == null) return Double.POSITIVE_INFINITY;
         if (piecesB.isEmpty()) return 0;
         double sixTimesVolume = 0;
         for (Piece pieceA : piecesA) {
@@ -69,16 +73,84 @@ public final class MeshCollision {
 
     /**
      * The pieces of the tile, see {@link Mesh3dUtil#convexPieces}, less those sharing no volume with the box. An
-     * inverted tile is its box less those of its shape.
+     * inverted tile is its box less those of its shape, or what its shapes leave free of it, see {@link #leftFree}.
+     *
+     * @return null if a cut could not be closed
      */
     private static List<Piece> pieces(LittleTileBox box, LittleTileCutoutInfo cutout, LittleTileBox common) {
         List<Piece> pieces = new ArrayList<>();
+        if (cutout != null && !cutout.furtherShapes.isEmpty()) {
+            List<MeshCutter> free = leftFree(box, cutout.invertedShapes());
+            if (free == null) return null;
+            for (MeshCutter piece : free) {
+                pieces.add(new Piece(piece.facePlanes()));
+            }
+            return pieces;
+        }
         boolean inverted = cutout != null && cutout.inverted;
         if (inverted) pieces.add(new Piece(new Mesh3d(new ArrayList<>()), 1));
         for (Mesh3d mesh : Mesh3dUtil.convexPieces(box, cutout)) {
             if (reachesInto(mesh, common)) pieces.add(new Piece(mesh, inverted ? -1 : 1));
         }
         return pieces;
+    }
+
+    /**
+     * What the shapes leave free of the box, as convex pieces that don't overlap. Each piece of a shape splits the
+     * parts it reaches into: into what lies inside it, and what lies beyond each of its planes in turn. The pieces of a
+     * shape can count negatively, see {@link Mesh3dUtil#tetrahedra}, so what lies inside only drops out once all of
+     * them are through, and only where they add up to the shape.
+     *
+     * @return null if a cut could not be closed
+     */
+    public static List<MeshCutter> leftFree(LittleTileBox box, List<LittleTileCutoutInfo> shapes) {
+        List<MeshCutter> free = new ArrayList<>();
+        free.add(MeshCutter.box(box));
+        for (LittleTileCutoutInfo shape : shapes) {
+            // How many pieces of the shape each part lies in, each counted by its sign
+            IntArrayList depths = new IntArrayList(new int[free.size()]);
+            for (Mesh3d mesh : Mesh3dUtil.convexPieces(box, shape)) {
+                Piece piece = new Piece(mesh, 1);
+                List<MeshCutter> split = new ArrayList<>(free.size());
+                IntArrayList splitDepths = new IntArrayList(free.size());
+                for (int i = 0; i < free.size(); i++) {
+                    MeshCutter part = free.get(i), inside = part.copy();
+                    List<MeshCutter> beyond = new ArrayList<>();
+                    for (Triangle3d face : piece.faces) {
+                        MeshCutter beyondFace = inside.copy();
+                        // Through the same points the other way round, so both sides are cut at the very same plane
+                        Plane3d inwards = Triangle3d.planeThrough(face.getP1(), face.getP3(), face.getP2());
+                        if (!beyondFace.cut(inwards)) return null;
+                        if (!isTiny(beyondFace)) beyond.add(beyondFace);
+                        if (!inside.cut(Triangle3d.planeThrough(face.getP1(), face.getP2(), face.getP3()))) return null;
+                        if (isTiny(inside)) break;
+                    }
+                    if (isTiny(inside)) {
+                        split.add(part);
+                        splitDepths.add(depths.getInt(i));
+                        continue;
+                    }
+                    for (MeshCutter outside : beyond) {
+                        split.add(outside);
+                        splitDepths.add(depths.getInt(i));
+                    }
+                    split.add(inside);
+                    splitDepths.add(depths.getInt(i) + piece.sign);
+                }
+                free = split;
+                depths = splitDepths;
+            }
+            List<MeshCutter> outsideShape = new ArrayList<>(free.size());
+            for (int i = 0; i < free.size(); i++) {
+                if (depths.getInt(i) == 0) outsideShape.add(free.get(i));
+            }
+            free = outsideShape;
+        }
+        return free;
+    }
+
+    private static boolean isTiny(MeshCutter part) {
+        return part.volumeTimesSix() <= 6 * MeshCutter.VOLUME_EPSILON;
     }
 
     /**
@@ -110,7 +182,15 @@ public final class MeshCollision {
     private static final class Piece {
 
         final List<Plane3d> planes = new ArrayList<>();
+        /** A triangle of each face, in the order of {@link #planes}. */
+        final List<Triangle3d> faces = new ArrayList<>();
         final int sign;
+
+        /** A piece added, with the planes of its faces facing out. */
+        Piece(List<Plane3d> planes) {
+            this.planes.addAll(planes);
+            sign = 1;
+        }
 
         /** @param sign -1 if the piece is taken away rather than added */
         Piece(Mesh3d mesh, int sign) {
@@ -124,6 +204,7 @@ public final class MeshCollision {
                 if (polygon != null && triangle.getPolygon() == polygon) continue;
                 polygon = triangle.getPolygon();
                 planes.add(triangle.getFacePlane());
+                faces.add(triangle);
             }
         }
 

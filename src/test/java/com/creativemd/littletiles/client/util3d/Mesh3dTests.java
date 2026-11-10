@@ -12,6 +12,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.common.util.ForgeDirection;
+
 import org.joml.Matrix3f;
 import org.joml.Vector3i;
 import org.junit.BeforeClass;
@@ -24,7 +27,9 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
+import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
+import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
 /** Always-run regression tests for the meshes of tiles. */
 public class Mesh3dTests {
@@ -423,6 +428,50 @@ public class Mesh3dTests {
                     Math.abs(meshVolume - free) <= ROUNDING_VOLUME);
             assertNull(turned, MeshGeometry.findOpenEdge(anti.mesh()));
         }
+    }
+
+    /**
+     * An anti tile filling against two shapes, picked up and turned, still fills what the two shapes leave free when
+     * they are turned the same way: its further shapes have to turn along with its own.
+     */
+    @Test
+    public void antiTileAgainstTwoShapesTurnsWithThem() {
+        Vector3i size = new Vector3i(16, 16, 16), pos = new Vector3i();
+        LittleTileBlock first = placed(shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, 0));
+        Matrix3f quarter = new Matrix3f().rotateY((float) Math.PI / 2);
+        LittleTileBlock second = placed(
+                shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, OrientationMapper.toId(quarter)));
+        LittleTileBlock filling = new LittleTileBlock();
+        filling.boundingBox = BLOCK.copy();
+        filling.updateCorner();
+        LittleTile anti = filling.antiTileAgainst(first).antiTileAgainst(second);
+        double volume = Tile.of(anti.getCutoutInfo(), BLOCK).volume();
+
+        for (ForgeDirection direction : new ForgeDirection[] { ForgeDirection.UP, ForgeDirection.NORTH,
+                ForgeDirection.EAST }) {
+            LittleTileCutoutInfo turnedAnti = turnedInBlock(anti.getCutoutInfo(), direction);
+            String turned = "turned " + direction;
+            LittleTileCutoutInfo turnedFirst = turnedInBlock(first.getCutoutInfo(), direction);
+            LittleTileCutoutInfo turnedSecond = turnedInBlock(second.getCutoutInfo(), direction);
+            assertFalse(
+                    turned + " collides with the first",
+                    MeshCollision.intersects(BLOCK, turnedAnti, BLOCK, turnedFirst));
+            assertFalse(
+                    turned + " collides with the second",
+                    MeshCollision.intersects(BLOCK, turnedAnti, BLOCK, turnedSecond));
+            double turnedVolume = Tile.of(turnedAnti, BLOCK).volume();
+            assertTrue(
+                    turned + " volume=" + turnedVolume + " expected=" + volume,
+                    Math.abs(turnedVolume - volume) <= EXACT_VOLUME);
+        }
+    }
+
+    /** The cutout of a tile filling the block, turned the way picking it up and rotating it turns it. */
+    private static LittleTileCutoutInfo turnedInBlock(LittleTileCutoutInfo cutout, ForgeDirection direction) {
+        NBTTagCompound nbt = new NBTTagCompound();
+        cutout.writeToNBT(nbt);
+        new LittleToolHandler(nbt).handleRotation(direction, new LittleTileSize(16, 16, 16));
+        return LittleTileCutoutInfo.loadFromNBT(nbt);
     }
 
     private static LittleTileBlock placed(LittleTileCutoutInfo cutout) {

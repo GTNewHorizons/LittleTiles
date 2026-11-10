@@ -357,6 +357,19 @@ public class Mesh3dUtil {
     /** @param cutoutSize the size of the whole cutout, in tile pixels */
     public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3i cutoutSize, Vector3i posCutout,
             Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
+        if (!cutoutInfo.furtherShapes.isEmpty()) {
+            LittleTileCutoutInfo placed = new LittleTileCutoutInfo(cutoutInfo);
+            placed.size = cutoutSize;
+            placed.pos = posCutout;
+            placed.orientation = orientation;
+            Mesh3d mesh = leftFreeMesh(
+                    new LittleTileBox(posSubMin.x, posSubMin.y, posSubMin.z, posSubMax.x, posSubMax.y, posSubMax.z),
+                    placed.invertedShapes());
+            if (block != null) {
+                mesh.setTextures(block, meta);
+            }
+            return mesh;
+        }
         Mesh3d mesh = shapeMesh(cutoutInfo);
         place(mesh, cutoutInfo, cutoutSize, posCutout, posSubMin, orientation);
 
@@ -406,6 +419,20 @@ public class Mesh3dUtil {
         shape.flipWindingOrder();
         List<Triangle3d> triangles = new ArrayList<>(shape.getTriangles());
         triangles.addAll(around.getTriangles());
+        return new Mesh3d(triangles);
+    }
+
+    /**
+     * What the shapes leave free of the box, see {@link MeshCollision#leftFree}. The pieces it is made of are closed
+     * each, so where they meet, faces lie against each other inside it.
+     */
+    private static Mesh3d leftFreeMesh(LittleTileBox box, List<LittleTileCutoutInfo> shapes) {
+        List<MeshCutter> pieces = MeshCollision.leftFree(box, shapes);
+        List<Triangle3d> triangles = new ArrayList<>();
+        if (pieces == null) return new Mesh3d(triangles);
+        for (MeshCutter piece : pieces) {
+            triangles.addAll(piece.toTriangles());
+        }
         return new Mesh3d(triangles);
     }
 

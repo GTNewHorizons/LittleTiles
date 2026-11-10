@@ -575,19 +575,34 @@ public abstract class LittleTile {
 
     /**
      * A copy of this tile filling the part of its box the other tile's shape leaves free: it is cut to the box both
-     * tiles share and carries the other tile's shape inverted. Null if there is nothing left to fill.
+     * tiles share and carries the other tile's shape inverted. A tile that already leaves shapes free leaves the other
+     * tile's shape free as well. Null if there is nothing left to fill, or if one shape cannot describe what is left.
      */
     public LittleTile antiTileAgainst(LittleTile other) {
         LittleTileBox box = boundingBox.intersection(other.boundingBox);
-        if (box == null || other.cutoutInfo == null) {
+        if (box == null || other.cutoutInfo == null || !other.cutoutInfo.furtherShapes.isEmpty()) {
             return null;
         }
 
-        LittleTileCutoutInfo antiCutout = new LittleTileCutoutInfo(other.cutoutInfo);
-        antiCutout.inverted = !antiCutout.inverted;
-        antiCutout.pos.x += other.boundingBox.minX - box.minX;
-        antiCutout.pos.y += other.boundingBox.minY - box.minY;
-        antiCutout.pos.z += other.boundingBox.minZ - box.minZ;
+        LittleTileCutoutInfo otherShape = new LittleTileCutoutInfo(other.cutoutInfo);
+        otherShape.pos.x += other.boundingBox.minX - box.minX;
+        otherShape.pos.y += other.boundingBox.minY - box.minY;
+        otherShape.pos.z += other.boundingBox.minZ - box.minZ;
+        LittleTileCutoutInfo antiCutout;
+        if (cutoutInfo == null) {
+            antiCutout = otherShape;
+            antiCutout.inverted = !antiCutout.inverted;
+        } else {
+            if (!cutoutInfo.inverted || otherShape.inverted) {
+                return null;
+            }
+            antiCutout = new LittleTileCutoutInfo(cutoutInfo);
+            antiCutout.pos.x += boundingBox.minX - box.minX;
+            antiCutout.pos.y += boundingBox.minY - box.minY;
+            antiCutout.pos.z += boundingBox.minZ - box.minZ;
+            otherShape.pos.sub(antiCutout.pos);
+            antiCutout.furtherShapes.add(otherShape);
+        }
         if (Mesh3dUtil.classifyTile(box, antiCutout) == Mesh3dUtil.TileCoverage.EMPTY) {
             return null;
         }

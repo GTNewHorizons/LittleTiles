@@ -133,6 +133,15 @@ public final class MeshCutter {
         return copy;
     }
 
+    /** The planes of the faces, each once, see {@link Triangle3d#getFacePlane}. */
+    public List<Plane3d> facePlanes() {
+        List<Plane3d> planes = new ArrayList<>();
+        for (Face face : faces) {
+            if (!planes.contains(face.plane)) planes.add(face.plane);
+        }
+        return planes;
+    }
+
     /** Whether nothing is left of the mesh. */
     public boolean isEmpty() {
         return faces.isEmpty();

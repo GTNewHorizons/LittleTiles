@@ -1,7 +1,12 @@
 package com.creativemd.littletiles.common.utils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3i;
@@ -30,6 +35,11 @@ public class LittleTileCutoutInfo {
      * {@link LittleTilePlaceMode#ANTI_FILL} creates these to fill against existing shapes.
      */
     public boolean inverted;
+    /**
+     * The shapes an {@link #inverted} tile leaves free besides its own, as anti fill against several shapes has to
+     * leave all of them free. Their {@link #pos} is relative to this one's, so moving this cutout moves them along.
+     */
+    public final List<LittleTileCutoutInfo> furtherShapes = new ArrayList<>();
 
     public LittleTileCutoutInfo() {
         size = new Vector3i();
@@ -48,6 +58,24 @@ public class LittleTileCutoutInfo {
         negZ = other.negZ;
         corners = copyCorners(other.corners);
         inverted = other.inverted;
+        for (LittleTileCutoutInfo shape : other.furtherShapes) {
+            furtherShapes.add(new LittleTileCutoutInfo(shape));
+        }
+    }
+
+    /** The shapes an {@link #inverted} tile leaves free, each positioned relative to the tile box like this one. */
+    public List<LittleTileCutoutInfo> invertedShapes() {
+        List<LittleTileCutoutInfo> shapes = new ArrayList<>(1 + furtherShapes.size());
+        LittleTileCutoutInfo own = new LittleTileCutoutInfo(this);
+        own.inverted = false;
+        own.furtherShapes.clear();
+        shapes.add(own);
+        for (LittleTileCutoutInfo shape : furtherShapes) {
+            LittleTileCutoutInfo further = new LittleTileCutoutInfo(shape);
+            further.pos.add(pos);
+            shapes.add(further);
+        }
+        return shapes;
     }
 
     public static Vector3i[] copyCorners(Vector3i[] corners) {
@@ -150,6 +178,12 @@ public class LittleTileCutoutInfo {
         cutoutInfo.negY = nbt.getBoolean("cutoutNegY");
         cutoutInfo.negZ = nbt.getBoolean("cutoutNegZ");
         cutoutInfo.inverted = nbt.getBoolean("cutoutInverted");
+        NBTTagList furtherShapes = nbt.getTagList("cutoutFurtherShapes", Constants.NBT.TAG_COMPOUND);
+        for (int i = 0; i < furtherShapes.tagCount(); i++) {
+            LittleTileCutoutInfo shape = loadFromNBT(furtherShapes.getCompoundTagAt(i));
+            if (shape == null) return null;
+            cutoutInfo.furtherShapes.add(shape);
+        }
         if (cutoutInfo.type == LittleTileShapeMode.DEFORMED_BOX) {
             cutoutInfo.corners = new Vector3i[Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT];
             for (int i = 0; i < cutoutInfo.corners.length; i++) {
@@ -193,6 +227,15 @@ public class LittleTileCutoutInfo {
         }
         if (inverted) {
             nbt.setBoolean("cutoutInverted", true);
+        }
+        if (!furtherShapes.isEmpty()) {
+            NBTTagList list = new NBTTagList();
+            for (LittleTileCutoutInfo shape : furtherShapes) {
+                NBTTagCompound tag = new NBTTagCompound();
+                shape.writeToNBT(tag);
+                list.appendTag(tag);
+            }
+            nbt.setTag("cutoutFurtherShapes", list);
         }
     }
 }

@@ -79,10 +79,10 @@ public class PreviewTile {
     }
 
     /**
-     * Places as much of the new tile as fits around the existing ones, like {@link #placeTileModeFill}. Where a plain
-     * box part of the new tile runs into an existing shape, it fills against that shape with its anti mesh instead of
-     * leaving the shape's whole box empty. A tile only has room for a single shape, so a part that already carries one
-     * leaves out its overlap with another shape, as the regular fill does.
+     * Places as much of the new tile as fits around the existing ones, like {@link #placeTileModeFill}. Where a part of
+     * the new tile runs into an existing shape, it fills against that shape with its anti mesh instead of leaving the
+     * shape's whole box empty, and a part already filling against shapes leaves that one free as well. Where that is
+     * not possible, see {@link LittleTile#antiTileAgainst}, the part leaves out its overlap, as the regular fill does.
      */
     private List<LittleTile> placeTileModeAntiFill(LittleTile tileNew, EntityPlayer player, ItemStack stack) {
         List<LittleTile> tiles = new ArrayList<>();
@@ -96,11 +96,9 @@ public class PreviewTile {
                     continue;
                 }
                 newTiles.addAll(t.splitByTile(existing));
-                if (t.getCutoutInfo() == null) {
-                    LittleTile antiTile = t.antiTileAgainst(existing);
-                    if (antiTile != null) {
-                        newTiles.add(antiTile);
-                    }
+                LittleTile antiTile = t.antiTileAgainst(existing);
+                if (antiTile != null) {
+                    newTiles.add(antiTile);
                 }
             }
             tiles = newTiles;

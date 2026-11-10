@@ -8,8 +8,8 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 
 import com.creativemd.creativecore.common.entity.EntitySit;
-import com.creativemd.creativecore.common.gui.SubGui;
 import com.creativemd.creativecore.common.utils.HashMapList;
+import com.creativemd.littletiles.common.gui.StructureConfigWidget;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
@@ -125,13 +125,7 @@ public class LittleChair extends LittleStructure {
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void createControls(SubGui gui, LittleStructure structure) {
-
-    }
-
-    @Override
-    @SideOnly(Side.CLIENT)
-    public LittleStructure parseStructure(SubGui gui) {
+    public LittleStructure parseStructure(StructureConfigWidget config) {
         return new LittleChair();
     }
 

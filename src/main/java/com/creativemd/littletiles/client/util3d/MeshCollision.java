@@ -73,16 +73,17 @@ public final class MeshCollision {
 
     /**
      * The pieces of the tile, see {@link Mesh3dUtil#convexPieces}, less those sharing no volume with the box. An
-     * inverted tile is its box less those of its shape, or what its shapes leave free of it, see {@link #leftFree}.
+     * inverted tile is its box less those of its shape. A tile with further shapes is made of its
+     * {@link #disjointPieces}.
      *
      * @return null if a cut could not be closed
      */
     private static List<Piece> pieces(LittleTileBox box, LittleTileCutoutInfo cutout, LittleTileBox common) {
         List<Piece> pieces = new ArrayList<>();
         if (cutout != null && !cutout.furtherShapes.isEmpty()) {
-            List<MeshCutter> free = leftFree(box, cutout.invertedShapes());
-            if (free == null) return null;
-            for (MeshCutter piece : free) {
+            List<MeshCutter> disjoint = disjointPieces(box, cutout);
+            if (disjoint == null) return null;
+            for (MeshCutter piece : disjoint) {
                 pieces.add(new Piece(piece.facePlanes()));
             }
             return pieces;
@@ -96,57 +97,69 @@ public final class MeshCollision {
     }
 
     /**
-     * What the shapes leave free of the box, as convex pieces that don't overlap. Each piece of a shape splits the
-     * parts it reaches into: into what lies inside it, and what lies beyond each of its planes in turn. The pieces of a
-     * shape can count negatively, see {@link Mesh3dUtil#tetrahedra}, so what lies inside only drops out once all of
-     * them are through, and only where they add up to the shape.
+     * The tile, its cutout having {@link LittleTileCutoutInfo#furtherShapes}, as convex pieces that don't overlap: its
+     * box less its shape if it is inverted, else its shape within the box, less the further shapes either way.
      *
      * @return null if a cut could not be closed
      */
-    public static List<MeshCutter> leftFree(LittleTileBox box, List<LittleTileCutoutInfo> shapes) {
-        List<MeshCutter> free = new ArrayList<>();
-        free.add(MeshCutter.box(box));
-        for (LittleTileCutoutInfo shape : shapes) {
-            // How many pieces of the shape each part lies in, each counted by its sign
-            IntArrayList depths = new IntArrayList(new int[free.size()]);
-            for (Mesh3d mesh : Mesh3dUtil.convexPieces(box, shape)) {
-                Piece piece = new Piece(mesh, 1);
-                List<MeshCutter> split = new ArrayList<>(free.size());
-                IntArrayList splitDepths = new IntArrayList(free.size());
-                for (int i = 0; i < free.size(); i++) {
-                    MeshCutter part = free.get(i), inside = part.copy();
-                    List<MeshCutter> beyond = new ArrayList<>();
-                    for (Triangle3d face : piece.faces) {
-                        MeshCutter beyondFace = inside.copy();
-                        // Through the same points the other way round, so both sides are cut at the very same plane
-                        Plane3d inwards = Triangle3d.planeThrough(face.getP1(), face.getP3(), face.getP2());
-                        if (!beyondFace.cut(inwards)) return null;
-                        if (!isTiny(beyondFace)) beyond.add(beyondFace);
-                        if (!inside.cut(Triangle3d.planeThrough(face.getP1(), face.getP2(), face.getP3()))) return null;
-                        if (isTiny(inside)) break;
-                    }
-                    if (isTiny(inside)) {
-                        split.add(part);
-                        splitDepths.add(depths.getInt(i));
-                        continue;
-                    }
-                    for (MeshCutter outside : beyond) {
-                        split.add(outside);
-                        splitDepths.add(depths.getInt(i));
-                    }
-                    split.add(inside);
-                    splitDepths.add(depths.getInt(i) + piece.sign);
-                }
-                free = split;
-                depths = splitDepths;
-            }
-            List<MeshCutter> outsideShape = new ArrayList<>(free.size());
-            for (int i = 0; i < free.size(); i++) {
-                if (depths.getInt(i) == 0) outsideShape.add(free.get(i));
-            }
-            free = outsideShape;
+    public static List<MeshCutter> disjointPieces(LittleTileBox box, LittleTileCutoutInfo cutout) {
+        List<MeshCutter> parts = new ArrayList<>();
+        parts.add(MeshCutter.box(box));
+        List<LittleTileCutoutInfo> shapes = cutout.placedShapes();
+        for (int i = 0; i < shapes.size() && parts != null; i++) {
+            parts = split(parts, box, shapes.get(i), i == 0 && !cutout.inverted);
         }
-        return free;
+        return parts;
+    }
+
+    /**
+     * The parts lying inside the shape, or those lying outside it. Each piece of the shape splits the parts it reaches
+     * into: into what lies inside it, and what lies beyond each of its planes in turn. The pieces of a shape can count
+     * negatively, see {@link Mesh3dUtil#tetrahedra}, so which parts lie inside is only known once all of them are
+     * through, from the pieces they lie in adding up to the shape.
+     *
+     * @return null if a cut could not be closed
+     */
+    private static List<MeshCutter> split(List<MeshCutter> parts, LittleTileBox box, LittleTileCutoutInfo shape,
+            boolean inside) {
+        // How many pieces of the shape each part lies in, each counted by its sign
+        IntArrayList depths = new IntArrayList(new int[parts.size()]);
+        for (Mesh3d mesh : Mesh3dUtil.convexPieces(box, shape)) {
+            Piece piece = new Piece(mesh, 1);
+            List<MeshCutter> split = new ArrayList<>(parts.size());
+            IntArrayList splitDepths = new IntArrayList(parts.size());
+            for (int i = 0; i < parts.size(); i++) {
+                MeshCutter part = parts.get(i), within = part.copy();
+                List<MeshCutter> beyond = new ArrayList<>();
+                for (Triangle3d face : piece.faces) {
+                    MeshCutter beyondFace = within.copy();
+                    // Through the same points the other way round, so both sides are cut at the very same plane
+                    Plane3d inwards = Triangle3d.planeThrough(face.getP1(), face.getP3(), face.getP2());
+                    if (!beyondFace.cut(inwards)) return null;
+                    if (!isTiny(beyondFace)) beyond.add(beyondFace);
+                    if (!within.cut(Triangle3d.planeThrough(face.getP1(), face.getP2(), face.getP3()))) return null;
+                    if (isTiny(within)) break;
+                }
+                if (isTiny(within)) {
+                    split.add(part);
+                    splitDepths.add(depths.getInt(i));
+                    continue;
+                }
+                for (MeshCutter outside : beyond) {
+                    split.add(outside);
+                    splitDepths.add(depths.getInt(i));
+                }
+                split.add(within);
+                splitDepths.add(depths.getInt(i) + piece.sign);
+            }
+            parts = split;
+            depths = splitDepths;
+        }
+        List<MeshCutter> kept = new ArrayList<>(parts.size());
+        for (int i = 0; i < parts.size(); i++) {
+            if ((depths.getInt(i) != 0) == inside) kept.add(parts.get(i));
+        }
+        return kept;
     }
 
     private static boolean isTiny(MeshCutter part) {

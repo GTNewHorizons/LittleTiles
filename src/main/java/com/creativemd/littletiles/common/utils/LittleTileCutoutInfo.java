@@ -36,8 +36,9 @@ public class LittleTileCutoutInfo {
      */
     public boolean inverted;
     /**
-     * The shapes an {@link #inverted} tile leaves free besides its own, as anti fill against several shapes has to
-     * leave all of them free. Their {@link #pos} is relative to this one's, so moving this cutout moves them along.
+     * Shapes taken away from the tile as well: an {@link #inverted} tile leaves them free besides its own shape, any
+     * other is its shape less them. Anti fill against several shapes, or against a tile leaving several free, needs
+     * them. Their {@link #pos} is relative to this one's, so moving this cutout moves them along.
      */
     public final List<LittleTileCutoutInfo> furtherShapes = new ArrayList<>();
 
@@ -63,8 +64,11 @@ public class LittleTileCutoutInfo {
         }
     }
 
-    /** The shapes an {@link #inverted} tile leaves free, each positioned relative to the tile box like this one. */
-    public List<LittleTileCutoutInfo> invertedShapes() {
+    /**
+     * Its own shape, not inverted, and then the {@link #furtherShapes}, each positioned relative to the tile box like
+     * this one.
+     */
+    public List<LittleTileCutoutInfo> placedShapes() {
         List<LittleTileCutoutInfo> shapes = new ArrayList<>(1 + furtherShapes.size());
         LittleTileCutoutInfo own = new LittleTileCutoutInfo(this);
         own.inverted = false;
@@ -76,6 +80,13 @@ public class LittleTileCutoutInfo {
             shapes.add(further);
         }
         return shapes;
+    }
+
+    /** Takes the shape, positioned relative to the tile box like this one, away from the tile as well. */
+    public void takeAway(LittleTileCutoutInfo shape) {
+        LittleTileCutoutInfo further = new LittleTileCutoutInfo(shape);
+        further.pos.sub(pos);
+        furtherShapes.add(further);
     }
 
     public static Vector3i[] copyCorners(Vector3i[] corners) {

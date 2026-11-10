@@ -615,9 +615,9 @@ public class MeshPermutationTest {
             LittleTileBlock filling = new LittleTileBlock();
             filling.boundingBox = shape.box.copy();
             filling.updateCorner();
-            LittleTile antiTile = filling.antiTileAgainst(placed);
-            check(antiTile != null, "no anti tile");
-            check(!antiTile.collidesWith(placed), "anti tile collides");
+            List<LittleTile> antiTiles = filling.antiTilesAgainst(placed);
+            check(antiTiles.size() == 1, Message.of("anti tiles: ", antiTiles.size()));
+            check(!antiTiles.get(0).collidesWith(placed), "anti tile collides");
         });
     }
 }

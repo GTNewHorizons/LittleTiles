@@ -362,9 +362,9 @@ public class Mesh3dUtil {
             placed.size = cutoutSize;
             placed.pos = posCutout;
             placed.orientation = orientation;
-            Mesh3d mesh = leftFreeMesh(
+            Mesh3d mesh = disjointPiecesMesh(
                     new LittleTileBox(posSubMin.x, posSubMin.y, posSubMin.z, posSubMax.x, posSubMax.y, posSubMax.z),
-                    placed.invertedShapes());
+                    placed);
             if (block != null) {
                 mesh.setTextures(block, meta);
             }
@@ -423,11 +423,11 @@ public class Mesh3dUtil {
     }
 
     /**
-     * What the shapes leave free of the box, see {@link MeshCollision#leftFree}. The pieces it is made of are closed
-     * each, so where they meet, faces lie against each other inside it.
+     * The tile, its cutout having further shapes, see {@link MeshCollision#disjointPieces}. The pieces it is made of
+     * are closed each, so where they meet, faces lie against each other inside it.
      */
-    private static Mesh3d leftFreeMesh(LittleTileBox box, List<LittleTileCutoutInfo> shapes) {
-        List<MeshCutter> pieces = MeshCollision.leftFree(box, shapes);
+    private static Mesh3d disjointPiecesMesh(LittleTileBox box, LittleTileCutoutInfo cutout) {
+        List<MeshCutter> pieces = MeshCollision.disjointPieces(box, cutout);
         List<Triangle3d> triangles = new ArrayList<>();
         if (pieces == null) return new Mesh3d(triangles);
         for (MeshCutter piece : pieces) {

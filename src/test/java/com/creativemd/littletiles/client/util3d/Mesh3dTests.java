@@ -5,12 +5,14 @@ import static com.creativemd.littletiles.client.util3d.MeshAssertions.EXACT_VOLU
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.ROUNDING_VOLUME;
 import static com.creativemd.littletiles.client.util3d.Shapes.describe;
 import static com.creativemd.littletiles.client.util3d.Shapes.shape;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
+import java.util.List;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -413,10 +415,8 @@ public class Mesh3dTests {
             LittleTileBlock filling = new LittleTileBlock();
             filling.boundingBox = BLOCK.copy();
             filling.updateCorner();
-            LittleTile againstFirst = filling.antiTileAgainst(first);
-            assertNotNull(againstFirst);
-            LittleTile againstBoth = againstFirst.antiTileAgainst(second);
-            assertNotNull(turned, againstBoth);
+            LittleTile againstFirst = onlyAntiTile(turned, filling, first);
+            LittleTile againstBoth = onlyAntiTile(turned, againstFirst, second);
             assertFalse(turned + " collides with the first", againstBoth.collidesWith(first));
             assertFalse(turned + " collides with the second", againstBoth.collidesWith(second));
 
@@ -444,7 +444,7 @@ public class Mesh3dTests {
         LittleTileBlock filling = new LittleTileBlock();
         filling.boundingBox = BLOCK.copy();
         filling.updateCorner();
-        LittleTile anti = filling.antiTileAgainst(first).antiTileAgainst(second);
+        LittleTile anti = onlyAntiTile("", onlyAntiTile("", filling, first), second);
         double volume = Tile.of(anti.getCutoutInfo(), BLOCK).volume();
 
         for (ForgeDirection direction : new ForgeDirection[] { ForgeDirection.UP, ForgeDirection.NORTH,
@@ -464,6 +464,48 @@ public class Mesh3dTests {
                     turned + " volume=" + turnedVolume + " expected=" + volume,
                     Math.abs(turnedVolume - volume) <= EXACT_VOLUME);
         }
+    }
+
+    /**
+     * Anti fill against a tile that itself fills against two round slopes, the second turned a quarter, fills what the
+     * two slopes cover: one tile can't, so the first slope fills one and the second, less the first, another.
+     */
+    @Test
+    public void antiFillAgainstAnAntiTileOfTwoShapesFillsBoth() {
+        Vector3i size = new Vector3i(16, 16, 16), pos = new Vector3i();
+        LittleTileBlock first = placed(shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, 0));
+        Matrix3f quarter = new Matrix3f().rotateY((float) Math.PI / 2);
+        LittleTileBlock second = placed(
+                shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, OrientationMapper.toId(quarter)));
+        LittleTileBlock filling = new LittleTileBlock();
+        filling.boundingBox = BLOCK.copy();
+        filling.updateCorner();
+        LittleTile anti = onlyAntiTile("", onlyAntiTile("", filling, first), second);
+
+        List<LittleTile> antiOfAnti = filling.antiTilesAgainst(anti);
+        assertEquals(2, antiOfAnti.size());
+        double expected = Tile.of(first.getCutoutInfo()).volume() + Tile.of(second.getCutoutInfo()).volume()
+                - MeshCollision.sharedVolume(BLOCK, first.getCutoutInfo(), BLOCK, second.getCutoutInfo())
+                        * BlockSpace.PIXELS
+                        * BlockSpace.PIXELS
+                        * BlockSpace.PIXELS;
+        double volume = 0;
+        for (LittleTile tile : antiOfAnti) {
+            String what = describe(tile.getCutoutInfo());
+            assertFalse(what + " collides with the anti tile", tile.collidesWith(anti));
+            Tile filled = Tile.of(tile.getCutoutInfo(), tile.boundingBox);
+            assertNull(what, MeshGeometry.findOpenEdge(filled.mesh()));
+            volume += filled.volume();
+        }
+        assertFalse("the two collide", antiOfAnti.get(0).collidesWith(antiOfAnti.get(1)));
+        assertTrue("volume=" + volume + " expected=" + expected, Math.abs(volume - expected) <= EXACT_VOLUME);
+    }
+
+    /** The one tile anti fill makes for {@code filling} against {@code existing}. */
+    private static LittleTile onlyAntiTile(String message, LittleTile filling, LittleTile existing) {
+        List<LittleTile> tiles = filling.antiTilesAgainst(existing);
+        assertEquals(message, 1, tiles.size());
+        return tiles.get(0);
     }
 
     /** The cutout of a tile filling the block, turned the way picking it up and rotating it turns it. */

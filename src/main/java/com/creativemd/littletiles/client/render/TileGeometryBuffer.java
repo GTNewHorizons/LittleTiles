@@ -23,7 +23,6 @@ import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
@@ -35,8 +34,8 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Textured geometry of tiles, uploaded once into a vertex buffer, in the coordinates of their cubes. The geometry
  * {@link LittleTilesBlockRenderHelper#renderInventoryCubes} draws.
  * <p>
- * Items share one buffer between their inventory icon and their placement preview in the world, see {@link #get}.
- * Owns a GL buffer, call {@link #delete()} once it is no longer used. Render thread only.
+ * Items share one buffer between their inventory icon and their placement preview in the world, see {@link #get}. Owns
+ * a GL buffer, call {@link #delete()} once it is no longer used. Render thread only.
  */
 @SideOnly(Side.CLIENT)
 public class TileGeometryBuffer {
@@ -54,9 +53,9 @@ public class TileGeometryBuffer {
      * simply misses. A single segment, so the eviction is least recently used across all entries.
      */
     private static final Cache<NBTTagCompound, TileGeometryBuffer> cache = CacheBuilder.newBuilder()
-            .maximumSize(CACHE_SIZE)
-            .concurrencyLevel(1)
-            .removalListener((RemovalListener<NBTTagCompound, TileGeometryBuffer>) removal -> removal.getValue().delete())
+            .maximumSize(CACHE_SIZE).concurrencyLevel(1)
+            .removalListener(
+                    (RemovalListener<NBTTagCompound, TileGeometryBuffer>) removal -> removal.getValue().delete())
             .build();
 
     private int buffer;
@@ -158,8 +157,7 @@ public class TileGeometryBuffer {
         }
     }
 
-    private static void putVertex(ByteBuffer data, Vector3d position, double u, double v, int color,
-            Vector3d normal) {
+    private static void putVertex(ByteBuffer data, Vector3d position, double u, double v, int color, Vector3d normal) {
         data.putFloat((float) position.x);
         data.putFloat((float) position.y);
         data.putFloat((float) position.z);

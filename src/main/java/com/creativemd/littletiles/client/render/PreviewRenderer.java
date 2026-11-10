@@ -20,6 +20,7 @@ import net.minecraft.util.Vec3;
 import net.minecraftforge.client.event.RenderHandEvent;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
@@ -52,6 +53,9 @@ public class PreviewRenderer {
         packet.executeClient(Minecraft.getMinecraft().thePlayer);
         PacketHandler.sendPacketToServer(packet);
     }
+
+    /** Up to how many blocks the chisel preview may reach into and still be textured. */
+    private static final int CHISEL_PREVIEW_LIMIT = 27;
 
     public static LittleTileBlockPos markedHit = null;
     public static LittleTileBlockPos firstHit = null;
@@ -182,10 +186,94 @@ public class PreviewRenderer {
         return Vec3.createVectorHelper(cubeX, cubeY, cubeZ);
     }
 
-    /** The chisel keeps its plain preview: its shape is still being chosen, there is no tile to show yet. */
-    private static boolean isTexturedPreview(PreviewTile previewTile) {
+    private static boolean holdsChisel() {
         ItemStack held = Minecraft.getMinecraft().thePlayer.getHeldItem();
-        return previewTile.isTextured() && (held == null || held.getItem() != LittleTiles.chisel);
+        return held != null && held.getItem() == LittleTiles.chisel;
+    }
+
+    private static Vector3i sizeInPixels(Vec3 size) {
+        return new Vector3i(
+                (int) Math.round(size.xCoord * 16),
+                (int) Math.round(size.yCoord * 16),
+                (int) Math.round(size.zCoord * 16));
+    }
+
+    /** The min corner of the preview in the world, in pixels. */
+    private static Vector3i worldMinPixels(Vec3 center, Vec3 size) {
+        return new Vector3i(
+                (int) Math.round((center.xCoord - size.xCoord / 2D + TileEntityRendererDispatcher.staticPlayerX) * 16),
+                (int) Math.round((center.yCoord - size.yCoord / 2D + TileEntityRendererDispatcher.staticPlayerY) * 16),
+                (int) Math.round((center.zCoord - size.zCoord / 2D + TileEntityRendererDispatcher.staticPlayerZ) * 16));
+    }
+
+    /** How many blocks along one axis {@code size} pixels from {@code min} reach into. */
+    private static int blocksSpanned(int min, int size) {
+        return Math.floorDiv(min + size - 1, 16) - Math.floorDiv(min, 16) + 1;
+    }
+
+    /** The chisel is drawn block by block, so it is only textured while it reaches into a few. */
+    private static boolean isTexturedPreview(PreviewTile previewTile, Vec3 center, Vec3 size) {
+        if (!previewTile.isTextured()) return false;
+        if (!holdsChisel()) return true;
+
+        Vector3i min = worldMinPixels(center, size);
+        Vector3i pixels = sizeInPixels(size);
+        return blocksSpanned(min.x, pixels.x) * blocksSpanned(min.y, pixels.y) * blocksSpanned(min.z, pixels.z)
+                <= CHISEL_PREVIEW_LIMIT;
+    }
+
+    /**
+     * The chisel previews what it is about to place, so its texture lines up with the world. A placed tile is textured
+     * by each block it reaches into in that block's own coordinates, so the preview is drawn one block at a time.
+     */
+    private static void renderChiselTextured(PreviewTile previewTile, LittleToolHandler toolHandler,
+            LittleTileCutoutInfo cutoutInfo, Vec3 center, Vec3 size, double alpha) {
+        CubeObject cube = previewTile.preview.getCubeBlock();
+        int meta = cube.meta == -1 ? 0 : cube.meta;
+        int color = LittleTilesBlockRenderHelper.resolveRenderColor(cube.color, cube.block, meta);
+
+        Vector3i min = worldMinPixels(center, size);
+        Vector3i pixels = sizeInPixels(size);
+        Vector3i max = new Vector3i(min).add(pixels);
+        // Every piece is cut from the whole cutout
+        Vector3i cutoutSize = toolHandler.getTileSize() != null ? toolHandler.getTileSize() : pixels;
+        Vector3i posCutout = toolHandler.getTileOriginal();
+        double minX = center.xCoord - size.xCoord / 2D;
+        double minY = center.yCoord - size.yCoord / 2D;
+        double minZ = center.zCoord - size.zCoord / 2D;
+
+        for (int blockX = Math.floorDiv(min.x, 16); blockX * 16 < max.x; blockX++) {
+            for (int blockY = Math.floorDiv(min.y, 16); blockY * 16 < max.y; blockY++) {
+                for (int blockZ = Math.floorDiv(min.z, 16); blockZ * 16 < max.z; blockZ++) {
+                    // The piece of the preview inside this block, in pixels from the preview's corner
+                    Vector3i blockMin = new Vector3i(blockX * 16, blockY * 16, blockZ * 16).sub(min);
+                    Vector3i subMin = new Vector3i(blockMin).max(new Vector3i());
+                    Vector3i subMax = new Vector3i(blockMin).add(16, 16, 16).min(pixels);
+                    Vec3 pieceSize = Vec3.createVectorHelper(
+                            (subMax.x - subMin.x) / 16D,
+                            (subMax.y - subMin.y) / 16D,
+                            (subMax.z - subMin.z) / 16D);
+                    LittleTilesBlockRenderHelper.renderTexturedShape(
+                            toolHandler.getShape(),
+                            minX + subMin.x / 16D + pieceSize.xCoord / 2D,
+                            minY + subMin.y / 16D + pieceSize.yCoord / 2D,
+                            minZ + subMin.z / 16D + pieceSize.zCoord / 2D,
+                            pieceSize,
+                            cutoutSize,
+                            toolHandler.getOrientation(),
+                            new Vector3i(posCutout).sub(subMin),
+                            cutoutInfo,
+                            cube.block,
+                            meta,
+                            color,
+                            new Vector3d(
+                                    (subMin.x - blockMin.x) / 16D,
+                                    (subMin.y - blockMin.y) / 16D,
+                                    (subMin.z - blockMin.z) / 16D),
+                            alpha);
+                }
+            }
+        }
     }
 
     /** The shape of the preview tile: textured like its item, or untextured in its preview color. */
@@ -206,7 +294,13 @@ public class PreviewRenderer {
             toolHandler = new LittleToolHandler(Minecraft.getMinecraft().thePlayer.getHeldItem());
         }
 
-        if (isTexturedPreview(previewTile)) {
+        if (isTexturedPreview(previewTile, center, size) && holdsChisel()) {
+            renderChiselTextured(previewTile, toolHandler, cutoutInfo, center, size, alpha);
+            GL11.glPopMatrix();
+            return;
+        }
+
+        if (isTexturedPreview(previewTile, center, size)) {
             // Textured as the item shows the tile, from where it sits in its own block - not where it is placed.
             LittleTilePreview tile = previewTile.preview;
             CubeObject cube = tile.getCubeBlock();
@@ -412,7 +506,8 @@ public class PreviewRenderer {
                         GL11.glColorMask(false, false, false, false);
                         GL11.glDepthMask(true);
                         for (PreviewTile previewTile : previews) {
-                            if (isTexturedPreview(previewTile)) {
+                            Vec3 center = getPreviewCenter(previewTile, pos, x, y, z, align);
+                            if (isTexturedPreview(previewTile, center, previewTile.getPreviewBox().getSizeD())) {
                                 renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
                             }
                         }

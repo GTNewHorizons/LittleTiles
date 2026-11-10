@@ -111,85 +111,24 @@ public class Mesh3d {
         FMLLog.getLogger().error("Failed to process mesh, dumped into " + outFile.getAbsolutePath());
     }
 
-    public Mesh3d cutByPlane(Plane3d plane) {
-        ArrayList<Triangle3d> newTriangles = new ArrayList<>();
-
-        ArrayList<Edge3d> addedEdges = new ArrayList<>();
-        ArrayList<Edge3d> existingEdges = new ArrayList<>();
-
-        for (Triangle3d triangle : triangles) {
-            ArrayList<Vector3d> below = new ArrayList<>();
-            ArrayList<Vector3d> above = new ArrayList<>();
-            ArrayList<Vector3d> on = new ArrayList<>();
-            ArrayList<Triangle3d> addTriangles = new ArrayList<>();
-
-            classifyVertices(triangle, plane, below, above, on);
-
-            if (above.isEmpty()) {
-                // Entire triangle is below the plane, keep it
-                if (!isDegenerate(triangle.getP1(), triangle.getP2(), triangle.getP3())) {
-                    newTriangles.add(triangle);
-                    if (on.size() == 2) {
-                        existingEdges.add(new Edge3d(on.get(0), on.get(1)));
-                    }
-                }
-            } else if (below.isEmpty()) {
-                // SKIP
-            } else if (above.size() == 1 && below.size() == 2) {
-                // One vertex above, two below → Split into 2 triangles
-                addTriangles.addAll(clipTriangle(below.get(0), below.get(1), above.get(0), plane, addedEdges));
-            } else if (above.size() == 2 && below.size() == 1) {
-                // Two vertices above, one below → Correct handling of this case
-                addTriangles.addAll(clipTriangleTwoAbove(below.get(0), above.get(0), above.get(1), plane, addedEdges));
-            } else if (on.size() == 1 && above.size() == 1) {
-                // One vertex above, one below, one on → Correct handling of this case
-                addTriangles
-                        .addAll(clipTriangleOneOnOneBelow(on.get(0), below.get(0), above.get(0), plane, addedEdges));
-            } else {
-                throw new RuntimeException();
-            }
-
-            for (Triangle3d t : addTriangles) {
-                t.ensureWindingOrder(triangle.getNormal());
-                t.inheritPlane(triangle);
-            }
-
-            newTriangles.addAll(addTriangles);
-            // If all vertices are above, we discard the triangle
-        }
-
-        /* Close gaps */
-        if (!addedEdges.isEmpty()) {
-            addedEdges.addAll(existingEdges); // Might have existing edges we need to take into account
-            List<Vector3d> addVertices = Edge3d.orderEdgesToVertexList(addedEdges);
-            if (addVertices == null) {
-                // Something went wrong trying to close the edges, log error and bail
+    /**
+     * Cuts the mesh down to the side of every plane its normal points away from, closing each cut with a cap. See
+     * {@link MeshCutter}.
+     */
+    public Mesh3d cutByPlanes(List<Plane3d> planes) {
+        if (planes.isEmpty()) return this;
+        MeshCutter cutter = new MeshCutter(triangles);
+        for (Plane3d plane : planes) {
+            if (!cutter.cut(plane)) {
+                // Something went wrong trying to close the cut, log error and bail
                 if (Boolean.getBoolean(DISABLE_MESH_DUMPS_PROPERTY)) {
                     throw new IllegalStateException("Could not close mesh cut");
                 }
                 dumpFailingMesh();
                 return new Mesh3d(new ArrayList<>());
             }
-            Triangulator.triangulate(newTriangles, plane, addVertices);
         }
-
-        return new Mesh3d(newTriangles);
-    }
-
-    private void classifyVertices(Triangle3d triangle, Plane3d plane, ArrayList<Vector3d> below,
-            ArrayList<Vector3d> above, ArrayList<Vector3d> on) {
-        Vector3d[] points = { triangle.getP1(), triangle.getP2(), triangle.getP3() };
-
-        for (Vector3d point : points) {
-            double d = plane.getDistance(point);
-            if (Math.abs(d) < 0.0001) {
-                on.add(point);
-            } else if (d > 0) {
-                above.add(point);
-            } else {
-                below.add(point);
-            }
-        }
+        return new Mesh3d(cutter.toTriangles());
     }
 
     public static boolean isDegenerate(Vector3d p1, Vector3d p2, Vector3d p3) {
@@ -207,62 +146,11 @@ public class Mesh3d {
         return edge1.lengthSquared() <= DEGENERATE_EPSILON_SQUARED;
     }
 
-    static double distanceSquared(Vector3d p1, Vector3d p2) {
+    public static double distanceSquared(Vector3d p1, Vector3d p2) {
         double dx = p1.x - p2.x;
         double dy = p1.y - p2.y;
         double dz = p1.z - p2.z;
         return dx * dx + dy * dy + dz * dz;
-    }
-
-    // Handles case when 2 vertices are below the plane, 1 is above
-    private ArrayList<Triangle3d> clipTriangle(Vector3d pBelow1, Vector3d pBelow2, Vector3d pAbove, Plane3d plane,
-            ArrayList<Edge3d> addedEdges) {
-        ArrayList<Triangle3d> newTriangles = new ArrayList<>();
-
-        Vector3d i1 = plane.intersect(pBelow1, pAbove);
-        Vector3d i2 = plane.intersect(pBelow2, pAbove);
-
-        if (!isDegenerate(pBelow1, pBelow2, i1)) {
-            newTriangles.add(new Triangle3d(pBelow1, pBelow2, i1));
-        }
-
-        if (!isDegenerate(pBelow2, i1, i2)) {
-            addedEdges.add(new Edge3d(i1, i2));
-            // new Vectors to have different objects for later translation
-            newTriangles.add(new Triangle3d(new Vector3d(pBelow2), new Vector3d(i1), i2));
-        }
-
-        return newTriangles;
-    }
-
-    private ArrayList<Triangle3d> clipTriangleOneOnOneBelow(Vector3d pOn, Vector3d pBelow, Vector3d pAbove,
-            Plane3d plane, ArrayList<Edge3d> addedEdges) {
-        ArrayList<Triangle3d> newTriangles = new ArrayList<>();
-
-        Vector3d i1 = plane.intersect(pBelow, pAbove);
-
-        if (!isDegenerate(pBelow, pOn, i1)) {
-            newTriangles.add(new Triangle3d(pBelow, pOn, i1));
-            addedEdges.add(new Edge3d(i1, pOn));
-        }
-
-        return newTriangles;
-    }
-
-    // Handles case when 1 vertex is below the plane, 2 are above
-    private ArrayList<Triangle3d> clipTriangleTwoAbove(Vector3d pBelow, Vector3d pAbove1, Vector3d pAbove2,
-            Plane3d plane, ArrayList<Edge3d> addedEdges) {
-        ArrayList<Triangle3d> newTriangles = new ArrayList<>();
-
-        Vector3d i1 = plane.intersect(pBelow, pAbove1);
-        Vector3d i2 = plane.intersect(pBelow, pAbove2);
-
-        if (!isDegenerate(pBelow, i1, i2)) {
-            addedEdges.add(new Edge3d(i1, i2));
-            newTriangles.add(new Triangle3d(pBelow, i1, i2));
-        }
-
-        return newTriangles;
     }
 
     public List<Triangle3d> getTriangles() {

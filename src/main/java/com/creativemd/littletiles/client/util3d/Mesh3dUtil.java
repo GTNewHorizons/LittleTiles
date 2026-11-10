@@ -1,7 +1,9 @@
 package com.creativemd.littletiles.client.util3d;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 import net.minecraft.block.Block;
 
@@ -16,32 +18,23 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 public class Mesh3dUtil {
 
-    private static Mesh3d MESH_SLOPE;
-    private static Mesh3d MESH_SLOPE_CONCAVE;
-    private static Mesh3d MESH_SLOPE_CONVEX;
-    private static Mesh3d MESH_SLOPE_CONVEX_INNER_CORNER;
-    private static Mesh3d MESH_SLOPE_CONVEX_OUTER_CORNER;
-    private static Mesh3d MESH_SLOPE_CONCAVE_INNER_CORNER;
-    private static Mesh3d MESH_SLOPE_CONCAVE_OUTER_CORNER;
-    private static Mesh3d MESH_SLOPE_TRIANGLE;
-    private static Mesh3d MESH_SLOPE_TRIANGLE_CORNER;
-    private static Mesh3d MESH_SLOPE_TRIANGLE_ALT;
-    private static Mesh3d MESH_SLOPE_OUTER_CORNER;
-    private static Mesh3d MESH_SLOPE_INNER_CORNER;
+    /** The template of each shape made from one, see {@link Mesh3dTemplateLoader#load}. */
+    private static final Map<LittleTileShapeMode, Mesh3dTemplateLoader.Template> TEMPLATES = new EnumMap<>(
+            LittleTileShapeMode.class);
 
     public static void initializeMeshes() {
-        MESH_SLOPE = Mesh3dObjLoader.load("slope");
-        MESH_SLOPE_CONCAVE = Mesh3dObjLoader.load("slope_concave");
-        MESH_SLOPE_CONVEX = Mesh3dObjLoader.load("slope_convex");
-        MESH_SLOPE_CONVEX_INNER_CORNER = Mesh3dObjLoader.load("slope_convex_inner");
-        MESH_SLOPE_CONVEX_OUTER_CORNER = Mesh3dObjLoader.load("slope_convex_outer");
-        MESH_SLOPE_CONCAVE_INNER_CORNER = Mesh3dObjLoader.load("slope_concave_inner");
-        MESH_SLOPE_CONCAVE_OUTER_CORNER = Mesh3dObjLoader.load("slope_concave_outer");
-        MESH_SLOPE_TRIANGLE = Mesh3dObjLoader.load("slope_triangle");
-        MESH_SLOPE_TRIANGLE_CORNER = Mesh3dObjLoader.load("slope_triangle_corner");
-        MESH_SLOPE_TRIANGLE_ALT = Mesh3dObjLoader.load("slope_triangle_alternate");
-        MESH_SLOPE_OUTER_CORNER = Mesh3dObjLoader.load("slope_outer");
-        MESH_SLOPE_INNER_CORNER = Mesh3dObjLoader.load("slope_inner");
+        TEMPLATES.put(LittleTileShapeMode.SLOPE, Mesh3dTemplateLoader.load("slope"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_CONCAVE, Mesh3dTemplateLoader.load("slope_concave"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_CONVEX, Mesh3dTemplateLoader.load("slope_convex"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_CONVEX_INNER_CORNER, Mesh3dTemplateLoader.load("slope_convex_inner"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_CONVEX_OUTER_CORNER, Mesh3dTemplateLoader.load("slope_convex_outer"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_CONCAVE_INNER_CORNER, Mesh3dTemplateLoader.load("slope_concave_inner"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_CONCAVE_OUTER_CORNER, Mesh3dTemplateLoader.load("slope_concave_outer"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_TRIANGLE, Mesh3dTemplateLoader.load("slope_triangle"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_TRIANGLE_CORNER, Mesh3dTemplateLoader.load("slope_triangle_corner"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_TRIANGLE_ALT, Mesh3dTemplateLoader.load("slope_triangle_alternate"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_OUTER_CORNER, Mesh3dTemplateLoader.load("slope_outer"));
+        TEMPLATES.put(LittleTileShapeMode.SLOPE_INNER_CORNER, Mesh3dTemplateLoader.load("slope_inner"));
     }
 
     public static Mesh3d meshFromTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
@@ -387,22 +380,14 @@ public class Mesh3dUtil {
     /** The surface of the shape, before {@link #place}. */
     private static Mesh3d shapeMesh(LittleTileCutoutInfo cutoutInfo) {
         return switch (cutoutInfo.type) {
-            case SLOPE -> MESH_SLOPE.copy();
             case PILLAR -> createWallMesh(cutoutInfo);
-            case SLOPE_CONCAVE -> MESH_SLOPE_CONCAVE.copy();
-            case SLOPE_CONVEX -> MESH_SLOPE_CONVEX.copy();
-            case SLOPE_CONVEX_INNER_CORNER -> MESH_SLOPE_CONVEX_INNER_CORNER.copy();
-            case SLOPE_CONVEX_OUTER_CORNER -> MESH_SLOPE_CONVEX_OUTER_CORNER.copy();
-            case SLOPE_CONCAVE_INNER_CORNER -> MESH_SLOPE_CONCAVE_INNER_CORNER.copy();
-            case SLOPE_CONCAVE_OUTER_CORNER -> MESH_SLOPE_CONCAVE_OUTER_CORNER.copy();
-            case SLOPE_TRIANGLE -> MESH_SLOPE_TRIANGLE.copy();
-            case SLOPE_TRIANGLE_CORNER -> MESH_SLOPE_TRIANGLE_CORNER.copy();
-            case SLOPE_TRIANGLE_ALT -> MESH_SLOPE_TRIANGLE_ALT.copy();
-            case SLOPE_OUTER_CORNER -> MESH_SLOPE_OUTER_CORNER.copy();
-            case SLOPE_INNER_CORNER -> MESH_SLOPE_INNER_CORNER.copy();
             case DEFORMED_BOX -> createDeformedBoxMesh(cutoutInfo);
             case BOX -> throw new RuntimeException("Invalid cutout BOX");
-            default -> throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
+            default -> {
+                Mesh3dTemplateLoader.Template template = TEMPLATES.get(cutoutInfo.type);
+                if (template == null) throw new RuntimeException("Unknown cutout: " + cutoutInfo.type);
+                yield template.surface.copy();
+            }
         };
     }
 

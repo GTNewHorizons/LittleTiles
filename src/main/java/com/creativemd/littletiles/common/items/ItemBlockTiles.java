@@ -13,6 +13,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -20,6 +21,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.LittleTilesConfig;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
 import com.creativemd.littletiles.client.render.LittleDeformedBoxHelper;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
@@ -217,7 +219,27 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
             boolean customPlacement, LittleTilePlaceMode placeMode) {
+        // Checked before the tiles are read, so a recipe item from before the limit is not even loaded.
+        if (stack.getItem() == LittleTiles.multiTiles && stack.hasTagCompound()
+                && stack.getTagCompound().getInteger("tiles") > LittleTilesConfig.maxRecipeTiles) {
+            if (!world.isRemote) {
+                player.addChatMessage(
+                        new ChatComponentTranslation(
+                                "littletiles.recipe.too_many_tiles_to_place",
+                                LittleTilesConfig.maxRecipeTiles));
+            }
+            return false;
+        }
+
         ArrayList<PreviewTile> previews = PlacementHelper.getPreviewTiles(player, stack, pos, customPlacement);
+        if (isChiselTooBig(player, previews)) {
+            // The client checks the same limit, so only the server tells the player.
+            if (!world.isRemote) {
+                player.addChatMessage(
+                        new ChatComponentTranslation("littletiles.chisel.too_big", LittleTilesConfig.maxChiselBlocks));
+            }
+            return false;
+        }
 
         LittleStructure structure = null;
         if (stack.getItem() instanceof ILittleTile) {
@@ -262,6 +284,17 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             return true;
         }
         return false;
+    }
+
+    /** Every block a chisel placement reaches into becomes a tile entity, so big placements overload the server. */
+    private static boolean isChiselTooBig(EntityPlayer player, ArrayList<PreviewTile> previews) {
+        ItemStack held = player.getHeldItem();
+        if (held == null || held.getItem() != LittleTiles.chisel) return false;
+        long blocks = 0;
+        for (PreviewTile preview : previews) {
+            blocks += preview.getBlockCount();
+        }
+        return blocks > LittleTilesConfig.maxChiselBlocks;
     }
 
     @Override

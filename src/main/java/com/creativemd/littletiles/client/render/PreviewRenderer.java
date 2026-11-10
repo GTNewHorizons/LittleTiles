@@ -218,7 +218,7 @@ public class PreviewRenderer {
 
         Vector3i min = worldMinPixels(center, size);
         Vector3i pixels = sizeInPixels(size);
-        return blocksSpanned(min.x, pixels.x) * blocksSpanned(min.y, pixels.y) * blocksSpanned(min.z, pixels.z)
+        return (long) blocksSpanned(min.x, pixels.x) * blocksSpanned(min.y, pixels.y) * blocksSpanned(min.z, pixels.z)
                 <= CHISEL_PREVIEW_LIMIT;
     }
 
@@ -503,6 +503,8 @@ public class PreviewRenderer {
                         // touching tiles, would otherwise show through the alpha and add up with the ones in front.
                         // So they go into depth first, then in color only where they are in front. The depth buffer
                         // is cleared for the hand right after this event, so writing to it leaves nothing behind.
+                        // The color mask is restored, not reset, as anaglyph 3D only lets each eye write its channels.
+                        GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT);
                         GL11.glColorMask(false, false, false, false);
                         GL11.glDepthMask(true);
                         for (PreviewTile previewTile : previews) {
@@ -511,7 +513,7 @@ public class PreviewRenderer {
                                 renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
                             }
                         }
-                        GL11.glColorMask(true, true, true, true);
+                        GL11.glPopAttrib();
                         GL11.glDepthMask(false);
                         GL11.glDepthFunc(GL11.GL_LEQUAL);
 

@@ -52,6 +52,7 @@ import com.creativemd.littletiles.LittleTilesConfig;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
+import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.gui.StructureConfigWidget;
 import com.creativemd.littletiles.common.packet.LittleRecipeSelectPacket;
@@ -125,11 +126,9 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
      */
     public static void pickTiles(EntityPlayer player, ItemStack stack, List<LittleTile> tiles) {
         if (stack == null || !(stack.getItem() instanceof ItemRecipe) || isLocked(stack) || tiles.isEmpty()) return;
-        if (tiles.size() > LittleTilesConfig.maxRecipeTiles) {
-            player.addChatMessage(
-                    new ChatComponentTranslation(
-                            "littletiles.recipe.too_many_tiles",
-                            LittleTilesConfig.maxRecipeTiles));
+        // Only an entire block can have more tiles, the same limit as when taking it
+        if (!BlockTile.fitsOneItem(tiles)) {
+            BlockTile.tellTooManyTiles(player);
             return;
         }
         saveTiles(player.worldObj, tiles, stack);
@@ -146,7 +145,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         if (drop.stackTagCompound.getInteger("tiles") > LittleTilesConfig.maxRecipeTiles) {
             player.addChatMessage(
                     new ChatComponentTranslation(
-                            "littletiles.recipe.too_many_tiles",
+                            "littletiles.recipe.structure_too_big",
                             LittleTilesConfig.maxRecipeTiles));
             return;
         }

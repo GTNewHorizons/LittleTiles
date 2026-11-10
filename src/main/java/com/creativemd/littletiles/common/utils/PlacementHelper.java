@@ -99,19 +99,29 @@ public final class PlacementHelper {
 
     public static ArrayList<PreviewTile> getPreviewTiles(EntityPlayer player, ItemStack stack, LittleTileBlockPos pos,
             boolean customPlacement) {
-        final World world = player.worldObj;
-        ArrayList<ShiftHandler> shifthandlers = new ArrayList<>();
-        ArrayList<PreviewTile> preview = new ArrayList<>();
         ArrayList<LittleTilePreview> tiles = null;
 
         ILittleTile iTile = PlacementHelper.getLittleInterface(stack);
 
         if (iTile != null) tiles = iTile.getLittlePreview(stack);
 
-        if (tiles != null) {
-            LittleTileSize size = getSize(tiles);
+        if (tiles == null) return new ArrayList<>();
+        return getPreviewTiles(player, stack, pos, customPlacement, tiles, new LittleTileBounds(tiles));
+    }
 
-            if (tiles.size() == 1) shifthandlers.addAll(tiles.get(0).shifthandlers);
+    /** Like {@link #getPreviewTiles}, but placed by the given bounds, which can be kept between calls. */
+    public static ArrayList<PreviewTile> getPreviewTiles(EntityPlayer player, ItemStack stack, LittleTileBlockPos pos,
+            boolean customPlacement, ArrayList<LittleTilePreview> tiles, LittleTileBounds bounds) {
+        final World world = player.worldObj;
+        ArrayList<ShiftHandler> shifthandlers = new ArrayList<>();
+        ArrayList<PreviewTile> preview = new ArrayList<>();
+
+        ILittleTile iTile = PlacementHelper.getLittleInterface(stack);
+
+        if (tiles != null) {
+            LittleTileSize size = bounds.size;
+
+            shifthandlers.addAll(bounds.shiftHandlers);
 
             shifthandlers.add(new InsideShiftHandler());
 
@@ -139,7 +149,7 @@ public final class PlacementHelper {
                     box.maxZ -= size.sizeZ - align;
                 }
             }
-            LittleTileVec internalOffset = getInternalOffset(tiles);
+            LittleTileVec internalOffset = bounds.min.copy();
             internalOffset.invert();
 
             boolean canPlaceNormal = false;
@@ -149,14 +159,14 @@ public final class PlacementHelper {
                 int y = pos.getPosY();
                 int z = pos.getPosZ();
 
-                if (!tiles.isEmpty() && tiles.get(0).box != null) {
+                if (!bounds.boxes.isEmpty() && bounds.boxes.get(0) != null) {
                     Block block = world.getBlock(x, y, z);
                     if (block.isReplaceable(world, x, y, z) || block instanceof BlockTile) {
                         TileEntity te = world.getTileEntity(x, y, z);
                         canPlaceNormal = true;
                         if (te instanceof TileEntityLittleTiles teTiles) {
-                            for (LittleTilePreview tile : tiles) {
-                                if (!teTiles.isSpaceForLittleTile(tile.box)) {
+                            for (LittleTileBox tileBox : bounds.boxes) {
+                                if (!teTiles.isSpaceForLittleTile(tileBox)) {
                                     canPlaceNormal = false;
                                     break;
                                 }

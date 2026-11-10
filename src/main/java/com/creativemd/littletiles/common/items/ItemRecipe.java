@@ -1,16 +1,27 @@
 package com.creativemd.littletiles.common.items;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.nbt.NBTSizeTracker;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.container.SubContainer;
@@ -133,38 +144,34 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
 
     public static void flipPreview(ItemStack stack, ForgeDirection direction) {
         if (!stack.hasTagCompound()) return;
-        int tiles = stack.stackTagCompound.getInteger("tiles");
-        for (int i = 0; i < tiles; i++) {
-            NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);
+        List<NBTTagCompound> tiles = readTiles(stack.stackTagCompound);
+        for (NBTTagCompound nbt : tiles) {
             LittleTileSize oldSize = LittleTilePreview.getSizeFromNBT(nbt);
             LittleTilePreview.flipPreview(nbt, direction);
             if (nbt.hasKey("cutoutOrientation")) {
                 new LittleToolHandler(nbt).handleFlip(direction, oldSize);
             }
-            stack.stackTagCompound.setTag("tile" + i, nbt);
         }
+        writeTiles(stack.stackTagCompound, tiles);
     }
 
     public static void rotatePreview(ItemStack stack, ForgeDirection direction) {
         if (!stack.hasTagCompound()) return;
-        int tiles = stack.stackTagCompound.getInteger("tiles");
-        for (int i = 0; i < tiles; i++) {
-            NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);
+        List<NBTTagCompound> tiles = readTiles(stack.stackTagCompound);
+        for (NBTTagCompound nbt : tiles) {
             LittleTileSize oldSize = LittleTilePreview.getSizeFromNBT(nbt);
             LittleTilePreview.rotatePreview(nbt, direction);
             if (nbt.hasKey("cutoutOrientation")) {
                 new LittleToolHandler(nbt).handleRotation(direction, oldSize);
             }
-            stack.stackTagCompound.setTag("tile" + i, nbt);
         }
+        writeTiles(stack.stackTagCompound, tiles);
     }
 
     public static ArrayList<LittleTilePreview> getPreview(ItemStack stack) {
         if (!stack.hasTagCompound()) return null;
         ArrayList<LittleTilePreview> result = new ArrayList<>();
-        int tiles = stack.stackTagCompound.getInteger("tiles");
-        for (int i = 0; i < tiles; i++) {
-            NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);
+        for (NBTTagCompound nbt : readTiles(stack.stackTagCompound)) {
             LittleTilePreview preview = LittleTilePreview.getPreviewFromNBT(nbt);
             if (preview != null) result.add(preview);
         }
@@ -195,9 +202,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
 
     public static ArrayList<LittleTile> loadTiles(TileEntityLittleTiles te, ItemStack stack) {
         ArrayList<LittleTile> result = new ArrayList<>();
-        int tiles = stack.stackTagCompound.getInteger("tiles");
-        for (int i = 0; i < tiles; i++) {
-            NBTTagCompound nbt = stack.stackTagCompound.getCompoundTag("tile" + i);
+        for (NBTTagCompound nbt : readTiles(stack.stackTagCompound)) {
             LittleTile tile = LittleTile.CreateandLoadTile(te, te.getWorldObj(), nbt);
             // if(tile != null && tile.isValid())
             result.add(tile);
@@ -206,14 +211,85 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
     }
 
     public static void saveTiles(World world, List<LittleTile> tiles, ItemStack stack) {
-        stack.stackTagCompound = new NBTTagCompound();
-        stack.stackTagCompound.setInteger("tiles", tiles.size());
-        for (int i = 0; i < tiles.size(); i++) {
+        List<NBTTagCompound> tileNBTs = new ArrayList<>();
+        for (LittleTile tile : tiles) {
             NBTTagCompound nbt = new NBTTagCompound();
-            tiles.get(i).boundingBox.writeToNBT("bBox", nbt);
-            tiles.get(i).saveTileForItem(nbt);
-            stack.stackTagCompound.setTag("tile" + i, nbt);
+            tile.boundingBox.writeToNBT("bBox", nbt);
+            tile.saveTileForItem(nbt);
+            tileNBTs.add(nbt);
         }
+        stack.stackTagCompound = new NBTTagCompound();
+        writeTiles(stack.stackTagCompound, tileNBTs);
+    }
+
+    /**
+     * The tiles, all in one byte array. Items are compared on every tick, and comparing one array is far cheaper than
+     * comparing a compound per tile.
+     */
+    private static final String TILE_DATA = "tileData";
+    private static final byte TILE_DATA_VERSION = 1;
+    /** The layout before {@link #TILE_DATA}: one compound per tile, "tile0", "tile1" and so on. */
+    private static final String OLD_TILE_PREFIX = "tile";
+
+    /** The NBT of every tile, in either layout. Changes to it only reach the item through {@link #writeTiles}. */
+    public static List<NBTTagCompound> readTiles(NBTTagCompound tag) {
+        List<NBTTagCompound> tiles = new ArrayList<>();
+        if (!tag.hasKey(TILE_DATA)) {
+            int count = tag.getInteger("tiles");
+            for (int i = 0; i < count; i++) tiles.add(tag.getCompoundTag(OLD_TILE_PREFIX + i));
+            return tiles;
+        }
+
+        try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(tag.getByteArray(TILE_DATA)))) {
+            byte version = in.readByte();
+            if (version != TILE_DATA_VERSION) throw new IOException("Unknown tile data version " + version);
+            // Limited like NBT from a packet, the outer limit only counted the bytes, not the lengths inside them
+            NBTTagCompound root = CompressedStreamTools.func_152456_a(in, new NBTSizeTracker(2097152L));
+            NBTTagList list = root.getTagList("tiles", Constants.NBT.TAG_COMPOUND);
+            for (int i = 0; i < list.tagCount(); i++) tiles.add(list.getCompoundTagAt(i));
+        } catch (IOException | RuntimeException e) {
+            LittleTiles.logger.error("Could not read the tiles of a recipe", e);
+            tiles.clear();
+        }
+        return tiles;
+    }
+
+    /** Stores the tiles as {@link #TILE_DATA}, dropping the old layout if the item still had it. */
+    public static void writeTiles(NBTTagCompound tag, List<NBTTagCompound> tiles) {
+        NBTTagList list = new NBTTagList();
+        for (NBTTagCompound nbt : tiles) list.appendTag(nbt);
+        NBTTagCompound root = new NBTTagCompound();
+        root.setTag("tiles", list);
+
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(bytes)) {
+            out.writeByte(TILE_DATA_VERSION);
+            CompressedStreamTools.write(root, out);
+        } catch (IOException e) {
+            // Written to memory, which does not fail
+            throw new UncheckedIOException(e);
+        }
+
+        for (int i = 0; tag.hasKey(OLD_TILE_PREFIX + i); i++) tag.removeTag(OLD_TILE_PREFIX + i);
+        tag.setByteArray(TILE_DATA, bytes.toByteArray());
+        // Kept next to the data, so the tooltip does not have to read it
+        tag.setInteger("tiles", tiles.size());
+    }
+
+    /**
+     * Moves an item still in the old layout over to {@link #TILE_DATA}. Done on the server while it sits in an
+     * inventory, so old items are not compared compound by compound forever.
+     */
+    public static void convertOldTiles(ItemStack stack, World world) {
+        if (world.isRemote || !stack.hasTagCompound()) return;
+        NBTTagCompound tag = stack.stackTagCompound;
+        if (tag.hasKey(TILE_DATA) || !tag.hasKey(OLD_TILE_PREFIX + 0)) return;
+        writeTiles(tag, readTiles(tag));
+    }
+
+    @Override
+    public void onUpdate(ItemStack stack, World world, Entity entity, int slot, boolean isHeld) {
+        convertOldTiles(stack, world);
     }
 
     public static ArrayList<CubeObject> getCubes(ItemStack stack) {

@@ -6,6 +6,7 @@ import java.util.Objects;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.player.EntityPlayer;
@@ -22,6 +23,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
@@ -29,15 +31,19 @@ import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
+import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
+import com.creativemd.littletiles.common.utils.LittleTileBounds;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
+import com.creativemd.littletiles.common.utils.small.LittleTileSize;
+import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import com.creativemd.littletiles.utils.PreviewTile;
 import com.creativemd.littletiles.utils.ShiftHandler;
 
@@ -61,6 +67,8 @@ public class PreviewRenderer {
     public static LittleTileBlockPos firstHit = null;
     private static Item lastItem = null;
     private static NBTTagCompound lastNbt = null;
+    /** Bounds of the held multi tile item, so its tiles are not read every frame. Reset when the item changes. */
+    private static LittleTileBounds heldBounds = null;
 
     private static ForgeDirection rotateDirection(ForgeDirection direction) {
         return switch (direction) {
@@ -276,6 +284,58 @@ public class PreviewRenderer {
         }
     }
 
+    /**
+     * The cached geometry of the held item, see {@link TileGeometryBuffer}. It is the geometry of the item's tiles as
+     * long as they keep their arrangement. Null for partial tiles, which show a fill level, and for the chisel, whose
+     * tile changes with the hits.
+     */
+    private static TileGeometryBuffer itemBuffer(ItemStack held) {
+        if (held == null || !(held.getItem() instanceof ITilesRenderer) || held.getItem() == LittleTiles.partialTiles) {
+            return null;
+        }
+        return TileGeometryBuffer.get(held);
+    }
+
+    /**
+     * Draws the item's geometry in place of its textured preview tiles. They are all moved by the same offset, so the
+     * lowest corners of the item and of the preview match.
+     */
+    private static void renderItemBuffer(TileGeometryBuffer buffer, ArrayList<PreviewTile> previews,
+            LittleTileBlockPos pos, double x, double y, double z, int align, double alpha) {
+        double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE, minZ = Double.MAX_VALUE;
+        for (PreviewTile previewTile : previews) {
+            if (!previewTile.isTextured()) continue;
+            Vec3 center = getPreviewCenter(previewTile, pos, x, y, z, align);
+            Vec3 size = previewTile.getPreviewBox().getSizeD();
+            minX = Math.min(minX, center.xCoord - size.xCoord / 2D);
+            minY = Math.min(minY, center.yCoord - size.yCoord / 2D);
+            minZ = Math.min(minZ, center.zCoord - size.zCoord / 2D);
+        }
+        if (minX == Double.MAX_VALUE) return;
+
+        boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        // The vertices carry their own colors, so the fading comes from the blending instead
+        GL14.glBlendColor(0, 0, 0, (float) alpha);
+        GL11.glBlendFunc(GL11.GL_CONSTANT_ALPHA, GL11.GL_ONE_MINUS_CONSTANT_ALPHA);
+        // The buffer cannot be pulled towards the camera like the immediate preview, so it is offset in depth instead
+        GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
+        GL11.glPolygonOffset(-1, -1);
+
+        Vec3 bufferMin = buffer.getMin();
+        GL11.glPushMatrix();
+        GL11.glTranslated(minX - bufferMin.xCoord, minY - bufferMin.yCoord, minZ - bufferMin.zCoord);
+        buffer.render();
+        GL11.glPopMatrix();
+
+        GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
+        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+        if (lightingWasEnabled) GL11.glEnable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+    }
+
     /** The shape of the preview tile: textured like its item, or untextured in its preview color. */
     private static void renderPreviewShape(PreviewTile previewTile, LittleTileBlockPos pos, double x, double y,
             double z, int align, double alpha) {
@@ -360,6 +420,7 @@ public class PreviewRenderer {
                 lastItem = item;
                 // Copy the tags so in-place tool setting changes are detected on the next tick.
                 lastNbt = nbt != null ? (NBTTagCompound) nbt.copy() : null;
+                heldBounds = null;
             }
 
             if (mc.thePlayer.getHeldItem() != null) {
@@ -489,8 +550,30 @@ public class PreviewRenderer {
 
                     ArrayList<PreviewTile> previews;
 
-                    previews = PlacementHelper
-                            .getPreviewTiles(mc.thePlayer, mc.thePlayer.getHeldItem(), pos, markedHit != null);
+                    // A multi tile item is drawn from its buffer, so one tile spanning its bounds is enough to place
+                    // it. The bounds are read once instead of every frame.
+                    TileGeometryBuffer itemBuffer = itemBuffer(held);
+                    if (itemBuffer != null && held.getItem() == LittleTiles.multiTiles) {
+                        if (heldBounds == null) heldBounds = new LittleTileBounds(ItemRecipe.getPreview(held));
+                        LittleTileVec min = heldBounds.min;
+                        LittleTileSize size = heldBounds.size;
+                        ArrayList<LittleTilePreview> boundsTile = new ArrayList<>();
+                        boundsTile.add(
+                                new LittleTilePreview(
+                                        new LittleTileBox(
+                                                min.x,
+                                                min.y,
+                                                min.z,
+                                                min.x + size.sizeX,
+                                                min.y + size.sizeY,
+                                                min.z + size.sizeZ),
+                                        new NBTTagCompound()));
+                        previews = PlacementHelper
+                                .getPreviewTiles(mc.thePlayer, held, pos, markedHit != null, boundsTile, heldBounds);
+                    } else {
+                        previews = PlacementHelper
+                                .getPreviewTiles(mc.thePlayer, mc.thePlayer.getHeldItem(), pos, markedHit != null);
+                    }
 
                     double x = (double) pos.getPosX() - TileEntityRendererDispatcher.staticPlayerX;
                     double y = (double) pos.getPosY() - TileEntityRendererDispatcher.staticPlayerY;
@@ -507,7 +590,8 @@ public class PreviewRenderer {
                         GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT);
                         GL11.glColorMask(false, false, false, false);
                         GL11.glDepthMask(true);
-                        for (PreviewTile previewTile : previews) {
+                        if (itemBuffer != null) renderItemBuffer(itemBuffer, previews, pos, x, y, z, align, alpha);
+                        else for (PreviewTile previewTile : previews) {
                             Vec3 center = getPreviewCenter(previewTile, pos, x, y, z, align);
                             if (isTexturedPreview(previewTile, center, previewTile.getPreviewBox().getSizeD())) {
                                 renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
@@ -517,7 +601,9 @@ public class PreviewRenderer {
                         GL11.glDepthMask(false);
                         GL11.glDepthFunc(GL11.GL_LEQUAL);
 
+                        if (itemBuffer != null) renderItemBuffer(itemBuffer, previews, pos, x, y, z, align, alpha);
                         for (PreviewTile previewTile : previews) {
+                            if (itemBuffer != null && previewTile.isTextured()) continue;
                             renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
                         }
                     }

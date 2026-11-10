@@ -182,7 +182,13 @@ public class PreviewRenderer {
         return Vec3.createVectorHelper(cubeX, cubeY, cubeZ);
     }
 
-    /** The untextured shape of the preview tile, in its preview color. */
+    /** The chisel keeps its plain preview: its shape is still being chosen, there is no tile to show yet. */
+    private static boolean isTexturedPreview(PreviewTile previewTile) {
+        ItemStack held = Minecraft.getMinecraft().thePlayer.getHeldItem();
+        return previewTile.isTextured() && (held == null || held.getItem() != LittleTiles.chisel);
+    }
+
+    /** The shape of the preview tile: textured like its item, or untextured in its preview color. */
     private static void renderPreviewShape(PreviewTile previewTile, LittleTileBlockPos pos, double x, double y,
             double z, int align, double alpha) {
         GL11.glPushMatrix();
@@ -200,9 +206,7 @@ public class PreviewRenderer {
             toolHandler = new LittleToolHandler(Minecraft.getMinecraft().thePlayer.getHeldItem());
         }
 
-        // The chisel keeps its plain preview: its shape is still being chosen, there is no tile to show yet.
-        ItemStack held = Minecraft.getMinecraft().thePlayer.getHeldItem();
-        if (previewTile.isTextured() && (held == null || held.getItem() != LittleTiles.chisel)) {
+        if (isTexturedPreview(previewTile)) {
             // Textured as the item shows the tile, from where it sits in its own block - not where it is placed.
             LittleTilePreview tile = previewTile.preview;
             CubeObject cube = tile.getCubeBlock();
@@ -397,12 +401,28 @@ public class PreviewRenderer {
                     double x = (double) pos.getPosX() - TileEntityRendererDispatcher.staticPlayerX;
                     double y = (double) pos.getPosY() - TileEntityRendererDispatcher.staticPlayerY;
                     double z = (double) pos.getPosZ() - TileEntityRendererDispatcher.staticPlayerZ;
-                    for (PreviewTile previewTile : previews) {
-                        // A deformed box being edited was already drawn above, as a wireframe of its own corners -
-                        // filling its faces here would hide whatever the player is trying to line the box up against.
-                        if (editingDeformedBox) break;
+                    // A deformed box being edited was already drawn above, as a wireframe of its own corners -
+                    // filling its faces here would hide whatever the player is trying to line the box up against.
+                    if (!editingDeformedBox) {
+                        double alpha = previewAlpha();
+                        // Textured previews only show their front-most faces. Faces inside them, like those of two
+                        // touching tiles, would otherwise show through the alpha and add up with the ones in front.
+                        // So they go into depth first, then in color only where they are in front. The depth buffer
+                        // is cleared for the hand right after this event, so writing to it leaves nothing behind.
+                        GL11.glColorMask(false, false, false, false);
+                        GL11.glDepthMask(true);
+                        for (PreviewTile previewTile : previews) {
+                            if (isTexturedPreview(previewTile)) {
+                                renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
+                            }
+                        }
+                        GL11.glColorMask(true, true, true, true);
+                        GL11.glDepthMask(false);
+                        GL11.glDepthFunc(GL11.GL_LEQUAL);
 
-                        renderPreviewShape(previewTile, pos, x, y, z, align, previewAlpha());
+                        for (PreviewTile previewTile : previews) {
+                            renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
+                        }
                     }
 
                     // Drawn after the filled preview so the markers remain visible where their cubes overlap it.

@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.client.util3d;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -292,5 +293,25 @@ public class Mesh3dTests {
                 new Vector3i[] { new Vector3i(0, 0, 6), new Vector3i(16, 0, 6), new Vector3i(0, 15, 2),
                         new Vector3i(16, 16, 5), new Vector3i(0, 0, 16), new Vector3i(16, 0, 16),
                         new Vector3i(0, 16, 16), new Vector3i(16, 16, 16) });
+    }
+
+    /**
+     * A wedge whose upper north corners sit halfway up its north edges, so its west and east faces are triangles with a
+     * corner in the middle of a side. Split along their shorter diagonals, each leaves a triangle of 3 distinct points
+     * in a line, which has no normal to pick a texture direction from.
+     */
+    @Test
+    public void deformedBoxWithACornerInTheMiddleOfAnEdgeHasTextureDirections() {
+        Vector3i[] corners = { new Vector3i(0, 0, 0), new Vector3i(16, 0, 0), new Vector3i(0, 8, 0),
+                new Vector3i(16, 8, 0), new Vector3i(0, 0, 16), new Vector3i(16, 0, 16), new Vector3i(0, 16, 0),
+                new Vector3i(16, 16, 0) };
+        assertTrue(Mesh3dUtil.enclosesVolume(corners));
+        LittleTileBox box = LittleTileBox.fromPoints(corners);
+        Mesh3d mesh = Mesh3dUtil.meshFromTile(box, LittleTileCutoutInfo.fromDeformedCorners(box, corners));
+        for (Triangle3d triangle : mesh.getTriangles()) {
+            assertNotNull(
+                    triangle.getP1() + " " + triangle.getP2() + " " + triangle.getP3(),
+                    triangle.getFaceDirection());
+        }
     }
 }

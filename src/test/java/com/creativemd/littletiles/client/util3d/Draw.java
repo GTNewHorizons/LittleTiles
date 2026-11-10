@@ -9,6 +9,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import net.minecraftforge.common.util.ForgeDirection;
+
 import org.joml.Vector3i;
 
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
@@ -26,6 +28,9 @@ public final class Draw {
 
     /** The other half stay small, so the ends of the face often lie inside the block, as for most slopes in game. */
     public static final int MAX_SMALL_SLOPE_SIZE = 2 * PIXELS;
+
+    /** Pillars are this many pixels thick. */
+    public static final int PILLAR_THICKNESS = 4;
 
     /** Stepped slopes run down their face in this many equal steps, each up to this many pixels down and along. */
     public static final int MIN_STEPS = 2, MAX_STEPS = 4, MAX_STEP_SIZE = 8;
@@ -146,6 +151,65 @@ public final class Draw {
             Vector3i size = size(random, 1, MAX_SHAPE_SIZE);
             return Tile.of(cutShape(random, size, posReachingIntoBlock(random, size)));
         }, tile -> !tile.isEmpty());
+    }
+
+    /**
+     * A shape of the kind as the game makes it, of up to {@link #MAX_SHAPE_SIZE} pixels, placed where it reaches into
+     * the block, see {@link #posReachingIntoBlock}. Deformed boxes have {@link DeformedBoxes#warped} corners that don't
+     * fold over, pillars are made by {@link #pillar}, and the other shapes come in any orientation.
+     */
+    public static LittleTileCutoutInfo shapeReachingIntoBlock(Random random, LittleTileShapeMode kind) {
+        if (kind == LittleTileShapeMode.PILLAR) return until(() -> pillar(random), Draw::isWall);
+        Vector3i size = size(random, 1, MAX_SHAPE_SIZE);
+        Vector3i pos = posReachingIntoBlock(random, size);
+        if (kind != LittleTileShapeMode.DEFORMED_BOX) return Shapes.shape(kind, size, pos, orientation(random));
+        Vector3i[] corners = until(
+                () -> DeformedBoxes.warped(random),
+                candidate -> Mesh3dUtil.enclosesVolume(candidate) && !DeformedBoxes.foldsOver(candidate));
+        return Shapes.deformedBox(size, pos, orientation(random), corners);
+    }
+
+    /**
+     * A pillar reaching into the block, between two random faces, as {@link LittleTileCutoutInfo#fromItemStack} makes
+     * them: running away from the start face and towards the end face. Running the other way turns an end of the wall
+     * inside out, which leaves no solid. It may not make a wall, see {@link #isWall}.
+     */
+    private static LittleTileCutoutInfo pillar(Random random) {
+        Vector3i size = size(random, 1, MAX_SHAPE_SIZE);
+        LittleTileCutoutInfo pillar = Shapes
+                .shape(LittleTileShapeMode.PILLAR, size, posReachingIntoBlock(random, size), Shapes.UNTURNED);
+        pillar.thickness = PILLAR_THICKNESS;
+        pillar.faceStart = oneOf(random, ForgeDirection.VALID_DIRECTIONS);
+        pillar.faceEnd = oneOf(random, ForgeDirection.VALID_DIRECTIONS);
+        pillar.negX = runsNegative(random, pillar.faceStart.offsetX, pillar.faceEnd.offsetX);
+        pillar.negY = runsNegative(random, pillar.faceStart.offsetY, pillar.faceEnd.offsetY);
+        pillar.negZ = runsNegative(random, pillar.faceStart.offsetZ, pillar.faceEnd.offsetZ);
+        return pillar;
+    }
+
+    /** Away from the start face and towards the end face, either way along an axis neither face lies on. */
+    private static boolean runsNegative(Random random, int startOffset, int endOffset) {
+        return startOffset < 0 || endOffset > 0 || startOffset == 0 && endOffset == 0 && random.nextBoolean();
+    }
+
+    /**
+     * Whether the pillar makes a wall: it ends on another face than it starts, and is longer than its thickness along
+     * two axes. Shorter than its thickness along the axis of either face, the wall's end is moved back past its start,
+     * which folds it over itself.
+     */
+    private static boolean isWall(LittleTileCutoutInfo pillar) {
+        int longAxes = 0;
+        for (int axis = 0; axis < BlockSpace.AXES; axis++) {
+            if (pillar.size.get(axis) > pillar.thickness) longAxes++;
+        }
+        if (longAxes <= 1 || pillar.faceStart == pillar.faceEnd) return false;
+        for (ForgeDirection face : new ForgeDirection[] { pillar.faceStart, pillar.faceEnd }) {
+            if (face.offsetX != 0 && pillar.size.x < pillar.thickness
+                    || face.offsetY != 0 && pillar.size.y < pillar.thickness
+                    || face.offsetZ != 0 && pillar.size.z < pillar.thickness)
+                return false;
+        }
+        return true;
     }
 
     /** An unturned shape of the size, placed where it reaches into the block, see {@link #posReachingIntoBlock}. */

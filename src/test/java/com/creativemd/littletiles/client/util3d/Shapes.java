@@ -29,6 +29,15 @@ public final class Shapes {
             LittleTileShapeMode.SLOPE_TRIANGLE_ALT, LittleTileShapeMode.SLOPE_OUTER_CORNER,
             LittleTileShapeMode.SLOPE_INNER_CORNER };
 
+    /** Every shape: the cut shapes, deformed boxes and pillars, so everything but plain boxes. */
+    public static final LittleTileShapeMode[] ALL_SHAPES = { LittleTileShapeMode.SLOPE,
+            LittleTileShapeMode.SLOPE_CONCAVE, LittleTileShapeMode.SLOPE_CONVEX,
+            LittleTileShapeMode.SLOPE_CONVEX_INNER_CORNER, LittleTileShapeMode.SLOPE_CONVEX_OUTER_CORNER,
+            LittleTileShapeMode.SLOPE_CONCAVE_INNER_CORNER, LittleTileShapeMode.SLOPE_CONCAVE_OUTER_CORNER,
+            LittleTileShapeMode.SLOPE_TRIANGLE, LittleTileShapeMode.SLOPE_TRIANGLE_CORNER,
+            LittleTileShapeMode.SLOPE_TRIANGLE_ALT, LittleTileShapeMode.SLOPE_OUTER_CORNER,
+            LittleTileShapeMode.SLOPE_INNER_CORNER, LittleTileShapeMode.DEFORMED_BOX, LittleTileShapeMode.PILLAR };
+
     public static final int ORIENTATIONS = 48;
 
     public static final int UNTURNED = 0;

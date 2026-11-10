@@ -6,6 +6,7 @@ import java.util.Objects;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.player.EntityPlayer;
@@ -22,6 +23,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
@@ -276,6 +278,58 @@ public class PreviewRenderer {
         }
     }
 
+    /**
+     * The cached geometry of the held item, see {@link TileGeometryBuffer}. It is the geometry of the item's tiles as
+     * long as they keep their arrangement. Null for partial tiles, which show a fill level, and for the chisel, whose
+     * tile changes with the hits.
+     */
+    private static TileGeometryBuffer itemBuffer(ItemStack held) {
+        if (held == null || !(held.getItem() instanceof ITilesRenderer) || held.getItem() == LittleTiles.partialTiles) {
+            return null;
+        }
+        return TileGeometryBuffer.get(held);
+    }
+
+    /**
+     * Draws the item's geometry in place of its textured preview tiles. They are all moved by the same offset, so the
+     * lowest corners of the item and of the preview match.
+     */
+    private static void renderItemBuffer(TileGeometryBuffer buffer, ArrayList<PreviewTile> previews,
+            LittleTileBlockPos pos, double x, double y, double z, int align, double alpha) {
+        double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE, minZ = Double.MAX_VALUE;
+        for (PreviewTile previewTile : previews) {
+            if (!previewTile.isTextured()) continue;
+            Vec3 center = getPreviewCenter(previewTile, pos, x, y, z, align);
+            Vec3 size = previewTile.getPreviewBox().getSizeD();
+            minX = Math.min(minX, center.xCoord - size.xCoord / 2D);
+            minY = Math.min(minY, center.yCoord - size.yCoord / 2D);
+            minZ = Math.min(minZ, center.zCoord - size.zCoord / 2D);
+        }
+        if (minX == Double.MAX_VALUE) return;
+
+        boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        // The vertices carry their own colors, so the fading comes from the blending instead
+        GL14.glBlendColor(0, 0, 0, (float) alpha);
+        GL11.glBlendFunc(GL11.GL_CONSTANT_ALPHA, GL11.GL_ONE_MINUS_CONSTANT_ALPHA);
+        // The buffer cannot be pulled towards the camera like the immediate preview, so it is offset in depth instead
+        GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
+        GL11.glPolygonOffset(-1, -1);
+
+        Vec3 bufferMin = buffer.getMin();
+        GL11.glPushMatrix();
+        GL11.glTranslated(minX - bufferMin.xCoord, minY - bufferMin.yCoord, minZ - bufferMin.zCoord);
+        buffer.render();
+        GL11.glPopMatrix();
+
+        GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
+        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+        if (lightingWasEnabled) GL11.glEnable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+    }
+
     /** The shape of the preview tile: textured like its item, or untextured in its preview color. */
     private static void renderPreviewShape(PreviewTile previewTile, LittleTileBlockPos pos, double x, double y,
             double z, int align, double alpha) {
@@ -503,11 +557,13 @@ public class PreviewRenderer {
                         // touching tiles, would otherwise show through the alpha and add up with the ones in front.
                         // So they go into depth first, then in color only where they are in front. The depth buffer
                         // is cleared for the hand right after this event, so writing to it leaves nothing behind.
+                        TileGeometryBuffer itemBuffer = itemBuffer(mc.thePlayer.getHeldItem());
                         // The color mask is restored, not reset, as anaglyph 3D only lets each eye write its channels.
                         GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT);
                         GL11.glColorMask(false, false, false, false);
                         GL11.glDepthMask(true);
-                        for (PreviewTile previewTile : previews) {
+                        if (itemBuffer != null) renderItemBuffer(itemBuffer, previews, pos, x, y, z, align, alpha);
+                        else for (PreviewTile previewTile : previews) {
                             Vec3 center = getPreviewCenter(previewTile, pos, x, y, z, align);
                             if (isTexturedPreview(previewTile, center, previewTile.getPreviewBox().getSizeD())) {
                                 renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
@@ -517,7 +573,9 @@ public class PreviewRenderer {
                         GL11.glDepthMask(false);
                         GL11.glDepthFunc(GL11.GL_LEQUAL);
 
+                        if (itemBuffer != null) renderItemBuffer(itemBuffer, previews, pos, x, y, z, align, alpha);
                         for (PreviewTile previewTile : previews) {
+                            if (itemBuffer != null && previewTile.isTextured()) continue;
                             renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
                         }
                     }

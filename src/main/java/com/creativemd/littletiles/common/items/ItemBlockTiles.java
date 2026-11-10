@@ -216,6 +216,13 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             boolean customPlacement, LittleTilePlaceMode placeMode) {
         // Checked before the tiles are read, so a recipe item from before the limit is not even loaded.
         boolean isRecipe = stack.getItem() == LittleTiles.recipe;
+        // Placing from a recipe costs no material, so it is creative only until survival accounts for it.
+        if (isRecipe && !player.capabilities.isCreativeMode) {
+            if (!world.isRemote) {
+                player.addChatMessage(new ChatComponentTranslation("littletiles.recipe.creative_only"));
+            }
+            return false;
+        }
         if ((stack.getItem() == LittleTiles.multiTiles || isRecipe) && stack.hasTagCompound()
                 && stack.getTagCompound().getInteger("tiles") > LittleTilesConfig.maxRecipeTiles) {
             if (!world.isRemote) {

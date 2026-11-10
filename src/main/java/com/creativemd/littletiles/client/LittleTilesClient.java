@@ -9,7 +9,7 @@ import net.minecraftforge.common.MinecraftForge;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.client.command.DumpMeshCommand;
 import com.creativemd.littletiles.client.render.BlockOverlayRenderer;
-import com.creativemd.littletiles.client.render.CollisionHighlightRenderer;
+import com.creativemd.littletiles.client.render.ToolHighlightRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.client.render.SpecialBlockTilesRenderer;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -65,7 +65,7 @@ public class LittleTilesClient extends LittleTilesServer {
         MinecraftForgeClient.registerItemRenderer(LittleTiles.partialTiles, renderer);
         FMLCommonHandler.instance().bus().register(new PreviewRenderer());
         MinecraftForge.EVENT_BUS.register(new PreviewRenderer());
-        CollisionHighlightRenderer collisionHighlight = new CollisionHighlightRenderer();
+        ToolHighlightRenderer collisionHighlight = new ToolHighlightRenderer();
         FMLCommonHandler.instance().bus().register(collisionHighlight);
         MinecraftForge.EVENT_BUS.register(collisionHighlight);
         MinecraftForge.EVENT_BUS.register(new ChiselCornerMouseHandler());

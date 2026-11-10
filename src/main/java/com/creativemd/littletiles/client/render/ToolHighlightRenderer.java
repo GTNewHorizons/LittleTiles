@@ -35,7 +35,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public class CollisionHighlightRenderer {
+public class ToolHighlightRenderer {
 
     private static final int RADIUS_CHUNKS = 2;
     private static final int REFRESH_INTERVAL_TICKS = 5;

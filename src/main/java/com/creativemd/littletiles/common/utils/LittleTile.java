@@ -577,7 +577,8 @@ public abstract class LittleTile {
      * Copies of this tile filling what it covers of the box both tiles share, less what the other tile covers there.
      * Against a shape, that is one copy taking the shape away as well, see {@link LittleTileCutoutInfo#furtherShapes}.
      * Against an inverted tile, it is one copy for each shape that tile leaves free: the shape less those before it,
-     * less what this tile takes away. Empty if there is nothing left to fill, or if the shapes cannot describe it.
+     * less what this tile takes away, or of this tile's own shape what lies within it. Empty if there is nothing left
+     * to fill, or if the shapes cannot describe it.
      */
     public List<LittleTile> antiTilesAgainst(LittleTile other) {
         List<LittleTile> tiles = new ArrayList<>();
@@ -602,20 +603,23 @@ public abstract class LittleTile {
                 antiCutouts.add(own);
             }
         } else {
-            // Within a shape, a shape would have to be cut to it rather than taken away
-            if (own != null && !own.inverted) {
-                return tiles;
-            }
             List<LittleTileCutoutInfo> freeShapes = otherShape.placedShapes();
             for (int i = 0; i < freeShapes.size(); i++) {
-                LittleTileCutoutInfo antiCutout = freeShapes.get(i);
+                LittleTileCutoutInfo antiCutout;
+                if (own == null || own.inverted) {
+                    antiCutout = freeShapes.get(i);
+                    if (own != null) {
+                        for (LittleTileCutoutInfo taken : own.placedShapes()) {
+                            antiCutout.takeAway(taken);
+                        }
+                    }
+                } else {
+                    // Of a shape, only what lies within the free shape is left
+                    antiCutout = new LittleTileCutoutInfo(own);
+                    antiCutout.keepWithin(freeShapes.get(i));
+                }
                 for (int j = 0; j < i; j++) {
                     antiCutout.takeAway(freeShapes.get(j));
-                }
-                if (own != null) {
-                    for (LittleTileCutoutInfo taken : own.placedShapes()) {
-                        antiCutout.takeAway(taken);
-                    }
                 }
                 antiCutouts.add(antiCutout);
             }

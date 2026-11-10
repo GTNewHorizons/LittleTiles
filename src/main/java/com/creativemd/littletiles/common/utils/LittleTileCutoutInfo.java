@@ -38,7 +38,9 @@ public class LittleTileCutoutInfo {
     /**
      * Shapes taken away from the tile as well: an {@link #inverted} tile leaves them free besides its own shape, any
      * other is its shape less them. Anti fill against several shapes, or against a tile leaving several free, needs
-     * them. Their {@link #pos} is relative to this one's, so moving this cutout moves them along.
+     * them. Their {@link #pos} is relative to this one's, so moving this cutout moves them along. One that is
+     * {@link #inverted} itself takes away all outside of it instead, which only a tile that is not inverted has, see
+     * {@link #keepWithin}.
      */
     public final List<LittleTileCutoutInfo> furtherShapes = new ArrayList<>();
 
@@ -86,6 +88,17 @@ public class LittleTileCutoutInfo {
     public void takeAway(LittleTileCutoutInfo shape) {
         LittleTileCutoutInfo further = new LittleTileCutoutInfo(shape);
         further.pos.sub(pos);
+        furtherShapes.add(further);
+    }
+
+    /**
+     * Takes all outside of the shape, positioned relative to the tile box like this one, away from the tile as well,
+     * so that only what lies within it is left.
+     */
+    public void keepWithin(LittleTileCutoutInfo shape) {
+        LittleTileCutoutInfo further = new LittleTileCutoutInfo(shape);
+        further.pos.sub(pos);
+        further.inverted = true;
         furtherShapes.add(further);
     }
 

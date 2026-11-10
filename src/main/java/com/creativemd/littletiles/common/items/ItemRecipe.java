@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -19,6 +20,7 @@ import com.creativemd.creativecore.common.gui.SubGui;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.core.CreativeCore;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.LittleTilesConfig;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
 import com.creativemd.littletiles.common.gui.SubContainerStructure;
 import com.creativemd.littletiles.common.gui.SubGuiStructure;
@@ -88,9 +90,15 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
 
                 ArrayList<LittleTile> tiles = new ArrayList<>();
 
-                stack.stackTagCompound.removeTag("x");
-                stack.stackTagCompound.removeTag("y");
-                stack.stackTagCompound.removeTag("z");
+                // Every block of the area is looked at, which loads its chunk, so the area is limited as well.
+                long blocks = (long) (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
+                if (blocks > LittleTilesConfig.maxRecipeBlocks) {
+                    player.addChatMessage(
+                            new ChatComponentTranslation(
+                                    "littletiles.recipe.area_too_big",
+                                    LittleTilesConfig.maxRecipeBlocks));
+                    return true;
+                }
 
                 for (int posX = minX; posX <= maxX; posX++) {
                     for (int posY = minY; posY <= maxY; posY++) {
@@ -110,10 +118,21 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
                                     }
                                     tiles.add(tile);
                                 }
+                                if (tiles.size() > LittleTilesConfig.maxRecipeTiles) {
+                                    player.addChatMessage(
+                                            new ChatComponentTranslation(
+                                                    "littletiles.recipe.too_many_tiles",
+                                                    LittleTilesConfig.maxRecipeTiles));
+                                    return true;
+                                }
                             }
                         }
                     }
                 }
+                // Only removed once the recipe is saved, a refused selection keeps the first position to try again.
+                stack.stackTagCompound.removeTag("x");
+                stack.stackTagCompound.removeTag("y");
+                stack.stackTagCompound.removeTag("z");
                 player.addChatMessage(new ChatComponentText("Second position: x=" + x + ",y=" + y + ",z=" + z));
                 saveTiles(world, tiles, stack);
             }

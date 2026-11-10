@@ -15,6 +15,7 @@ import com.creativemd.creativecore.common.gui.event.container.SlotChangeEvent;
 import com.creativemd.creativecore.common.utils.WorldUtils;
 import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
+import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.items.ItemTileContainer;
 import com.creativemd.littletiles.common.items.ItemTileContainer.BlockEntry;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
@@ -36,7 +37,8 @@ public class SubContainerTileContainer extends SubContainer {
     @CustomEventSubscribe
     public void onSlotChange(SlotChangeEvent event) {
         ItemStack slot = basic.getStackInSlot(0);
-        if (slot != null) {
+        // A recipe holds no material, it only describes tiles.
+        if (slot != null && !(slot.getItem() instanceof ItemRecipe)) {
             Block block = Block.getBlockFromItem(slot.getItem());
             if ((!(block instanceof BlockAir) && BlockValidator.isBlockValid(block))
                     || PlacementHelper.isLittleBlock(slot)

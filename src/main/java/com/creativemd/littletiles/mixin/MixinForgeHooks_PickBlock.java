@@ -3,6 +3,7 @@ package com.creativemd.littletiles.mixin;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
@@ -16,6 +17,8 @@ import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.BlockValidator;
 import com.creativemd.littletiles.common.blocks.BlockTile;
+import com.creativemd.littletiles.common.items.ItemRecipe;
+import com.creativemd.littletiles.common.packet.LittleBlockPacket;
 import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
@@ -41,6 +44,20 @@ public class MixinForgeHooks_PickBlock {
     private static ItemStack pickBlock(Block instance, MovingObjectPosition target, World world, int x, int y, int z,
             EntityPlayer player, Operation<ItemStack> original) {
         final ItemStack stack = player.getHeldItem();
+        // An open or empty recipe copies the tiles instead of picking an item, like the creative pick would.
+        if (stack != null && stack.getItem() == LittleTiles.recipe
+                && !ItemRecipe.isLocked(stack)
+                && instance == LittleTiles.blockTile) {
+            final TileEntity tileEntity = world.getTileEntity(x, y, z);
+            if (tileEntity instanceof TileEntityLittleTiles littleTile && littleTile.updateLoadedTile(player)) {
+                NBTTagCompound nbt = new NBTTagCompound();
+                boolean entireBlock = BlockTile.takesEntireBlock(player, littleTile.loadedTile);
+                nbt.setBoolean(LittleBlockPacket.ENTIRE_BLOCK, entireBlock);
+                PacketHandler.sendPacketToServer(
+                        new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.RECIPE_PICK, nbt));
+                return null;
+            }
+        }
         if (stack != null && stack.getItem() == LittleTiles.chisel) {
             if (BlockValidator.isBlockValid(instance)) {
                 int meta = instance.getDamageValue(world, x, y, z);

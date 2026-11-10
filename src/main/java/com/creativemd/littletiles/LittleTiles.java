@@ -194,10 +194,6 @@ public class LittleTiles {
                 new Object[] { "AXA", "AXA", "ALA", 'X', Items.iron_ingot, 'L', new ItemStack(Items.dye, 1, 4) });
 
         GameRegistry.addRecipe(
-                new ItemStack(wrench),
-                new Object[] { "AXA", "ALA", "ALA", 'X', Items.iron_ingot, 'L', new ItemStack(Items.dye, 1, 4) });
-
-        GameRegistry.addRecipe(
                 new ItemStack(rubberMallet),
                 new Object[] { "XXX", "XLX", "ALA", 'X', Blocks.wool, 'L', new ItemStack(Items.dye, 1, 4) });
 

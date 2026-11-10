@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.client.settings.GameSettings;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -19,6 +21,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.cleanroommc.modularui.api.IGuiHolder;
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.factory.PlayerInventoryGuiData;
@@ -27,11 +30,14 @@ import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.Dialog;
 import com.cleanroommc.modularui.widgets.DropDownMenu;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.LittleTilesConfig;
+import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
+import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.gui.StructureConfigWidget;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.structure.LittleStructure.LittleStructureEntry;
@@ -45,9 +51,10 @@ import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-public class ItemRecipe extends Item implements ITilesRenderer, IGuiHolder<PlayerInventoryGuiData> {
+public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGuiHolder<PlayerInventoryGuiData> {
 
     private static final String SYNC_STRUCTURE = "lt_recipe_structure";
+    private static final String SYNC_CLEAR = "lt_recipe_clear";
 
     public ItemRecipe() {
         setCreativeTab(CreativeTabs.tabTools);
@@ -68,11 +75,6 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiHolder<Playe
     @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
             float hitX, float hitY, float hitZ) {
-        if (player.isSneaking()) {
-            if (!world.isRemote) stack.stackTagCompound = null;
-            return true;
-        }
-
         // onItemRightClick(stack, world, player);
         /*
          * if(stack.stackTagCompound != null && !stack.stackTagCompound.hasKey("x")) {
@@ -155,7 +157,29 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiHolder<Playe
             }
             return true;
         }
-        return false;
+        // A saved recipe places its tiles directly, the recipe itself is kept.
+        return Item.getItemFromBlock(LittleTiles.blockTile)
+                .onItemUse(stack, player, world, x, y, z, side, hitX, hitY, hitZ);
+    }
+
+    @Override
+    public ArrayList<LittleTilePreview> getLittlePreview(ItemStack stack) {
+        return hasTiles(stack) ? getPreview(stack) : null;
+    }
+
+    @Override
+    public void rotateLittlePreview(ItemStack stack, ForgeDirection direction) {
+        rotatePreview(stack, direction);
+    }
+
+    @Override
+    public void flipLittlePreview(ItemStack stack, ForgeDirection direction) {
+        flipPreview(stack, direction);
+    }
+
+    @Override
+    public LittleStructure getLittleStructure(ItemStack stack) {
+        return ItemMultiTiles.getLTStructure(stack);
     }
 
     public static void flipPreview(ItemStack stack, ForgeDirection direction) {
@@ -272,6 +296,20 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiHolder<Playe
                 list.add("Contains " + stack.stackTagCompound.getInteger("tiles") + " tiles");
             }
         }
+        if (hasTiles(stack)) {
+            list.add("Right click to place");
+            list.add(keyName(LittleTilesClient.toolConfig) + ": configure structure or clear");
+            list.add("Rotate and flip with the LittleTiles keys");
+        } else if (stack.stackTagCompound != null) {
+            list.add("Right click on a block to set the second position");
+        } else {
+            list.add("Right click on a block to set the first position");
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static String keyName(KeyBinding key) {
+        return "'" + GameSettings.getKeyDisplayString(key.getKeyCode()) + "'";
     }
 
     @Override
@@ -299,6 +337,10 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiHolder<Playe
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        });
+        syncManager.registerSyncedAction(SYNC_CLEAR, false, true, buffer -> {
+            ItemStack stack = data.getUsedItemStack();
+            if (stack != null && stack.getItem() instanceof ItemRecipe) stack.stackTagCompound = null;
         });
 
         ModularPanel panel = ModularPanel.defaultPanel("recipe");
@@ -343,6 +385,36 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiHolder<Playe
             return true;
         });
         panel.child(save);
+
+        IPanelHandler clearDialog = IPanelHandler.simple(panel, (parent, player) -> {
+            Dialog<Boolean> dialog = new Dialog<>("recipe_clear", confirmed -> {
+                if (!Boolean.TRUE.equals(confirmed)) return;
+                syncManager.callSyncedAction(SYNC_CLEAR);
+                panel.closeIfOpen();
+            });
+            dialog.size(160, 60);
+            dialog.child(IKey.str("Clear the recipe?").asWidget().pos(8, 10));
+            ButtonWidget<?> yes = new ButtonWidget<>();
+            yes.overlay(IKey.str("Clear")).pos(8, 34).size(68, 18);
+            yes.onMousePressed(mouseButton -> {
+                dialog.closeWith(true);
+                return true;
+            });
+            ButtonWidget<?> no = new ButtonWidget<>();
+            no.overlay(IKey.str("Cancel")).pos(84, 34).size(68, 18);
+            no.onMousePressed(mouseButton -> {
+                dialog.closeWith(false);
+                return true;
+            });
+            return dialog.child(yes).child(no);
+        }, true);
+        ButtonWidget<?> clear = new ButtonWidget<>();
+        clear.overlay(IKey.str("Clear")).pos(5, 152).size(50, 18).addTooltipElement("Back to selecting an area");
+        clear.onMousePressed(mouseButton -> {
+            clearDialog.openPanel();
+            return true;
+        });
+        panel.child(clear);
 
         // Added last so the opened list is drawn over the structure settings.
         panel.child(IKey.str("Type:").asWidget().pos(5, 11));

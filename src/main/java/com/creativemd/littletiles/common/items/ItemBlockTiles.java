@@ -215,7 +215,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
     public boolean placeBlockAt(EntityPlayer player, ItemStack stack, World world, LittleTileBlockPos pos,
             boolean customPlacement, LittleTilePlaceMode placeMode) {
         // Checked before the tiles are read, so a recipe item from before the limit is not even loaded.
-        if (stack.getItem() == LittleTiles.multiTiles && stack.hasTagCompound()
+        boolean isRecipe = stack.getItem() == LittleTiles.recipe;
+        if ((stack.getItem() == LittleTiles.multiTiles || isRecipe) && stack.hasTagCompound()
                 && stack.getTagCompound().getInteger("tiles") > LittleTilesConfig.maxRecipeTiles) {
             if (!world.isRemote) {
                 player.addChatMessage(
@@ -244,7 +245,9 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         }
 
         if (structure != null) {
-            structure.dropStack = stack.copy();
+            // Placed from a recipe, the structure still drops as the multi tiles item it used to be crafted into.
+            structure.dropStack = isRecipe ? new ItemStack(LittleTiles.multiTiles) : stack.copy();
+            if (isRecipe) structure.dropStack.stackTagCompound = (NBTTagCompound) stack.stackTagCompound.copy();
             structure.dropStack.stackSize = 1;
             structure.setTiles(new ArrayList<>());
         }
@@ -264,7 +267,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         if (placementResult.hasChanges()) {
             ItemStack currentStack = player.inventory.mainInventory[player.inventory.currentItem];
             boolean isChisel = currentStack != null && currentStack.getItem() == LittleTiles.chisel;
-            if (!player.capabilities.isCreativeMode && !isChisel) {
+            if (!player.capabilities.isCreativeMode && !isChisel && !isRecipe) {
                 currentStack.stackSize--;
                 if (currentStack.stackSize == 0) player.inventory.mainInventory[player.inventory.currentItem] = null;
             }

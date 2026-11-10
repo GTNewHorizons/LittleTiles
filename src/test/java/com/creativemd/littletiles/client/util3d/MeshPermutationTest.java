@@ -2,6 +2,8 @@ package com.creativemd.littletiles.client.util3d;
 
 import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
 import static com.creativemd.littletiles.client.util3d.BlockSpace.PIXELS;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.EXACT_VOLUME;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.ROUNDING_VOLUME;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertClosedAndVolumesAddUp;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollide;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertCollideEitherWay;
@@ -16,8 +18,6 @@ import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertNotE
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertOnlySharedFacesHideEachOther;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertStayVisible;
 import static com.creativemd.littletiles.client.util3d.MeshAssertions.assertVisibleArea;
-import static com.creativemd.littletiles.client.util3d.MeshAssertions.EXACT_VOLUME;
-import static com.creativemd.littletiles.client.util3d.MeshAssertions.ROUNDING_VOLUME;
 import static com.creativemd.littletiles.client.util3d.MeshGeometry.area;
 import static com.creativemd.littletiles.client.util3d.Message.check;
 import static com.creativemd.littletiles.common.utils.LittleTileShapeMode.SLOPE;

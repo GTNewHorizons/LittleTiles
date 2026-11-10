@@ -79,6 +79,12 @@ public class ItemMultiTiles extends Item implements ITilesRenderer, ILittleTile 
         return ItemRecipe.getPreview(stack);
     }
 
+    /** Checked every frame while held: the tiles only have to be read when they are placed or previewed. */
+    @Override
+    public boolean hasLittlePreview(ItemStack stack) {
+        return stack.hasTagCompound();
+    }
+
     @Override
     public ArrayList<CubeObject> getRenderingCubes(ItemStack stack) {
         return ItemRecipe.getCubes(stack);

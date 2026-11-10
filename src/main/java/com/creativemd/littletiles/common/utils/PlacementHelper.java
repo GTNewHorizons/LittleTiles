@@ -36,10 +36,9 @@ public final class PlacementHelper {
 
     public static boolean isLittleBlock(ItemStack stack) {
         if (stack == null) return false;
-        if (stack.getItem() instanceof ILittleTile)
-            return ((ILittleTile) stack.getItem()).getLittlePreview(stack) != null;
+        if (stack.getItem() instanceof ILittleTile) return ((ILittleTile) stack.getItem()).hasLittlePreview(stack);
         if (Block.getBlockFromItem(stack.getItem()) instanceof ILittleTile)
-            return ((ILittleTile) Block.getBlockFromItem(stack.getItem())).getLittlePreview(stack) != null;
+            return ((ILittleTile) Block.getBlockFromItem(stack.getItem())).hasLittlePreview(stack);
         return false;
     }
 

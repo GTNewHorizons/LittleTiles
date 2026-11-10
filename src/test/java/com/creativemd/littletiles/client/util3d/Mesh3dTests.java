@@ -5,10 +5,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
+
 import org.joml.Vector3i;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.creativemd.creativecore.lib.Vector3d;
+import com.creativemd.littletiles.client.util3d.MeshGeometry.FaceFilter;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
@@ -19,6 +23,8 @@ import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 public class Mesh3dTests {
 
     private static final LittleTileBox BLOCK = new LittleTileBox(0, 0, 0, 16, 16, 16);
+    /** See {@link MeshPermutationTest}: 0.001 square blocks, in square pixels. */
+    private static final double MAJOR_CULLING_REMAINDER = 16 * 16 / 1000.0;
 
     @BeforeClass
     public static void loadMeshes() {
@@ -313,5 +319,83 @@ public class Mesh3dTests {
                     triangle.getP1() + " " + triangle.getP2() + " " + triangle.getP3(),
                     triangle.getFaceDirection());
         }
+    }
+
+    // A face covered by that of another tile is culled, up to slivers
+
+    /** How much of the tilted faces of the first stays visible next to the second. */
+    private static double uncoveredTiltedArea(LittleTileCutoutInfo first, LittleTileCutoutInfo second) {
+        return MeshGeometry.area(
+                MeshGeometry.visiblePart(
+                        FaceFilter.TILTED.of(Mesh3dUtil.meshFromTile(BLOCK, first)),
+                        Mesh3dUtil.meshFromTile(BLOCK, second)));
+    }
+
+    private static void assertCovers(LittleTileCutoutInfo covered, LittleTileCutoutInfo covering) {
+        double remainder = uncoveredTiltedArea(covered, covering);
+        assertTrue(
+                describe(covered) + " " + describe(covering) + " remainder=" + remainder,
+                remainder <= MAJOR_CULLING_REMAINDER);
+    }
+
+    @Test
+    public void complementarySlopeFacesCullEachOther() {
+        Vector3i size = new Vector3i(16, 5, 26), pos = new Vector3i(0, 15, -7);
+        LittleTileCutoutInfo first = cutout(LittleTileShapeMode.SLOPE, size, pos, 15);
+        LittleTileCutoutInfo second = cutout(LittleTileShapeMode.SLOPE, size, pos, 35);
+        assertCovers(first, second);
+        assertCovers(second, first);
+    }
+
+    @Test
+    public void complementaryRoundSlopeFacesCullEachOther() {
+        Vector3i size = new Vector3i(13, 31, 20), pos = new Vector3i(-2, -15, -5);
+        LittleTileCutoutInfo concave = cutout(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, 39);
+        LittleTileCutoutInfo convex = cutout(LittleTileShapeMode.SLOPE_CONVEX, size, pos, 31);
+        assertCovers(concave, convex);
+        assertCovers(convex, concave);
+    }
+
+    /** The slope face of the small one lies on that of the big one. */
+    @Test
+    public void smallerCoplanarSlopeFaceIsCulled() {
+        assertCovers(
+                cutout(LittleTileShapeMode.SLOPE, new Vector3i(7, 1, 12), new Vector3i(2, 15, -2), 45),
+                cutout(LittleTileShapeMode.SLOPE, new Vector3i(14, 2, 12), new Vector3i(-5, 14, -2), 41));
+    }
+
+    /**
+     * A sliver, 1.5e-5 blocks thin, lies against the west edge of a face turned towards it, sharing no area with it.
+     * The face's other edges, cut along before the west one, run across it and leave pieces thinner than the split
+     * tolerance.
+     */
+    @Test
+    public void sliverOnlyTouchingAFaceStaysWhole() {
+        double thickness = 1.5E-5;
+        Triangle3d sliver = new Triangle3d(
+                new Vector3d(0, -0.5, 0),
+                new Vector3d(0, 1.5, 0),
+                new Vector3d(-thickness, 0.5, 0));
+        Triangle3d facingIt = new Triangle3d(new Vector3d(0, 1, 0), new Vector3d(1, 0, 0), new Vector3d(0, 0, 0));
+        Mesh3d sliverMesh = new Mesh3d(Collections.singletonList(sliver));
+        double area = MeshGeometry.area(sliverMesh);
+        double visible = MeshGeometry
+                .area(MeshGeometry.visiblePart(sliverMesh, new Mesh3d(Collections.singletonList(facingIt))));
+        assertTrue("area=" + area + " visible=" + visible, Math.abs(visible - area) <= area * 1.0E-6);
+    }
+
+    /**
+     * Only a face turned towards another hides it. One in the same plane facing the same way is the surface of a tile
+     * right beside it, such as a sliver lying along it, and hides none of it where the two overlap.
+     */
+    @Test
+    public void faceFacingTheSameWayCullsNothing() {
+        Triangle3d face = new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(0, 1, 0));
+        Triangle3d alongIt = new Triangle3d(new Vector3d(0, 0, 0), new Vector3d(1, 0, 0), new Vector3d(0, 0.5, 0));
+        Mesh3d faceMesh = new Mesh3d(Collections.singletonList(face));
+        double area = MeshGeometry.area(faceMesh);
+        double visible = MeshGeometry
+                .area(MeshGeometry.visiblePart(faceMesh, new Mesh3d(Collections.singletonList(alongIt))));
+        assertTrue("area=" + area + " visible=" + visible, Math.abs(visible - area) <= area * 1.0E-6);
     }
 }

@@ -39,7 +39,7 @@ public final class MeshCutter {
 
         /** Indices into the cutter's shared list of points. */
         final int[] corners;
-        /** The block plane the face is textured from, see {@link Triangle3d#getPlane}. */
+        /** The plane of the uncut face, see {@link Triangle3d#getFacePlane}. */
         final Plane3d plane;
 
         Face(int[] corners, Plane3d plane) {
@@ -60,7 +60,7 @@ public final class MeshCutter {
                     c = index(indices, triangle.getP3());
             // A triangle without a side has its other two cancel out
             if (a == b || b == c || c == a) continue;
-            faces.add(new Face(new int[] { a, b, c }, triangle.getPlane()));
+            faces.add(new Face(new int[] { a, b, c }, triangle.getFacePlane()));
         }
     }
 
@@ -212,8 +212,6 @@ public final class MeshCutter {
      */
     private void addCap(Plane3d plane, int[] loop) {
         Vector3d normal = plane.getNormal();
-        // The cap lies in the cutting plane, so it takes the block plane of that, whatever rounding does to its normal
-        Plane3d blockPlane = Plane3d.getPlaneForNormal(normal);
         IntArrayList remaining = new IntArrayList(loop);
         while (remaining.size() > 3) {
             int size = remaining.size();
@@ -246,10 +244,10 @@ public final class MeshCutter {
                     new Face(
                             new int[] { remaining.getInt((ear + size - 1) % size), remaining.getInt(ear),
                                     remaining.getInt((ear + 1) % size) },
-                            blockPlane));
+                            plane));
             remaining.removeInt(ear);
         }
-        faces.add(new Face(remaining.toIntArray(), blockPlane));
+        faces.add(new Face(remaining.toIntArray(), plane));
     }
 
     /** Twice the signed area of the triangle, positive when it turns counterclockwise around the normal. */

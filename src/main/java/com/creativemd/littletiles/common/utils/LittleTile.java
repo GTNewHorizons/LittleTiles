@@ -575,10 +575,11 @@ public abstract class LittleTile {
 
     /**
      * Copies of this tile filling what it covers of the box both tiles share, less what the other tile covers there.
-     * Against a shape, that is one copy taking the shape away as well, see {@link LittleTileCutoutInfo#furtherShapes}.
-     * Against an inverted tile, it is one copy for each shape that tile leaves free: the shape less those before it,
-     * less what this tile takes away, or of this tile's own shape what lies within it. Empty if there is nothing left
-     * to fill, or if the shapes cannot describe it.
+     * The other tile is what all of its {@link LittleTileCutoutInfo#conditions} keep, so it leaves free, for each of
+     * them in turn, what that one doesn't keep but those before it do: one copy each, cut to that as well. Conditions
+     * keeping all of the box or none of it are left out, and so is each one a copy already has. Copies keeping nothing
+     * are left out, and so are those that would need more than {@link LittleTileCutoutInfo#MAX_FURTHER_SHAPES}: what
+     * they would fill is left empty, as fill does.
      */
     public List<LittleTile> antiTilesAgainst(LittleTile other) {
         List<LittleTile> tiles = new ArrayList<>();
@@ -587,55 +588,73 @@ public abstract class LittleTile {
             return tiles;
         }
 
-        LittleTileCutoutInfo own = cutoutInfo == null ? null : movedTo(cutoutInfo, boundingBox, box);
-        LittleTileCutoutInfo otherShape = movedTo(other.cutoutInfo, other.boundingBox, box);
-        List<LittleTileCutoutInfo> antiCutouts = new ArrayList<>();
-        if (!otherShape.inverted) {
-            // Less a shape with shapes taken away from it would bring those back
-            if (!otherShape.furtherShapes.isEmpty()) {
-                return tiles;
-            }
-            if (own == null) {
-                otherShape.inverted = true;
-                antiCutouts.add(otherShape);
-            } else {
-                own.takeAway(otherShape);
-                antiCutouts.add(own);
-            }
-        } else {
-            List<LittleTileCutoutInfo> freeShapes = otherShape.placedShapes();
-            for (int i = 0; i < freeShapes.size(); i++) {
-                LittleTileCutoutInfo antiCutout;
-                if (own == null || own.inverted) {
-                    antiCutout = freeShapes.get(i);
-                    if (own != null) {
-                        for (LittleTileCutoutInfo taken : own.placedShapes()) {
-                            antiCutout.takeAway(taken);
-                        }
-                    }
-                } else {
-                    // Of a shape, only what lies within the free shape is left
-                    antiCutout = new LittleTileCutoutInfo(own);
-                    antiCutout.keepWithin(freeShapes.get(i));
+        List<LittleTileCutoutInfo> own = new ArrayList<>();
+        if (cutoutInfo != null) {
+            for (LittleTileCutoutInfo condition : movedTo(cutoutInfo, boundingBox, box).conditions()) {
+                Mesh3dUtil.TileCoverage kept = Mesh3dUtil.classifyTile(box, condition);
+                if (kept == Mesh3dUtil.TileCoverage.EMPTY) {
+                    return tiles;
                 }
-                for (int j = 0; j < i; j++) {
-                    antiCutout.takeAway(freeShapes.get(j));
+                if (kept == Mesh3dUtil.TileCoverage.PARTIAL) {
+                    own.add(condition);
                 }
-                antiCutouts.add(antiCutout);
             }
         }
 
-        for (LittleTileCutoutInfo antiCutout : antiCutouts) {
-            if (Mesh3dUtil.classifyTile(box, antiCutout) == Mesh3dUtil.TileCoverage.EMPTY) {
+        List<LittleTileCutoutInfo> before = new ArrayList<>();
+        for (LittleTileCutoutInfo condition : movedTo(other.cutoutInfo, other.boundingBox, box).conditions()) {
+            Mesh3dUtil.TileCoverage kept = Mesh3dUtil.classifyTile(box, condition);
+            if (kept == Mesh3dUtil.TileCoverage.FULL) {
                 continue;
             }
-            LittleTile tile = copy();
-            tile.boundingBox = box.copy();
-            tile.setCutoutInfo(antiCutout);
-            tile.updateCorner();
-            tiles.add(tile);
+            List<LittleTileCutoutInfo> conditions = new ArrayList<>(own);
+            conditions.addAll(before);
+            if (kept == Mesh3dUtil.TileCoverage.PARTIAL) {
+                LittleTileCutoutInfo outside = new LittleTileCutoutInfo(condition);
+                outside.inverted = !outside.inverted;
+                conditions.add(outside);
+            }
+            addAntiTile(tiles, box, conditions);
+            // Keeping nothing, it leaves all the rest free already
+            if (kept == Mesh3dUtil.TileCoverage.EMPTY) {
+                break;
+            }
+            before.add(condition);
         }
         return tiles;
+    }
+
+    /** Adds a copy of this tile in the box, cut to what all the conditions keep, unless that is nothing. */
+    private void addAntiTile(List<LittleTile> tiles, LittleTileBox box, List<LittleTileCutoutInfo> conditions) {
+        List<LittleTileCutoutInfo> distinct = new ArrayList<>(conditions.size());
+        for (LittleTileCutoutInfo condition : conditions) {
+            LittleTileCutoutInfo same = null;
+            for (LittleTileCutoutInfo added : distinct) {
+                if (added.sameShapeAs(condition)) {
+                    same = added;
+                    break;
+                }
+            }
+            if (same == null) {
+                distinct.add(condition);
+            } else if (same.inverted != condition.inverted) {
+                // Inside and outside of the same shape at once
+                return;
+            }
+        }
+        if (distinct.size() > 1 + LittleTileCutoutInfo.MAX_FURTHER_SHAPES) {
+            return;
+        }
+
+        LittleTileCutoutInfo cutout = distinct.isEmpty() ? null : LittleTileCutoutInfo.fromConditions(distinct);
+        if (cutout != null && Mesh3dUtil.classifyTile(box, cutout) == Mesh3dUtil.TileCoverage.EMPTY) {
+            return;
+        }
+        LittleTile tile = copy();
+        tile.boundingBox = box.copy();
+        tile.setCutoutInfo(cutout);
+        tile.updateCorner();
+        tiles.add(tile);
     }
 
     /** A copy of the cutout of a tile in box {@code from}, positioned for a tile in box {@code to}. */

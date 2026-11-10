@@ -97,18 +97,17 @@ public final class MeshCollision {
     }
 
     /**
-     * The tile, its cutout having {@link LittleTileCutoutInfo#furtherShapes}, as convex pieces that don't overlap: its
-     * box less its shape if it is inverted, else its shape within the box, less the further shapes either way, or less
-     * all outside those that are inverted.
+     * The tile, its cutout having {@link LittleTileCutoutInfo#furtherShapes}, as convex pieces that don't overlap: what
+     * of its box all its {@link LittleTileCutoutInfo#conditions} keep.
      *
      * @return null if a cut could not be closed
      */
     public static List<MeshCutter> disjointPieces(LittleTileBox box, LittleTileCutoutInfo cutout) {
         List<MeshCutter> parts = new ArrayList<>();
         parts.add(MeshCutter.box(box));
-        List<LittleTileCutoutInfo> shapes = cutout.placedShapes();
-        for (int i = 0; i < shapes.size() && parts != null; i++) {
-            parts = split(parts, box, shapes.get(i), i == 0 ? !cutout.inverted : shapes.get(i).inverted);
+        for (LittleTileCutoutInfo condition : cutout.conditions()) {
+            parts = split(parts, box, condition, !condition.inverted);
+            if (parts == null) break;
         }
         return parts;
     }

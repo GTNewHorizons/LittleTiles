@@ -7,6 +7,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
 
 import com.creativemd.creativecore.common.container.SubContainer;
@@ -31,6 +32,7 @@ public class ItemLittleWrench extends Item implements IGuiCreator {
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
+        list.add(EnumChatFormatting.RED + "Deprecated, creative mode only, use the chisel or little recipe instead");
         list.add("Used to create structures from recipes and create recipes from structures");
         list.add("Right Click on a block will combine tiles");
     }
@@ -43,7 +45,7 @@ public class ItemLittleWrench extends Item implements IGuiCreator {
 
     @Override
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
-        if (!world.isRemote)
+        if (!world.isRemote && player.capabilities.isCreativeMode)
             player.openGui(CreativeCore.instance, 1, world, (int) player.posX, (int) player.posY, (int) player.posZ);
         return stack;
     }
@@ -51,6 +53,7 @@ public class ItemLittleWrench extends Item implements IGuiCreator {
     @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
             float hitX, float hitY, float hitZ) {
+        if (!player.capabilities.isCreativeMode) return false;
         TileEntity tileEntity = world.getTileEntity(x, y, z);
         if (tileEntity instanceof TileEntityLittleTiles) {
             if (!world.isRemote) ((TileEntityLittleTiles) tileEntity).combineTiles();

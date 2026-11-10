@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.packet;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -25,6 +26,7 @@ import com.creativemd.creativecore.common.utils.WorldUtils;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.items.ItemColorTube;
+import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.items.ItemTileContainer;
 import com.creativemd.littletiles.common.placement.LittleTileChangeRecorder;
 import com.creativemd.littletiles.common.placement.LittleTilesPlacementHistory;
@@ -59,7 +61,8 @@ public class LittleBlockPacket extends CreativeCorePacket {
         COLOR,
         SPLIT,
         TOGGLE_COLLISION,
-        TOGGLE_CONNECTION;
+        TOGGLE_CONNECTION,
+        RECIPE_PICK;
 
         public static Action get(int ordinal) {
             if (ordinal >= 0 && ordinal < values().length) return values()[ordinal];
@@ -293,6 +296,18 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                         new ChatComponentText("Too much new tiles! Limit=" + LittleTiles.maxNewTiles));
                             }
                         }
+                        break;
+                    case RECIPE_PICK:
+                        // A structure tile picks the whole structure, like the creative pick
+                        if (tile.isStructureBlock) {
+                            if (tile.isLoaded()) ItemRecipe
+                                    .pickStructure(player, player.getHeldItem(), tile.structure.getStructureDrop());
+                            break;
+                        }
+                        boolean pickBlock = nbt.getBoolean(ENTIRE_BLOCK) && BlockTile.takesEntireBlock(player, tile);
+                        List<LittleTile> picked = pickBlock ? BlockTile.selectEntireBlock(littleEntity)
+                                : Collections.singletonList(tile);
+                        ItemRecipe.pickTiles(player, player.getHeldItem(), picked);
                         break;
                     case TOGGLE_COLLISION:
                         if (player.getCurrentEquippedItem() == null

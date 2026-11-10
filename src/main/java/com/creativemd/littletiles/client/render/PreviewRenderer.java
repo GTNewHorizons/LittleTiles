@@ -25,10 +25,12 @@ import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
 
+import com.creativemd.creativecore.client.rendering.RenderHelper3D;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.LittleTiles;
+import com.creativemd.littletiles.LittleTilesConfig;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.common.gui.GuiToolConfig;
 import com.creativemd.littletiles.common.items.ItemRecipe;
@@ -62,6 +64,12 @@ public class PreviewRenderer {
 
     /** Up to how many blocks the chisel preview may reach into and still be textured. */
     private static final int CHISEL_PREVIEW_LIMIT = 27;
+    /** How far the recipe area is grown past its blocks, in blocks. */
+    private static final double RECIPE_AREA_GROW = 0.002;
+    /** Opacity of the edges of the recipe area. */
+    private static final double RECIPE_AREA_EDGE_ALPHA = 0.8;
+    /** Opacity of the fill of the recipe area, faint so the tiles inside stay visible. */
+    private static final double RECIPE_AREA_FILL_ALPHA = 0.1;
 
     public static LittleTileBlockPos markedHit = null;
     public static LittleTileBlockPos firstHit = null;
@@ -155,7 +163,79 @@ public class PreviewRenderer {
     private void handleArrow(ForgeDirection move, ForgeDirection rotate, ForgeDirection direction_look, int align) {
         if (LittleDeformedBoxHelper.hasMarkedCorner()) moveMarkedCorner(move, direction_look, align);
         else if (markedHit != null) moveMarkedHit(move, direction_look, align);
-        else if (!isEditingDeformedBox()) processKey(rotate);
+        else if (!isEditingDeformedBox() && !holdsEmptyRecipe()) processKey(rotate);
+    }
+
+    /** Whether the held item is an empty recipe, which selects an area instead of showing a preview. */
+    private static boolean holdsEmptyRecipe() {
+        return ItemRecipe.isEmptyRecipe(Minecraft.getMinecraft().thePlayer.getHeldItem());
+    }
+
+    /**
+     * The area an empty recipe would save: from the first corner, or the marked one before it, to {@code pos}. Nothing
+     * before the first corner, the vanilla block highlight already shows what a click selects.
+     */
+    private static void renderRecipeArea(LittleTileBlockPos pos) {
+        if (firstHit == null && markedHit == null) return;
+        LittleTileBlockPos first = firstHit != null ? firstHit : pos;
+        int minX = Math.min(first.getPosX(), pos.getPosX());
+        int minY = Math.min(first.getPosY(), pos.getPosY());
+        int minZ = Math.min(first.getPosZ(), pos.getPosZ());
+        int maxX = Math.max(first.getPosX(), pos.getPosX()) + 1;
+        int maxY = Math.max(first.getPosY(), pos.getPosY()) + 1;
+        int maxZ = Math.max(first.getPosZ(), pos.getPosZ()) + 1;
+        boolean valid = (long) (maxX - minX) * (maxY - minY) * (maxZ - minZ) <= LittleTilesConfig.maxRecipeBlocks;
+
+        // Grown a bit so the fill on a block face sinks behind it instead of z-fighting with it.
+        AxisAlignedBB area = AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX, maxY, maxZ)
+                .expand(RECIPE_AREA_GROW, RECIPE_AREA_GROW, RECIPE_AREA_GROW).getOffsetBoundingBox(
+                        -TileEntityRendererDispatcher.staticPlayerX,
+                        -TileEntityRendererDispatcher.staticPlayerY,
+                        -TileEntityRendererDispatcher.staticPlayerZ);
+        // In the colours of the corner markers, red while the area is too big to be saved.
+        double red = valid ? 0.2 : 1;
+        double green = valid ? 0.6 : 0.1;
+        double blue = valid ? 1 : 0.1;
+
+        // A faint fill, so the area reads as one even where its edges are hidden.
+        RenderHelper3D.renderBlock(
+                (area.minX + area.maxX) / 2,
+                (area.minY + area.maxY) / 2,
+                (area.minZ + area.maxZ) / 2,
+                area.maxX - area.minX,
+                area.maxY - area.minY,
+                area.maxZ - area.minZ,
+                0,
+                0,
+                0,
+                red,
+                green,
+                blue,
+                RECIPE_AREA_FILL_ALPHA);
+
+        // The edges are cuboids like those of the corner markers, so they are as thick as theirs from any distance.
+        double width = LittleDeformedBoxPreviewRenderer.cornerMarkerEdgeWidth(ItemRecipe.GRID);
+        double centerX = (area.minX + area.maxX) / 2;
+        double centerY = (area.minY + area.maxY) / 2;
+        double centerZ = (area.minZ + area.maxZ) / 2;
+        double sizeX = area.maxX - area.minX + width;
+        double sizeY = area.maxY - area.minY + width;
+        double sizeZ = area.maxZ - area.minZ + width;
+        for (int sideA = 0; sideA < 2; sideA++) {
+            for (int sideB = 0; sideB < 2; sideB++) {
+                double x = sideA == 0 ? area.minX : area.maxX;
+                double y = sideA == 0 ? area.minY : area.maxY;
+                double z = sideB == 0 ? area.minZ : area.maxZ;
+                LittleDeformedBoxPreviewRenderer
+                        .renderMarkerEdge(centerX, y, z, sizeX, width, width, red, green, blue, RECIPE_AREA_EDGE_ALPHA);
+                LittleDeformedBoxPreviewRenderer
+                        .renderMarkerEdge(x, centerY, z, width, sizeY, width, red, green, blue, RECIPE_AREA_EDGE_ALPHA);
+
+                y = sideB == 0 ? area.minY : area.maxY;
+                LittleDeformedBoxPreviewRenderer
+                        .renderMarkerEdge(x, y, centerZ, width, width, sizeZ, red, green, blue, RECIPE_AREA_EDGE_ALPHA);
+            }
+        }
     }
 
     private static double previewAlpha() {
@@ -446,7 +526,9 @@ public class PreviewRenderer {
                 LittleTilesClient.pressedRedoPlacement = false;
             }
 
-            if (PlacementHelper.isLittleBlock(mc.thePlayer.getHeldItem())) {
+            // An empty recipe has no preview, but selects its area with the chisel's two hits and keys.
+            boolean emptyRecipe = holdsEmptyRecipe();
+            if (PlacementHelper.isLittleBlock(mc.thePlayer.getHeldItem()) || emptyRecipe) {
                 int i4 = MathHelper.floor_double((double) (mc.thePlayer.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
                 ForgeDirection direction_look = null;
                 switch (i4) {
@@ -467,7 +549,7 @@ public class PreviewRenderer {
                     LittleTilesClient.pressedFlip = true;
 
                     // Like rotating, flipping would change the tool's nbt and drop the deformed box being edited.
-                    if (!isEditingDeformedBox()) {
+                    if (!isEditingDeformedBox() && !emptyRecipe) {
                         ForgeDirection direction = direction_look;
                         if (mc.thePlayer.rotationPitch > 45) direction = ForgeDirection.DOWN;
                         if (mc.thePlayer.rotationPitch < -45) direction = ForgeDirection.UP;
@@ -485,8 +567,18 @@ public class PreviewRenderer {
                 if (mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel) {
                     align = new LittleToolHandler(mc.thePlayer.getHeldItem()).getGrid();
                 }
+                if (emptyRecipe) align = ItemRecipe.GRID;
                 if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {
-                    pos = LittleTileBlockPos.fromMovingObjectPosition(look, align);
+                    // The recipe selects the looked at block itself, not the cell in front of it a tile would go to.
+                    if (emptyRecipe) pos = new LittleTileBlockPos(
+                            look.blockX,
+                            look.blockY,
+                            look.blockZ,
+                            0,
+                            0,
+                            0,
+                            ForgeDirection.UNKNOWN);
+                    else pos = LittleTileBlockPos.fromMovingObjectPosition(look, align);
                 }
 
                 if (markedHit != null) pos = markedHit;
@@ -553,7 +645,8 @@ public class PreviewRenderer {
                     // A multi tile item is drawn from its buffer, so one tile spanning its bounds is enough to place
                     // it. The bounds are read once instead of every frame.
                     TileGeometryBuffer itemBuffer = itemBuffer(held);
-                    if (itemBuffer != null && held.getItem() == LittleTiles.multiTiles) {
+                    if (emptyRecipe) previews = new ArrayList<>();
+                    else if (itemBuffer != null && held.getItem() == LittleTiles.multiTiles) {
                         if (heldBounds == null) heldBounds = new LittleTileBounds(ItemRecipe.getPreview(held));
                         LittleTileVec min = heldBounds.min;
                         LittleTileSize size = heldBounds.size;
@@ -607,6 +700,8 @@ public class PreviewRenderer {
                             renderPreviewShape(previewTile, pos, x, y, z, align, alpha);
                         }
                     }
+
+                    if (emptyRecipe) renderRecipeArea(pos);
 
                     // Drawn after the filled preview so the markers remain visible where their cubes overlap it.
                     if (!editingDeformedBox && hasTwoHitCorners()) {

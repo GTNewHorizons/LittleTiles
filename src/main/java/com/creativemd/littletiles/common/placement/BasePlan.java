@@ -35,14 +35,20 @@ abstract class BasePlan {
 
         // Destroying one structure can empty another entry's block. Keep every prepared tile entity alive
         // until all placements are done, otherwise later entries would write into a removed tile entity.
+        // Each block is updated once in the end, rather than for every tile.
         for (E entry : entries) {
             entry.getTileEntity().deferEmptyCleanup();
+            entry.getTileEntity().deferUpdates();
         }
         try {
             for (E entry : entries) {
                 apply.accept(entry);
             }
         } finally {
+            // Updated while the empty blocks are still kept, which is left to the cleanup after
+            for (E entry : entries) {
+                entry.getTileEntity().finishDeferredUpdates();
+            }
             for (E entry : entries) {
                 entry.getTileEntity().finishDeferredEmptyCleanup();
             }

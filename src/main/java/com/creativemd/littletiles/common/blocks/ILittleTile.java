@@ -12,6 +12,11 @@ public interface ILittleTile {
 
     ArrayList<LittleTilePreview> getLittlePreview(ItemStack stack);
 
+    /** Whether {@link #getLittlePreview} has tiles to show, for items that can tell without reading them all. */
+    default boolean hasLittlePreview(ItemStack stack) {
+        return getLittlePreview(stack) != null;
+    }
+
     void rotateLittlePreview(ItemStack stack, ForgeDirection direction);
 
     void flipLittlePreview(ItemStack stack, ForgeDirection direction);

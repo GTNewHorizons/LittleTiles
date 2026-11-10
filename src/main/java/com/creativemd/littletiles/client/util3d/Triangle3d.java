@@ -125,10 +125,11 @@ public class Triangle3d {
         return unnormalizedNormal().length() / 2;
     }
 
-    private void flipWindingOrder() {
+    public void flipWindingOrder() {
         Vector3d temp = p2;
         p2 = p3;
         p3 = temp;
+        plane = null;
     }
 
     public void ensureWindingOrder(Vector3d normal) {

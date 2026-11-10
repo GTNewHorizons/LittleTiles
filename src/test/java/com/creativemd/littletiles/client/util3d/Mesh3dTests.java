@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.client.util3d;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -233,5 +234,84 @@ public class Mesh3dTests {
                 cutout(LittleTileShapeMode.SLOPE, new Vector3i(6, 18, 30), new Vector3i(10, 0, 10), 43),
                 new LittleTileBox(12, 8, 0, 13, 9, 16),
                 null);
+    }
+
+    // Deformed boxes sharing a face can be placed next to each other
+
+    private static void assertNeighboursFit(Vector3i[] low, Vector3i[] high) {
+        LittleTileBox lowBox = LittleTileBox.fromPoints(low), highBox = LittleTileBox.fromPoints(high);
+        assertFits(
+                lowBox,
+                LittleTileCutoutInfo.fromDeformedCorners(lowBox, low),
+                highBox,
+                LittleTileCutoutInfo.fromDeformedCorners(highBox, high));
+    }
+
+    @Test
+    public void deformedNeighboursAlongZFit() {
+        assertNeighboursFit(
+                new Vector3i[] { new Vector3i(1, 0, 1), new Vector3i(15, 2, 1), new Vector3i(1, 14, 0),
+                        new Vector3i(15, 14, 2), new Vector3i(2, 2, 14), new Vector3i(14, 0, 13),
+                        new Vector3i(1, 14, 12), new Vector3i(16, 16, 14) },
+                new Vector3i[] { new Vector3i(2, 2, 14), new Vector3i(14, 0, 13), new Vector3i(1, 14, 12),
+                        new Vector3i(16, 16, 14), new Vector3i(1, 1, 16), new Vector3i(15, 0, 15),
+                        new Vector3i(0, 15, 15), new Vector3i(15, 16, 14) });
+    }
+
+    @Test
+    public void deformedNeighboursSharingASlantedFaceAlongZFit() {
+        assertNeighboursFit(
+                new Vector3i[] { new Vector3i(0, 0, 1), new Vector3i(14, 1, 1), new Vector3i(1, 15, 0),
+                        new Vector3i(15, 15, 0), new Vector3i(1, 1, 10), new Vector3i(16, 0, 13),
+                        new Vector3i(1, 16, 14), new Vector3i(14, 16, 12) },
+                new Vector3i[] { new Vector3i(1, 1, 10), new Vector3i(16, 0, 13), new Vector3i(1, 16, 14),
+                        new Vector3i(14, 16, 12), new Vector3i(0, 1, 15), new Vector3i(14, 2, 15),
+                        new Vector3i(2, 16, 14), new Vector3i(15, 16, 14) });
+    }
+
+    @Test
+    public void deformedNeighboursAlongYFit() {
+        assertNeighboursFit(
+                new Vector3i[] { new Vector3i(0, 2, 2), new Vector3i(16, 2, 2), new Vector3i(0, 10, 2),
+                        new Vector3i(16, 14, 1), new Vector3i(2, 1, 15), new Vector3i(14, 1, 14),
+                        new Vector3i(2, 11, 16), new Vector3i(15, 12, 14) },
+                new Vector3i[] { new Vector3i(0, 10, 2), new Vector3i(16, 14, 1), new Vector3i(1, 14, 2),
+                        new Vector3i(15, 14, 0), new Vector3i(2, 11, 16), new Vector3i(15, 12, 14),
+                        new Vector3i(1, 15, 15), new Vector3i(14, 16, 15) });
+    }
+
+    /**
+     * Their shared face is warped, and its diagonals are close in length: the low box is 6 high and the high one 14, so
+     * measured in each box's own unit cube they would split it along different diagonals and overlap between them.
+     */
+    @Test
+    public void deformedNeighboursOfDifferentHeightsSplitTheirSharedFaceAlike() {
+        assertNeighboursFit(
+                new Vector3i[] { new Vector3i(0, 0, 0), new Vector3i(16, 0, 0), new Vector3i(0, 16, 0),
+                        new Vector3i(16, 16, 0), new Vector3i(0, 0, 6), new Vector3i(16, 0, 6), new Vector3i(0, 15, 2),
+                        new Vector3i(16, 16, 5) },
+                new Vector3i[] { new Vector3i(0, 0, 6), new Vector3i(16, 0, 6), new Vector3i(0, 15, 2),
+                        new Vector3i(16, 16, 5), new Vector3i(0, 0, 16), new Vector3i(16, 0, 16),
+                        new Vector3i(0, 16, 16), new Vector3i(16, 16, 16) });
+    }
+
+    /**
+     * A wedge whose upper north corners sit halfway up its north edges, so its west and east faces are triangles with a
+     * corner in the middle of a side. Split along their shorter diagonals, each leaves a triangle of 3 distinct points
+     * in a line, which has no normal to pick a texture direction from.
+     */
+    @Test
+    public void deformedBoxWithACornerInTheMiddleOfAnEdgeHasTextureDirections() {
+        Vector3i[] corners = { new Vector3i(0, 0, 0), new Vector3i(16, 0, 0), new Vector3i(0, 8, 0),
+                new Vector3i(16, 8, 0), new Vector3i(0, 0, 16), new Vector3i(16, 0, 16), new Vector3i(0, 16, 0),
+                new Vector3i(16, 16, 0) };
+        assertTrue(Mesh3dUtil.enclosesVolume(corners));
+        LittleTileBox box = LittleTileBox.fromPoints(corners);
+        Mesh3d mesh = Mesh3dUtil.meshFromTile(box, LittleTileCutoutInfo.fromDeformedCorners(box, corners));
+        for (Triangle3d triangle : mesh.getTriangles()) {
+            assertNotNull(
+                    triangle.getP1() + " " + triangle.getP2() + " " + triangle.getP3(),
+                    triangle.getFaceDirection());
+        }
     }
 }

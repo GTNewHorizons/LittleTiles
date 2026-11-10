@@ -3,6 +3,7 @@ package com.creativemd.littletiles.client.util3d;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
@@ -36,8 +37,10 @@ public final class MeshCollision {
         if (common.minX >= common.maxX || common.minY >= common.maxY || common.minZ >= common.maxZ) return false;
         if (cutoutA == null && cutoutB == null) return true;
 
-        List<Piece> piecesA = pieces(boxA, cutoutA);
-        List<Piece> piecesB = pieces(boxB, cutoutB);
+        List<Piece> piecesA = pieces(boxA, cutoutA, common);
+        if (piecesA.isEmpty()) return false;
+        List<Piece> piecesB = pieces(boxB, cutoutB, common);
+        if (piecesB.isEmpty()) return false;
         double sixTimesVolume = 0;
         for (Piece pieceA : piecesA) {
             MeshCutter withinA = MeshCutter.box(common);
@@ -53,13 +56,38 @@ public final class MeshCollision {
         return sixTimesVolume / 6 > MeshCutter.VOLUME_EPSILON;
     }
 
-    /** The pieces of the tile, see {@link Mesh3dUtil#convexPieces}. */
-    private static List<Piece> pieces(LittleTileBox box, LittleTileCutoutInfo cutout) {
+    /** The pieces of the tile, see {@link Mesh3dUtil#convexPieces}, less those sharing no volume with the box. */
+    private static List<Piece> pieces(LittleTileBox box, LittleTileCutoutInfo cutout, LittleTileBox common) {
         List<Piece> pieces = new ArrayList<>();
         for (Mesh3d mesh : Mesh3dUtil.convexPieces(box, cutout)) {
-            pieces.add(new Piece(mesh));
+            if (reachesInto(mesh, common)) pieces.add(new Piece(mesh));
         }
         return pieces;
+    }
+
+    /**
+     * Whether the points of the piece reach into the box rather than only up to it, as otherwise they share no volume.
+     * A piece without faces is all of space.
+     */
+    private static boolean reachesInto(Mesh3d piece, LittleTileBox box) {
+        if (piece.getTriangles().isEmpty()) return true;
+        double minX = Double.POSITIVE_INFINITY, minY = minX, minZ = minX;
+        double maxX = Double.NEGATIVE_INFINITY, maxY = maxX, maxZ = maxX;
+        for (Triangle3d triangle : piece.getTriangles()) {
+            for (Vector3d point : new Vector3d[] { triangle.getP1(), triangle.getP2(), triangle.getP3() }) {
+                minX = Math.min(minX, point.x);
+                minY = Math.min(minY, point.y);
+                minZ = Math.min(minZ, point.z);
+                maxX = Math.max(maxX, point.x);
+                maxY = Math.max(maxY, point.y);
+                maxZ = Math.max(maxZ, point.z);
+            }
+        }
+        return minX < box.maxX / 16.0 && maxX > box.minX / 16.0
+                && minY < box.maxY / 16.0
+                && maxY > box.minY / 16.0
+                && minZ < box.maxZ / 16.0
+                && maxZ > box.minZ / 16.0;
     }
 
     /** Face planes and sign of a convex piece, prepared once for all its pairwise intersections. */

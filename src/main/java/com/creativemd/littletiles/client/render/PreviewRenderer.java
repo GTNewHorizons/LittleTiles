@@ -33,6 +33,7 @@ import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
@@ -202,8 +203,10 @@ public class PreviewRenderer {
         // The chisel keeps its plain preview: its shape is still being chosen, there is no tile to show yet.
         ItemStack held = Minecraft.getMinecraft().thePlayer.getHeldItem();
         if (previewTile.isTextured() && (held == null || held.getItem() != LittleTiles.chisel)) {
-            // Textured as the item shows the tile, from where it sits in its own block.
-            CubeObject cube = previewTile.preview.getCubeBlock();
+            // Textured as the item shows the tile, from where it sits in its own block - not where it is placed.
+            LittleTilePreview tile = previewTile.preview;
+            CubeObject cube = tile.getCubeBlock();
+            CubeObject itemCube = (tile.itemBox != null ? tile.itemBox : tile.getRenderBox()).getCube();
             int meta = cube.meta == -1 ? 0 : cube.meta;
             LittleTilesBlockRenderHelper.renderTexturedShape(
                     toolHandler.getShape(),
@@ -219,9 +222,9 @@ public class PreviewRenderer {
                     meta,
                     LittleTilesBlockRenderHelper.resolveRenderColor(cube.color, cube.block, meta),
                     new Vector3d(
-                            cube.minX - Math.floor(cube.minX),
-                            cube.minY - Math.floor(cube.minY),
-                            cube.minZ - Math.floor(cube.minZ)),
+                            itemCube.minX - Math.floor(itemCube.minX),
+                            itemCube.minY - Math.floor(itemCube.minY),
+                            itemCube.minZ - Math.floor(itemCube.minZ)),
                     alpha);
             GL11.glPopMatrix();
             return;

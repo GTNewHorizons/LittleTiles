@@ -232,67 +232,72 @@ public class LittleToolHandler {
 
         // Handle transform for block-picked tiles. We need to transform the cutout pos/size as well...
         if (nbt.hasKey("cutoutPosX") && oldSize != null) {
-            int cutoutSizeX = nbt.getInteger("cutoutSizeX");
-            int cutoutSizeY = nbt.getInteger("cutoutSizeY");
-            int cutoutSizeZ = nbt.getInteger("cutoutSizeZ");
-
-            int cutoutPosX = nbt.getInteger("cutoutPosX");
-            int cutoutPosY = nbt.getInteger("cutoutPosY");
-            int cutoutPosZ = nbt.getInteger("cutoutPosZ");
-
-            // Treat cutout pos + size as cuboid to transform it properly
-            int minX = cutoutPosX;
-            int minY = cutoutPosY;
-            int minZ = cutoutPosZ;
-            int maxX = minX + cutoutSizeX - oldSize.sizeX;
-            int maxY = minY + cutoutSizeY - oldSize.sizeY;
-            int maxZ = minZ + cutoutSizeZ - oldSize.sizeZ;
-
-            // Transform cuboid
-            Vector3f v1 = transform.transform(new Vector3f(minX, minY, minZ));
-            Vector3f v2 = transform.transform(new Vector3f(maxX, maxY, maxZ));
-
-            // Save new start pos
-            cutoutPosX = Math.round(Math.min(v1.x, v2.x));
-            cutoutPosY = Math.round(Math.min(v1.y, v2.y));
-            cutoutPosZ = Math.round(Math.min(v1.z, v2.z));
-            nbt.setInteger("cutoutPosX", cutoutPosX);
-            nbt.setInteger("cutoutPosY", cutoutPosY);
-            nbt.setInteger("cutoutPosZ", cutoutPosZ);
-
-            // Transform size as well. Rotation/flip only permutes or mirrors the axes, so the size just follows along.
-            Vector3f size = transform.transform(new Vector3f(cutoutSizeX, cutoutSizeY, cutoutSizeZ));
-            nbt.setInteger("cutoutSizeX", Math.abs(Math.round(size.x)));
-            nbt.setInteger("cutoutSizeY", Math.abs(Math.round(size.y)));
-            nbt.setInteger("cutoutSizeZ", Math.abs(Math.round(size.z)));
-
-            boolean negX = nbt.getBoolean("cutoutNegX");
-            boolean negY = nbt.getBoolean("cutoutNegY");
-            boolean negZ = nbt.getBoolean("cutoutNegZ");
-
-            Vector3f negVec = new Vector3f(negX ? -1 : 1, negY ? -1 : 1, negZ ? -1 : 1);
-            negVec = transform.transform(negVec);
-            negX = negVec.x < 0;
-            negY = negVec.y < 0;
-            negZ = negVec.z < 0;
-
-            nbt.setBoolean("cutoutNegX", negX);
-            nbt.setBoolean("cutoutNegY", negY);
-            nbt.setBoolean("cutoutNegZ", negZ);
-
-            int faceStartI = nbt.getByte("cutoutFaceStart");
-            int faceEndI = nbt.getByte("cutoutFaceEnd");
-            Vector3d faceStart = Plane3d.planes[faceStartI].getNormal();
-            Vector3d faceEnd = Plane3d.planes[faceEndI].getNormal();
-
-            faceStart = new Vector3d(transform.transform(faceStart.toVector3f()));
-            faceEnd = new Vector3d(transform.transform(faceEnd.toVector3f()));
-
-            faceStartI = getDirectionForNormal(faceStart).ordinal();
-            faceEndI = getDirectionForNormal(faceEnd).ordinal();
-            nbt.setByte("cutoutFaceStart", (byte) faceStartI);
-            nbt.setByte("cutoutFaceEnd", (byte) faceEndI);
+            transformCuboid(nbt, transform, oldSize);
         }
+    }
+
+    /** Transforms the pos, size, negative axes and faces of the cutout stored in {@code nbt}, relative to the tile. */
+    private static void transformCuboid(NBTTagCompound nbt, Matrix3f transform, LittleTileSize oldSize) {
+        int cutoutSizeX = nbt.getInteger("cutoutSizeX");
+        int cutoutSizeY = nbt.getInteger("cutoutSizeY");
+        int cutoutSizeZ = nbt.getInteger("cutoutSizeZ");
+
+        int cutoutPosX = nbt.getInteger("cutoutPosX");
+        int cutoutPosY = nbt.getInteger("cutoutPosY");
+        int cutoutPosZ = nbt.getInteger("cutoutPosZ");
+
+        // Treat cutout pos + size as cuboid to transform it properly
+        int minX = cutoutPosX;
+        int minY = cutoutPosY;
+        int minZ = cutoutPosZ;
+        int maxX = minX + cutoutSizeX - oldSize.sizeX;
+        int maxY = minY + cutoutSizeY - oldSize.sizeY;
+        int maxZ = minZ + cutoutSizeZ - oldSize.sizeZ;
+
+        // Transform cuboid
+        Vector3f v1 = transform.transform(new Vector3f(minX, minY, minZ));
+        Vector3f v2 = transform.transform(new Vector3f(maxX, maxY, maxZ));
+
+        // Save new start pos
+        cutoutPosX = Math.round(Math.min(v1.x, v2.x));
+        cutoutPosY = Math.round(Math.min(v1.y, v2.y));
+        cutoutPosZ = Math.round(Math.min(v1.z, v2.z));
+        nbt.setInteger("cutoutPosX", cutoutPosX);
+        nbt.setInteger("cutoutPosY", cutoutPosY);
+        nbt.setInteger("cutoutPosZ", cutoutPosZ);
+
+        // Transform size as well. Rotation/flip only permutes or mirrors the axes, so the size just follows along.
+        Vector3f size = transform.transform(new Vector3f(cutoutSizeX, cutoutSizeY, cutoutSizeZ));
+        nbt.setInteger("cutoutSizeX", Math.abs(Math.round(size.x)));
+        nbt.setInteger("cutoutSizeY", Math.abs(Math.round(size.y)));
+        nbt.setInteger("cutoutSizeZ", Math.abs(Math.round(size.z)));
+
+        boolean negX = nbt.getBoolean("cutoutNegX");
+        boolean negY = nbt.getBoolean("cutoutNegY");
+        boolean negZ = nbt.getBoolean("cutoutNegZ");
+
+        Vector3f negVec = new Vector3f(negX ? -1 : 1, negY ? -1 : 1, negZ ? -1 : 1);
+        negVec = transform.transform(negVec);
+        negX = negVec.x < 0;
+        negY = negVec.y < 0;
+        negZ = negVec.z < 0;
+
+        nbt.setBoolean("cutoutNegX", negX);
+        nbt.setBoolean("cutoutNegY", negY);
+        nbt.setBoolean("cutoutNegZ", negZ);
+
+        int faceStartI = nbt.getByte("cutoutFaceStart");
+        int faceEndI = nbt.getByte("cutoutFaceEnd");
+        Vector3d faceStart = Plane3d.planes[faceStartI].getNormal();
+        Vector3d faceEnd = Plane3d.planes[faceEndI].getNormal();
+
+        faceStart = new Vector3d(transform.transform(faceStart.toVector3f()));
+        faceEnd = new Vector3d(transform.transform(faceEnd.toVector3f()));
+
+        faceStartI = getDirectionForNormal(faceStart).ordinal();
+        faceEndI = getDirectionForNormal(faceEnd).ordinal();
+        nbt.setByte("cutoutFaceStart", (byte) faceStartI);
+        nbt.setByte("cutoutFaceEnd", (byte) faceEndI);
     }
 
     public Vector3i getTileOriginal() {

@@ -1,6 +1,8 @@
 package com.creativemd.littletiles.client.util3d;
 
 import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.EXACT_VOLUME;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.ROUNDING_VOLUME;
 import static com.creativemd.littletiles.client.util3d.Shapes.describe;
 import static com.creativemd.littletiles.client.util3d.Shapes.shape;
 import static org.junit.Assert.assertFalse;
@@ -10,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 
+import org.joml.Matrix3f;
 import org.joml.Vector3i;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -17,6 +20,7 @@ import org.junit.Test;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.MeshGeometry.FaceFilter;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
@@ -376,5 +380,55 @@ public class Mesh3dTests {
         double visible = MeshGeometry
                 .area(MeshGeometry.visiblePart(faceMesh, new Mesh3d(Collections.singletonList(alongIt))));
         assertTrue("area=" + area + " visible=" + visible, Math.abs(visible - area) <= area * 1.0E-6);
+    }
+
+    /**
+     * Two round slopes filling the block, the second turned a quarter about an axis, leave free what neither of them
+     * covers. Anti fill against both has to fill exactly that: the tile filling against the first one used to be left
+     * out where it ran into the second.
+     */
+    @Test
+    public void antiFillAgainstTwoTurnedRoundSlopesFillsWhatBothLeaveFree() {
+        Vector3i size = new Vector3i(16, 16, 16), pos = new Vector3i();
+        LittleTileBlock first = placed(shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, 0));
+        float quarter = (float) Math.PI / 2;
+        for (Matrix3f turn : new Matrix3f[] { new Matrix3f().rotateX(quarter), new Matrix3f().rotateY(quarter),
+                new Matrix3f().rotateZ(quarter) }) {
+            LittleTileBlock second = placed(
+                    shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, OrientationMapper.toId(turn)));
+            String turned = describe(second.getCutoutInfo());
+            double free = BlockSpace.volume(BLOCK) - Tile.of(first.getCutoutInfo()).volume()
+                    - Tile.of(second.getCutoutInfo()).volume()
+                    + MeshCollision.sharedVolume(BLOCK, first.getCutoutInfo(), BLOCK, second.getCutoutInfo())
+                            * BlockSpace.PIXELS
+                            * BlockSpace.PIXELS
+                            * BlockSpace.PIXELS;
+            assertTrue(turned + " leaves nothing free", free > 1);
+
+            LittleTileBlock filling = new LittleTileBlock();
+            filling.boundingBox = BLOCK.copy();
+            filling.updateCorner();
+            LittleTile againstFirst = filling.antiTileAgainst(first);
+            assertNotNull(againstFirst);
+            LittleTile againstBoth = againstFirst.antiTileAgainst(second);
+            assertNotNull(turned, againstBoth);
+            assertFalse(turned + " collides with the first", againstBoth.collidesWith(first));
+            assertFalse(turned + " collides with the second", againstBoth.collidesWith(second));
+
+            Tile anti = Tile.of(againstBoth.getCutoutInfo(), againstBoth.boundingBox);
+            double volume = anti.volume(), meshVolume = MeshGeometry.volume(anti.mesh());
+            assertTrue(turned + " volume=" + volume + " free=" + free, Math.abs(volume - free) <= EXACT_VOLUME);
+            assertTrue(
+                    turned + " mesh volume=" + meshVolume + " free=" + free,
+                    Math.abs(meshVolume - free) <= ROUNDING_VOLUME);
+            assertNull(turned, MeshGeometry.findOpenEdge(anti.mesh()));
+        }
+    }
+
+    private static LittleTileBlock placed(LittleTileCutoutInfo cutout) {
+        LittleTileBlock tile = new LittleTileBlock();
+        tile.boundingBox = BLOCK.copy();
+        tile.setCutoutInfo(cutout);
+        return tile;
     }
 }

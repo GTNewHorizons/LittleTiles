@@ -1,12 +1,14 @@
 package com.creativemd.littletiles.client.render;
 
 import java.nio.ByteBuffer;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.Vec3;
@@ -49,13 +51,15 @@ public class TileGeometryBuffer {
     private static final int CACHE_SIZE = 256;
 
     /**
-     * Keyed by the NBT of the item, which holds its tiles, so changing it in place - rotating a recipe, for example -
-     * simply misses. A single segment, so the eviction is least recently used across all entries.
+     * Keyed by the item and its NBT, which holds its tiles, so changing it in place - rotating a recipe, for example -
+     * simply misses. The item is needed as items read the same NBT differently, the wrench copies the NBT of a single
+     * tile into a recipe. A single segment, so the eviction is least recently used across all entries.
      */
-    private static final Cache<NBTTagCompound, TileGeometryBuffer> cache = CacheBuilder.newBuilder()
-            .maximumSize(CACHE_SIZE).concurrencyLevel(1)
+    private static final Cache<SimpleImmutableEntry<Item, NBTTagCompound>, TileGeometryBuffer> cache = CacheBuilder
+            .newBuilder().maximumSize(CACHE_SIZE).concurrencyLevel(1)
             .removalListener(
-                    (RemovalListener<NBTTagCompound, TileGeometryBuffer>) removal -> removal.getValue().delete())
+                    (RemovalListener<SimpleImmutableEntry<Item, NBTTagCompound>, TileGeometryBuffer>) removal -> removal
+                            .getValue().delete())
             .build();
 
     private int buffer;
@@ -69,12 +73,15 @@ public class TileGeometryBuffer {
      */
     public static TileGeometryBuffer get(ItemStack stack) {
         if (stack.stackTagCompound == null) return null;
-        TileGeometryBuffer buffer = cache.getIfPresent(stack.stackTagCompound);
+        TileGeometryBuffer buffer = cache
+                .getIfPresent(new SimpleImmutableEntry<>(stack.getItem(), stack.stackTagCompound));
         if (buffer == null) {
             buffer = new TileGeometryBuffer(
                     ((ITilesRenderer) stack.getItem()).getRenderingCubes(stack),
                     Block.getBlockFromItem(stack.getItem()));
-            cache.put((NBTTagCompound) stack.stackTagCompound.copy(), buffer);
+            cache.put(
+                    new SimpleImmutableEntry<>(stack.getItem(), (NBTTagCompound) stack.stackTagCompound.copy()),
+                    buffer);
         }
         return buffer;
     }

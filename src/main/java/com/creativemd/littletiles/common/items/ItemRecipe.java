@@ -15,6 +15,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.nbt.NBTSizeTracker;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
@@ -242,7 +243,9 @@ public class ItemRecipe extends Item implements ITilesRenderer, IGuiCreator {
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(tag.getByteArray(TILE_DATA)))) {
             byte version = in.readByte();
             if (version != TILE_DATA_VERSION) throw new IOException("Unknown tile data version " + version);
-            NBTTagList list = CompressedStreamTools.read(in).getTagList("tiles", Constants.NBT.TAG_COMPOUND);
+            // Limited like NBT from a packet, the outer limit only counted the bytes, not the lengths inside them
+            NBTTagCompound root = CompressedStreamTools.func_152456_a(in, new NBTSizeTracker(2097152L));
+            NBTTagList list = root.getTagList("tiles", Constants.NBT.TAG_COMPOUND);
             for (int i = 0; i < list.tagCount(); i++) tiles.add(list.getCompoundTagAt(i));
         } catch (IOException | RuntimeException e) {
             LittleTiles.logger.error("Could not read the tiles of a recipe", e);

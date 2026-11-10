@@ -16,7 +16,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.World;
@@ -36,17 +35,21 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.Dialog;
 import com.cleanroommc.modularui.widgets.DropDownMenu;
 import com.cleanroommc.modularui.widgets.ToggleButton;
+import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.LittleTilesConfig;
 import com.creativemd.littletiles.client.LittleTilesClient;
 import com.creativemd.littletiles.client.render.ITilesRenderer;
+import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.gui.StructureConfigWidget;
+import com.creativemd.littletiles.common.packet.LittleRecipeSelectPacket;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.structure.LittleStructure.LittleStructureEntry;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
@@ -64,6 +67,8 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
      * locked, while picking keeps it open.
      */
     public static final String UNLOCKED = "unlocked";
+    /** An empty recipe selects its area in whole blocks. */
+    public static final int GRID = 16;
 
     @SideOnly(Side.CLIENT)
     public static IIcon lockedIcon;
@@ -92,6 +97,11 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
     /** Whether the recipe holds saved tiles, it can only be configured then. */
     public static boolean hasTiles(ItemStack stack) {
         return stack.stackTagCompound != null && !stack.stackTagCompound.hasKey("x");
+    }
+
+    /** Whether the stack is an empty recipe, which selects an area on right click. */
+    public static boolean isEmptyRecipe(ItemStack stack) {
+        return stack != null && stack.getItem() instanceof ItemRecipe && !hasTiles(stack);
     }
 
     /** Whether the recipe protects its tiles from being replaced by picking. */
@@ -137,91 +147,90 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
     @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
             float hitX, float hitY, float hitZ) {
-        // onItemRightClick(stack, world, player);
-        /*
-         * if(stack.stackTagCompound != null && !stack.stackTagCompound.hasKey("x")) {
-         * if(player.capabilities.isCreativeMode) { ItemStack multiTiles = new ItemStack(LittleTiles.multiTiles);
-         * multiTiles.stackTagCompound = stack.stackTagCompound; WorldUtils.dropItem(player, multiTiles); return true; }
-         * return false; }
-         */
-
-        // if(stack.stackTagCompound == null)
-        // stack.stackTagCompound = new NBTTagCompound();
-
-        if (stack.stackTagCompound != null && stack.stackTagCompound.hasKey("x")) {
-            if (!world.isRemote) {
-                int firstX = stack.stackTagCompound.getInteger("x");
-                int firstY = stack.stackTagCompound.getInteger("y");
-                int firstZ = stack.stackTagCompound.getInteger("z");
-                int minX = Math.min(firstX, x);
-                int maxX = Math.max(firstX, x);
-                int minY = Math.min(firstY, y);
-                int maxY = Math.max(firstY, y);
-                int minZ = Math.min(firstZ, z);
-                int maxZ = Math.max(firstZ, z);
-
-                ArrayList<LittleTile> tiles = new ArrayList<>();
-
-                // Every block of the area is looked at, which loads its chunk, so the area is limited as well.
-                long blocks = (long) (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
-                if (blocks > LittleTilesConfig.maxRecipeBlocks) {
-                    player.addChatMessage(
-                            new ChatComponentTranslation(
-                                    "littletiles.recipe.area_too_big",
-                                    LittleTilesConfig.maxRecipeBlocks));
-                    return true;
-                }
-
-                for (int posX = minX; posX <= maxX; posX++) {
-                    for (int posY = minY; posY <= maxY; posY++) {
-                        for (int posZ = minZ; posZ <= maxZ; posZ++) {
-                            TileEntity tileEntity = world.getTileEntity(posX, posY, posZ);
-                            if (tileEntity instanceof TileEntityLittleTiles) {
-                                LittleTileVec offset = new LittleTileVec(
-                                        (posX - minX) * 16,
-                                        (posY - minY) * 16,
-                                        (posZ - minZ) * 16);
-                                TileEntityLittleTiles littleEntity = (TileEntityLittleTiles) tileEntity;
-                                List<LittleTile> teTiles = littleEntity.getTiles();
-                                for (LittleTile teTile : teTiles) {
-                                    LittleTile tile = teTile.copy();
-                                    if (tile.boundingBox != null) {
-                                        tile.boundingBox.addOffset(offset);
-                                    }
-                                    tiles.add(tile);
-                                }
-                                if (tiles.size() > LittleTilesConfig.maxRecipeTiles) {
-                                    player.addChatMessage(
-                                            new ChatComponentTranslation(
-                                                    "littletiles.recipe.too_many_tiles",
-                                                    LittleTilesConfig.maxRecipeTiles));
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-                // Only removed once the recipe is saved, a refused selection keeps the first position to try again.
-                stack.stackTagCompound.removeTag("x");
-                stack.stackTagCompound.removeTag("y");
-                stack.stackTagCompound.removeTag("z");
-                player.addChatMessage(new ChatComponentText("Second position: x=" + x + ",y=" + y + ",z=" + z));
-                saveTiles(world, tiles, stack);
-            }
-            return true;
-        } else if (stack.stackTagCompound == null) {
-            if (!world.isRemote) {
-                stack.stackTagCompound = new NBTTagCompound();
-                stack.stackTagCompound.setInteger("x", x);
-                stack.stackTagCompound.setInteger("y", y);
-                stack.stackTagCompound.setInteger("z", z);
-                player.addChatMessage(new ChatComponentText("First position: x=" + x + ",y=" + y + ",z=" + z));
-            }
+        if (!hasTiles(stack)) {
+            // Selecting is client only, like the chisel's two hits. The server only gets both corners once it is done.
+            if (world.isRemote) selectPosition(new LittleTileBlockPos(x, y, z, 0, 0, 0, ForgeDirection.UNKNOWN));
             return true;
         }
         // A saved recipe places its tiles directly, the recipe itself is kept.
         return Item.getItemFromBlock(LittleTiles.blockTile)
                 .onItemUse(stack, player, world, x, y, z, side, hitX, hitY, hitZ);
+    }
+
+    /**
+     * The first right click sets the first corner, the second one finishes the area at the clicked block, or at the
+     * marked one. The selection is kept until the recipe is saved, so a refused area can be adjusted and sent again.
+     */
+    @SideOnly(Side.CLIENT)
+    private static void selectPosition(LittleTileBlockPos clicked) {
+        LittleTileBlockPos second = PreviewRenderer.markedHit != null ? PreviewRenderer.markedHit : clicked;
+        if (PreviewRenderer.firstHit == null && PreviewRenderer.markedHit == null) {
+            PreviewRenderer.firstHit = second;
+            return;
+        }
+        LittleTileBlockPos first = PreviewRenderer.firstHit != null ? PreviewRenderer.firstHit : second;
+        PacketHandler.sendPacketToServer(
+                new LittleRecipeSelectPacket(
+                        first.getPosX(),
+                        first.getPosY(),
+                        first.getPosZ(),
+                        second.getPosX(),
+                        second.getPosY(),
+                        second.getPosZ()));
+    }
+
+    /** Saves the tiles of the area between both corners into an empty recipe. */
+    public static void selectArea(EntityPlayer player, ItemStack stack, int firstX, int firstY, int firstZ, int secondX,
+            int secondY, int secondZ) {
+        if (stack == null || !(stack.getItem() instanceof ItemRecipe) || hasTiles(stack)) return;
+        World world = player.worldObj;
+        int minX = Math.min(firstX, secondX);
+        int maxX = Math.max(firstX, secondX);
+        int minY = Math.min(firstY, secondY);
+        int maxY = Math.max(firstY, secondY);
+        int minZ = Math.min(firstZ, secondZ);
+        int maxZ = Math.max(firstZ, secondZ);
+
+        ArrayList<LittleTile> tiles = new ArrayList<>();
+
+        // Every block of the area is looked at, which loads its chunk, so the area is limited as well.
+        long blocks = (long) (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
+        if (blocks > LittleTilesConfig.maxRecipeBlocks) {
+            player.addChatMessage(
+                    new ChatComponentTranslation("littletiles.recipe.area_too_big", LittleTilesConfig.maxRecipeBlocks));
+            return;
+        }
+
+        for (int posX = minX; posX <= maxX; posX++) {
+            for (int posY = minY; posY <= maxY; posY++) {
+                for (int posZ = minZ; posZ <= maxZ; posZ++) {
+                    TileEntity tileEntity = world.getTileEntity(posX, posY, posZ);
+                    if (tileEntity instanceof TileEntityLittleTiles) {
+                        LittleTileVec offset = new LittleTileVec(
+                                (posX - minX) * 16,
+                                (posY - minY) * 16,
+                                (posZ - minZ) * 16);
+                        TileEntityLittleTiles littleEntity = (TileEntityLittleTiles) tileEntity;
+                        List<LittleTile> teTiles = littleEntity.getTiles();
+                        for (LittleTile teTile : teTiles) {
+                            LittleTile tile = teTile.copy();
+                            if (tile.boundingBox != null) {
+                                tile.boundingBox.addOffset(offset);
+                            }
+                            tiles.add(tile);
+                        }
+                        if (tiles.size() > LittleTilesConfig.maxRecipeTiles) {
+                            player.addChatMessage(
+                                    new ChatComponentTranslation(
+                                            "littletiles.recipe.too_many_tiles",
+                                            LittleTilesConfig.maxRecipeTiles));
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        saveTiles(world, tiles, stack);
     }
 
     @Override
@@ -343,31 +352,21 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
-        if (stack.stackTagCompound != null) {
-            if (stack.stackTagCompound.hasKey("x")) list.add(
-                    "First pos: x=" + stack.stackTagCompound.getInteger("x")
-                            + ",y="
-                            + stack.stackTagCompound.getInteger("y")
-                            + ",z="
-                            + stack.stackTagCompound.getInteger("z"));
-            else {
-                String id = "none";
-                if (stack.stackTagCompound.hasKey("structure"))
-                    id = stack.stackTagCompound.getCompoundTag("structure").getString("id");
-                list.add("Structure: " + id);
-                list.add("Contains " + stack.stackTagCompound.getInteger("tiles") + " tiles");
-            }
-        }
         if (hasTiles(stack)) {
+            String id = "none";
+            if (stack.stackTagCompound.hasKey("structure"))
+                id = stack.stackTagCompound.getCompoundTag("structure").getString("id");
+            list.add("Structure: " + id);
+            list.add("Contains " + stack.stackTagCompound.getInteger("tiles") + " tiles");
             if (isLocked(stack)) list.add("Locked");
             else list.add("Open: middle click on tiles replaces the content (sneak: whole block)");
             list.add("Right click to place");
             list.add(keyName(LittleTilesClient.toolConfig) + ": configure structure, lock or clear");
             list.add("Rotate and flip with the LittleTiles keys");
-        } else if (stack.stackTagCompound != null) {
-            list.add("Right click on a block to set the second position");
         } else {
-            list.add("Right click on a block to set the first position");
+            list.add("Right click on two blocks to save the area between them");
+            list.add(keyName(LittleTilesClient.mark) + ": mark the second position, move it with the LittleTiles keys");
+            list.add("Left click on a marked position to move that one instead");
             list.add("Or middle click on tiles to copy them (sneak: whole block)");
         }
     }

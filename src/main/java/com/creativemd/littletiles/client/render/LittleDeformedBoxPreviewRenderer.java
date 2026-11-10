@@ -228,7 +228,7 @@ public class LittleDeformedBoxPreviewRenderer {
      * Physical width of the corner edges on a grid, in blocks. The corner cubes halve with every grid step, but edges
      * shrinking just as fast get lost on the small ones - so they only halve every second step.
      */
-    private static double cornerMarkerEdgeWidth(int grid) {
+    static double cornerMarkerEdgeWidth(int grid) {
         return switch (grid) {
             case 16, 8 -> 1D / 64D;
             case 4, 2 -> 1D / 128D;
@@ -236,8 +236,8 @@ public class LittleDeformedBoxPreviewRenderer {
         };
     }
 
-    private static void renderMarkerEdge(double x, double y, double z, double sizeX, double sizeY, double sizeZ,
-            double red, double green, double blue, double alpha) {
+    static void renderMarkerEdge(double x, double y, double z, double sizeX, double sizeY, double sizeZ, double red,
+            double green, double blue, double alpha) {
         RenderHelper3D.renderBlock(x, y, z, sizeX, sizeY, sizeZ, 0, 0, 0, red, green, blue, alpha);
     }
 

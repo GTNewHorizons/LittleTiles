@@ -40,6 +40,7 @@ import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTileBounds;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
@@ -564,8 +565,11 @@ public class PreviewRenderer {
                 MovingObjectPosition look = mc.objectMouseOver;
                 LittleTileBlockPos pos = null;
                 int align = 1;
+                boolean inset = false;
                 if (mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel) {
-                    align = new LittleToolHandler(mc.thePlayer.getHeldItem()).getGrid();
+                    LittleToolHandler handler = new LittleToolHandler(mc.thePlayer.getHeldItem());
+                    align = handler.getGrid();
+                    inset = handler.getPlaceMode() == LittleTilePlaceMode.STENCIL;
                 }
                 if (emptyRecipe) align = ItemRecipe.GRID;
                 if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {
@@ -578,7 +582,7 @@ public class PreviewRenderer {
                             0,
                             0,
                             ForgeDirection.UNKNOWN);
-                    else pos = LittleTileBlockPos.fromMovingObjectPosition(look, align);
+                    else pos = LittleTileBlockPos.fromMovingObjectPosition(look, align, inset);
                 }
 
                 if (markedHit != null) pos = markedHit;

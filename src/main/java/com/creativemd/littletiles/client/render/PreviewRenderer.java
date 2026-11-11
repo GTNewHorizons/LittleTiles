@@ -44,6 +44,7 @@ import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
+import com.creativemd.littletiles.common.utils.PlacementSetting;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
@@ -291,9 +292,12 @@ public class PreviewRenderer {
         return held != null && held.getItem() == LittleTiles.chisel;
     }
 
+    /** Whether the held tiles are placed in stencil mode: the chisel's own, or the one all other tiles share. */
     private static boolean holdsStencil() {
-        return holdsChisel() && new LittleToolHandler(Minecraft.getMinecraft().thePlayer.getHeldItem()).getPlaceMode()
-                == LittleTilePlaceMode.STENCIL;
+        EntityPlayer player = Minecraft.getMinecraft().thePlayer;
+        LittleTilePlaceMode mode = holdsChisel() ? new LittleToolHandler(player.getHeldItem()).getPlaceMode()
+                : PlacementSetting.getPlaceMode(player);
+        return mode == LittleTilePlaceMode.STENCIL;
     }
 
     private static Vector3i sizeInPixels(Vec3 size) {
@@ -319,8 +323,8 @@ public class PreviewRenderer {
     /** The chisel is drawn block by block, so it is only textured while it reaches into a few. */
     private static boolean isTexturedPreview(PreviewTile previewTile, Vec3 center, Vec3 size) {
         if (!previewTile.isTextured()) return false;
-        if (!holdsChisel()) return true;
         if (holdsStencil()) return false;
+        if (!holdsChisel()) return true;
 
         Vector3i min = worldMinPixels(center, size);
         Vector3i pixels = sizeInPixels(size);
@@ -589,6 +593,9 @@ public class PreviewRenderer {
                     LittleToolHandler handler = new LittleToolHandler(mc.thePlayer.getHeldItem());
                     align = handler.getGrid();
                     inset = PlacementHelper.insetsHit(mc.thePlayer, handler.getPlaceMode(), look);
+                } else {
+                    align = PlacementSetting.getGrid(mc.thePlayer);
+                    inset = PlacementHelper.insetsHit(mc.thePlayer, PlacementSetting.getPlaceMode(mc.thePlayer), look);
                 }
                 if (emptyRecipe) align = ItemRecipe.GRID;
                 if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {
@@ -667,7 +674,8 @@ public class PreviewRenderer {
 
                     // A multi tile item or recipe is drawn from its buffer, so one tile spanning its bounds is enough
                     // to place it. The bounds are read once instead of every frame.
-                    TileGeometryBuffer itemBuffer = itemBuffer(held);
+                    // Stencil is shown untextured, which the buffer cannot do
+                    TileGeometryBuffer itemBuffer = holdsStencil() ? null : itemBuffer(held);
                     Item heldItem = held.getItem();
                     boolean drawnFromBounds = heldItem == LittleTiles.multiTiles || heldItem == LittleTiles.recipe;
                     if (emptyRecipe) previews = new ArrayList<>();

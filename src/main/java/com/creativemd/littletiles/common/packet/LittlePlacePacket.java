@@ -21,6 +21,7 @@ import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
+import com.creativemd.littletiles.common.utils.PlacementSetting;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
@@ -90,7 +91,7 @@ public class LittlePlacePacket extends CreativeCorePacket {
         if (placementStack != null) {
             LittleTilePlaceMode serverPlaceMode = heldStack.getItem() == LittleTiles.chisel
                     ? new LittleToolHandler(heldStack).getPlaceMode()
-                    : LittleTilePlaceMode.NORMAL;
+                    : PlacementSetting.getPlaceMode(player);
             ((ItemBlockTiles) Item.getItemFromBlock(LittleTiles.blockTile))
                     .placeBlockAt(player, placementStack, player.worldObj, pos, customPlacement, serverPlaceMode);
 

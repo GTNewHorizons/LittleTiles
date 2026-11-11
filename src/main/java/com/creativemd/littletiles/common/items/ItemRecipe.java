@@ -54,6 +54,7 @@ import com.creativemd.littletiles.client.render.ITilesRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
+import com.creativemd.littletiles.common.gui.GuiTilePlacement;
 import com.creativemd.littletiles.common.gui.StructureConfigWidget;
 import com.creativemd.littletiles.common.packet.LittleRecipeSelectPacket;
 import com.creativemd.littletiles.common.structure.LittleStructure;
@@ -449,7 +450,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
             if (isLocked(stack)) list.add("Locked");
             else list.add("Open: middle click on tiles replaces the content (sneak: whole block)");
             list.add("Right click to place");
-            list.add(keyName(LittleTilesClient.toolConfig) + ": configure structure, lock or clear");
+            list.add(keyName(LittleTilesClient.toolConfig) + ": configure placement, structure, lock or clear");
             list.add("Rotate and flip with the LittleTiles keys");
         } else {
             list.add("Right click on two blocks to save the area between them");
@@ -495,8 +496,13 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
             if (stack != null && stack.getItem() instanceof ItemRecipe) stack.stackTagCompound = null;
         });
 
+        GuiTilePlacement placement = new GuiTilePlacement(syncManager, data.getPlayer());
+        // The recipe's own settings go below the placement all tiles share
+        int top = GuiTilePlacement.HEIGHT + 10;
+        int width = GuiTilePlacement.PANEL_WIDTH;
+
         ModularPanel panel = ModularPanel.defaultPanel("recipe");
-        panel.size(210, 175);
+        panel.size(width, GuiTilePlacement.PANEL_HEIGHT);
         // The structure settings are client only, the server just receives the result.
         if (!syncManager.isClient()) return panel;
 
@@ -515,22 +521,22 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
             LittleStructure structure = saved != null && saved.getIDOfStructure().equals(id) ? saved : null;
             StructureConfigWidget config = entry.parser.createConfigWidget(stack, structure);
             if (config == null) continue;
-            config.pos(5, 30).size(200, 120).setEnabledIf(widget -> ids.get(selected[0]).equals(id));
+            config.pos(5, top + 30).size(width - 10, 120).setEnabledIf(widget -> ids.get(selected[0]).equals(id));
             panel.child(config);
             configs.put(id, config);
         }
 
         BoolValue locked = new BoolValue(isLocked(stack));
-        panel.child(IKey.str("Locked").asWidget().pos(155, 11));
+        panel.child(IKey.str("Locked").asWidget().pos(width - 55, top + 11));
         ToggleButton lockToggle = new ToggleButton().value(locked);
-        lockToggle.pos(190, 8).size(14, 14);
+        lockToggle.pos(width - 20, top + 8).size(14, 14);
         lockToggle.background(GuiTextures.CHECK_BOX_EMPTY).hoverBackground(GuiTextures.CHECK_BOX_EMPTY);
         lockToggle.selectedBackground(GuiTextures.CHECK_BOX_FULL).selectedHoverBackground(GuiTextures.CHECK_BOX_FULL);
         lockToggle.addTooltipElement("An open recipe can be replaced by middle clicking on tiles");
         panel.child(lockToggle);
 
         ButtonWidget<?> save = new ButtonWidget<>();
-        save.overlay(IKey.str("Save")).pos(155, 152).size(50, 18);
+        save.overlay(IKey.str("Save")).pos(width - 55, top + 152).size(50, 18);
         save.onMousePressed(mouseButton -> {
             String id = ids.get(selected[0]);
             NBTTagCompound nbt = new NBTTagCompound();
@@ -571,7 +577,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
             return dialog.child(yes).child(no);
         }, true);
         ButtonWidget<?> clear = new ButtonWidget<>();
-        clear.overlay(IKey.str("Clear")).pos(5, 152).size(50, 18).addTooltipElement("Back to selecting an area");
+        clear.overlay(IKey.str("Clear")).pos(5, top + 152).size(50, 18).addTooltipElement("Back to selecting an area");
         clear.onMousePressed(mouseButton -> {
             clearDialog.openPanel();
             return true;
@@ -579,9 +585,9 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         panel.child(clear);
 
         // Added last so the opened list is drawn over the structure settings.
-        panel.child(IKey.str("Type:").asWidget().pos(5, 11));
+        panel.child(IKey.str("Type:").asWidget().pos(5, top + 11));
         DropDownMenu typePicker = new DropDownMenu();
-        typePicker.pos(35, 5).size(100, 20);
+        typePicker.pos(35, top + 5).size(100, 20);
         typePicker.background(GuiTextures.BUTTON_CLEAN);
         for (int i = 0; i < ids.size(); i++) {
             int index = i;
@@ -589,6 +595,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         }
         typePicker.setSelectedIndex(selected[0]);
         panel.child(typePicker);
+        placement.addTo(panel, width);
         return panel;
     }
 

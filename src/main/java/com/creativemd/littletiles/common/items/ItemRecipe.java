@@ -247,6 +247,12 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         return hasTiles(stack) ? getPreview(stack) : null;
     }
 
+    /** Checked every frame while held: the tiles only have to be read when they are placed or previewed. */
+    @Override
+    public boolean hasLittlePreview(ItemStack stack) {
+        return hasTiles(stack);
+    }
+
     @Override
     public void rotateLittlePreview(ItemStack stack, ForgeDirection direction) {
         rotatePreview(stack, direction);

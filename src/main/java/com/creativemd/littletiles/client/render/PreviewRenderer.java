@@ -642,11 +642,13 @@ public class PreviewRenderer {
 
                     ArrayList<PreviewTile> previews;
 
-                    // A multi tile item is drawn from its buffer, so one tile spanning its bounds is enough to place
-                    // it. The bounds are read once instead of every frame.
+                    // A multi tile item or recipe is drawn from its buffer, so one tile spanning its bounds is enough
+                    // to place it. The bounds are read once instead of every frame.
                     TileGeometryBuffer itemBuffer = itemBuffer(held);
+                    Item heldItem = held.getItem();
+                    boolean drawnFromBounds = heldItem == LittleTiles.multiTiles || heldItem == LittleTiles.recipe;
                     if (emptyRecipe) previews = new ArrayList<>();
-                    else if (itemBuffer != null && held.getItem() == LittleTiles.multiTiles) {
+                    else if (itemBuffer != null && drawnFromBounds) {
                         if (heldBounds == null) heldBounds = new LittleTileBounds(ItemRecipe.getPreview(held));
                         LittleTileVec min = heldBounds.min;
                         LittleTileSize size = heldBounds.size;

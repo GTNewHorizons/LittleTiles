@@ -61,6 +61,13 @@ public class LittleTileBlockPos {
         // a slope, can lie anywhere and simply takes the cell it is in.
         double sideCoord = side.offsetX != 0 ? x : side.offsetY != 0 ? y : z;
         boolean onGridLine = Math.abs(sideCoord * 16 - Math.rint(sideCoord * 16)) < 1.0E-4;
+        if (onGridLine) {
+            // A hit on a mesh face can land a hair short of the line, which would floor into the tile itself
+            double snapped = Math.rint(sideCoord * 16) / 16;
+            if (side.offsetX != 0) x = snapped;
+            else if (side.offsetY != 0) y = snapped;
+            else z = snapped;
+        }
 
         if (onGridLine && side == ForgeDirection.WEST) {
             x -= align / 16f;

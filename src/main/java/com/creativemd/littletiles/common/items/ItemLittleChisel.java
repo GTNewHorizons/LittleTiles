@@ -51,6 +51,7 @@ import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
+import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -136,10 +137,9 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
                     if (moving == null) {
                         return null;
                     }
-                    end = LittleTileBlockPos.fromMovingObjectPosition(
-                            moving,
-                            align,
-                            handler.getPlaceMode() == LittleTilePlaceMode.STENCIL);
+                    boolean inset = PlacementHelper
+                            .insetsHit(Minecraft.getMinecraft().thePlayer, handler.getPlaceMode(), moving);
+                    end = LittleTileBlockPos.fromMovingObjectPosition(moving, align, inset);
                 }
                 LittleTileBlockPos start = PreviewRenderer.firstHit != null ? PreviewRenderer.firstHit : end;
 

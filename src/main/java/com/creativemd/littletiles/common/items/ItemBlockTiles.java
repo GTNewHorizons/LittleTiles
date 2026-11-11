@@ -105,7 +105,7 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         }
 
         LittleTileBlockPos clickedPos = LittleTileBlockPos
-                .fromMovingObjectPosition(moving, align, placeMode == LittleTilePlaceMode.STENCIL);
+                .fromMovingObjectPosition(moving, align, PlacementHelper.insetsHit(player, placeMode, moving));
         LittleTileBlockPos pos = clickedPos;
 
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;

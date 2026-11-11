@@ -577,7 +577,7 @@ public class PreviewRenderer {
                 if (mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel) {
                     LittleToolHandler handler = new LittleToolHandler(mc.thePlayer.getHeldItem());
                     align = handler.getGrid();
-                    inset = handler.getPlaceMode() == LittleTilePlaceMode.STENCIL;
+                    inset = PlacementHelper.insetsHit(mc.thePlayer, handler.getPlaceMode(), look);
                 }
                 if (emptyRecipe) align = ItemRecipe.GRID;
                 if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {

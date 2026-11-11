@@ -6,6 +6,8 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 import net.minecraft.world.World;
 
 import com.creativemd.littletiles.LittleTiles;
@@ -259,6 +261,17 @@ public final class PlacementHelper {
             }
         }
         return new LittleTileBox(hit, size, doCenter);
+    }
+
+    /**
+     * Whether {@code placeMode} takes the cell behind the face looked at, see
+     * {@link LittleTileBlockPos#fromMovingObjectPosition(MovingObjectPosition, int, boolean)}. Stencil does, as it
+     * removes, but only in tiles: it cannot cut into a regular block.
+     */
+    public static boolean insetsHit(EntityPlayer player, LittleTilePlaceMode placeMode, MovingObjectPosition hit) {
+        return placeMode == LittleTilePlaceMode.STENCIL && hit != null
+                && hit.typeOfHit == MovingObjectType.BLOCK
+                && canBePlacedInsideBlock(player, hit.blockX, hit.blockY, hit.blockZ);
     }
 
     public static boolean canBePlacedInsideBlock(EntityPlayer player, int x, int y, int z) {

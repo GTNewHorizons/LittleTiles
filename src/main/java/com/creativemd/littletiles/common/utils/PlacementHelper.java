@@ -1,6 +1,7 @@
 package com.creativemd.littletiles.common.utils;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
@@ -127,7 +128,9 @@ public final class PlacementHelper {
             boolean fromChisel = stack.stackTagCompound != null
                     && (stack.getItem() == LittleTiles.chisel || stack.stackTagCompound.hasKey("fromChiselPosX"));
 
-            LittleTileBox box = getTilesBox(size, pos, !fromChisel);
+            boolean hasSpot = bounds.boxes.stream().anyMatch(Objects::nonNull);
+            LittleTileVec saved = hasSpot ? bounds.min.copy() : new LittleTileVec(0, 0, 0);
+            LittleTileBox box = getTilesBox(size, pos, !fromChisel, PlacementSetting.getGrid(player), saved);
             if (fromChisel) {
                 boolean posX = stack.stackTagCompound.getBoolean("fromChiselPosX");
                 boolean posY = stack.stackTagCompound.getBoolean("fromChiselPosY");
@@ -229,24 +232,34 @@ public final class PlacementHelper {
         return preview;
     }
 
-    public static LittleTileBox getTilesBox(LittleTileSize size, LittleTileBlockPos pos, boolean doCenter) {
+    /**
+     * Where the tiles go for a hit. The chisel's start at the hit. Other tiles touch the face that was hit, and along
+     * it keep the spot they had in their block, {@code saved}, moved by whole grid steps to the step that centers them
+     * best on the hit. Tiles without a spot of their own take the block's corner as theirs.
+     *
+     * @param pos the pixel hit, in front of the face, see {@link LittleTileBlockPos#fromMovingObjectPosition}
+     */
+    public static LittleTileBox getTilesBox(LittleTileSize size, LittleTileBlockPos pos, boolean doCenter, int grid,
+            LittleTileVec saved) {
         LittleTileVec hit = pos.toHitVecRelative();
         if (!doCenter) return new LittleTileBox(hit, size, false);
         ForgeDirection side = pos.getSide();
-        int minX = tilesMin(hit.x, size.sizeX, side.offsetX);
-        int minY = tilesMin(hit.y, size.sizeY, side.offsetY);
-        int minZ = tilesMin(hit.z, size.sizeZ, side.offsetZ);
+        int minX = tilesMin(hit.x, size.sizeX, side.offsetX, grid, saved.x);
+        int minY = tilesMin(hit.y, size.sizeY, side.offsetY, grid, saved.y);
+        int minZ = tilesMin(hit.z, size.sizeZ, side.offsetZ, grid, saved.z);
         return new LittleTileBox(minX, minY, minZ, minX + size.sizeX, minY + size.sizeY, minZ + size.sizeZ);
     }
 
     /**
-     * The min of the tiles along one axis. On the face's axis they start or end at the hit, along the face they are
-     * centered on it.
+     * The min of the tiles along one axis. On the face's axis they start or end at the hit, along the face they keep
+     * their saved spot, moved by whole grid steps to the step that centers them best on the hit.
      */
-    private static int tilesMin(int hit, int size, int faceOffset) {
+    private static int tilesMin(int hit, int size, int faceOffset, int grid, int saved) {
         if (faceOffset > 0) return hit;
         if (faceOffset < 0) return hit + 1 - size;
-        return hit - size / 2;
+        double steps = (hit + 0.5 - size / 2.0 - saved) / grid;
+        // Ties go down, so a grid of 1 centers like before
+        return saved + (int) Math.ceil(steps - 0.5) * grid;
     }
 
     /**

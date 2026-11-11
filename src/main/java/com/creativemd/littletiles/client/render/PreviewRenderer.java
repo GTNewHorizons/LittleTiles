@@ -588,10 +588,13 @@ public class PreviewRenderer {
                 MovingObjectPosition look = mc.objectMouseOver;
                 LittleTileBlockPos pos = null;
                 int align = 1;
+                // Tiles aim at the exact pixel, placing moves them by the grid, see PlacementHelper#getTilesBox
+                int hitAlign = 1;
                 boolean inset = false;
                 if (mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel) {
                     LittleToolHandler handler = new LittleToolHandler(mc.thePlayer.getHeldItem());
                     align = handler.getGrid();
+                    hitAlign = align;
                     inset = PlacementHelper.insetsHit(mc.thePlayer, handler.getPlaceMode(), look);
                 } else {
                     align = PlacementSetting.getGrid(mc.thePlayer);
@@ -608,7 +611,7 @@ public class PreviewRenderer {
                             0,
                             0,
                             ForgeDirection.UNKNOWN);
-                    else pos = LittleTileBlockPos.fromMovingObjectPosition(look, align, inset);
+                    else pos = LittleTileBlockPos.fromMovingObjectPosition(look, hitAlign, inset);
                 }
 
                 if (markedHit != null) pos = markedHit;

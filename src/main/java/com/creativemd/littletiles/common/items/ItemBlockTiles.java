@@ -112,7 +112,8 @@ public class ItemBlockTiles extends ItemBlock
             align = handler.getGrid();
             placeMode = handler.getPlaceMode();
         } else {
-            align = PlacementSetting.getGrid(player);
+            // Tiles aim at the exact pixel, placing moves them by the grid, see PlacementHelper#getTilesBox
+            align = 1;
             placeMode = PlacementSetting.getPlaceMode(player);
         }
 

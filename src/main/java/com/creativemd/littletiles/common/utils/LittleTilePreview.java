@@ -85,11 +85,6 @@ public final class LittleTilePreview {
     }
 
     public static void flipPreview(NBTTagCompound nbt, ForgeDirection direction) {
-        if (nbt.hasKey("bBoxminX")) {
-            LittleTileBox box = new LittleTileBox("bBox", nbt);
-            box.flipBoxWithCenter(direction, null);
-            box.writeToNBT("bBox", nbt);
-        }
         if (nbt.hasKey("bSize")) {
             int count = nbt.getInteger("bSize");
             for (int i = 0; i < count; i++) {
@@ -105,8 +100,8 @@ public final class LittleTilePreview {
      * wins, since it is the actual extent of the tile. Multiblock previews (recipes) only ever carry boxes.
      */
     public static LittleTileSize getSizeFromNBT(NBTTagCompound nbt) {
-        if (nbt.hasKey("bBoxminX")) {
-            return new LittleTileBox("bBox", nbt).getSize();
+        if (nbt.hasKey("bBox0minX")) {
+            return new LittleTileBox("bBox0", nbt).getSize();
         }
         if (nbt.hasKey("sizex")) {
             return new LittleTileSize("size", nbt);
@@ -119,11 +114,6 @@ public final class LittleTilePreview {
             LittleTileSize size = new LittleTileSize("size", nbt);
             size.rotateSize(direction);
             size.writeToNBT("size", nbt);
-        }
-        if (nbt.hasKey("bBoxminX")) {
-            LittleTileBox box = new LittleTileBox("bBox", nbt);
-            box.rotateBox(direction);
-            box.writeToNBT("bBox", nbt);
         }
         if (nbt.hasKey("bSize")) {
             int count = nbt.getInteger("bSize");
@@ -142,11 +132,8 @@ public final class LittleTilePreview {
         LittleTileSize size = null;
         LittleTileBox box = null;
         if (nbt.hasKey("sizex")) size = new LittleTileSize("size", nbt);
-        if (nbt.hasKey("bBoxminX")) {
-            box = new LittleTileBox("bBox", nbt);
-            if (size == null) size = box.getSize();
-        } else if (nbt.hasKey("bBox0minX")) {
-            // A single tile's stack, picked or dropped, keeps the box it saved as a tile: where it was in its block
+        // The box the tile saved, where it was in its block. Recipes' tiles have it, and so do picked or dropped ones.
+        if (nbt.hasKey("bBox0minX")) {
             box = new LittleTileBox("bBox0", nbt);
             if (size == null) size = box.getSize();
         }

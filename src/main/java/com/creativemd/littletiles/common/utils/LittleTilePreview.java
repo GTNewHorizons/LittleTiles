@@ -145,6 +145,10 @@ public final class LittleTilePreview {
         if (nbt.hasKey("bBoxminX")) {
             box = new LittleTileBox("bBox", nbt);
             if (size == null) size = box.getSize();
+        } else if (nbt.hasKey("bBox0minX")) {
+            // A single tile's stack, picked or dropped, keeps the box it saved as a tile: where it was in its block
+            box = new LittleTileBox("bBox0", nbt);
+            if (size == null) size = box.getSize();
         }
 
         if (size != null) {

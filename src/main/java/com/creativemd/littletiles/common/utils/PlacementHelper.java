@@ -9,6 +9,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.blocks.BlockTile;
@@ -233,30 +234,19 @@ public final class PlacementHelper {
         if (doCenter) {
             LittleTileVec center = size.calculateCenter();
             LittleTileVec centerInv = size.calculateInvertedCenter();
-            switch (pos.getSide()) {
-                case EAST:
-                    hit.x += center.x;
-                    break;
-                case WEST:
-                    hit.x -= centerInv.x - 1;
-                    break;
-                case UP:
-                    hit.y += center.y;
-                    break;
-                case DOWN:
-                    hit.y -= centerInv.y - 1;
-                    break;
-                case SOUTH:
-                    hit.z += center.z;
-                    break;
-                case NORTH:
-                    hit.z -= centerInv.z - 1;
-                    break;
-                default:
-                    break;
-            }
+            ForgeDirection side = pos.getSide();
+            hit.x += faceShift(side.offsetX, center.x, centerInv.x);
+            hit.y += faceShift(side.offsetY, center.y, centerInv.y);
+            hit.z += faceShift(side.offsetZ, center.z, centerInv.z);
         }
         return new LittleTileBox(hit, size, doCenter);
+    }
+
+    /** How far the center moves along one axis, so the centered tiles start or end at the hit on the face's axis. */
+    private static int faceShift(int faceOffset, int center, int centerInv) {
+        if (faceOffset > 0) return center;
+        if (faceOffset < 0) return 1 - centerInv;
+        return 0;
     }
 
     /**

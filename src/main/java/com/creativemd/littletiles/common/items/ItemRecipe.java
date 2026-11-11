@@ -39,8 +39,9 @@ import com.cleanroommc.modularui.factory.PlayerInventoryGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
-import com.cleanroommc.modularui.value.BoolValue;
+import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.Dialog;
 import com.cleanroommc.modularui.widgets.DropDownMenu;
@@ -120,6 +121,13 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
     /** Whether the recipe protects its tiles from being replaced by picking. */
     public static boolean isLocked(ItemStack stack) {
         return hasTiles(stack) && !stack.stackTagCompound.getBoolean(UNLOCKED);
+    }
+
+    /** Locks or opens a recipe with tiles, see {@link #isLocked}. */
+    public static void setLocked(ItemStack stack, boolean locked) {
+        if (stack == null || !(stack.getItem() instanceof ItemRecipe) || !hasTiles(stack)) return;
+        if (locked) stack.stackTagCompound.removeTag(UNLOCKED);
+        else stack.stackTagCompound.setBoolean(UNLOCKED, true);
     }
 
     /**
@@ -497,6 +505,10 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         });
 
         GuiTilePlacement placement = new GuiTilePlacement(syncManager, data.getPlayer());
+        BooleanSyncValue locked = SyncHandlers.bool(
+                () -> data.getUsedItemStack() != null && isLocked(data.getUsedItemStack()),
+                value -> setLocked(data.getUsedItemStack(), value)).allowC2S();
+        syncManager.syncValue("lt_recipe_locked", locked);
         // The recipe's own settings go below the placement all tiles share
         int top = GuiTilePlacement.HEIGHT + 10;
         int width = GuiTilePlacement.PANEL_WIDTH;
@@ -526,7 +538,6 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
             configs.put(id, config);
         }
 
-        BoolValue locked = new BoolValue(isLocked(stack));
         panel.child(IKey.str("Locked").asWidget().pos(width - 55, top + 11));
         ToggleButton lockToggle = new ToggleButton().value(locked);
         lockToggle.pos(width - 20, top + 8).size(14, 14);
@@ -535,12 +546,9 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         lockToggle.addTooltipElement("An open recipe can be replaced by middle clicking on tiles");
         panel.child(lockToggle);
 
-        ButtonWidget<?> save = new ButtonWidget<>();
-        save.overlay(IKey.str("Save")).pos(width - 55, top + 152).size(50, 18);
-        save.onMousePressed(mouseButton -> {
+        Runnable save = () -> {
             String id = ids.get(selected[0]);
             NBTTagCompound nbt = new NBTTagCompound();
-            nbt.setBoolean("locked", locked.getBoolValue());
             LittleStructureEntry entry = LittleStructure.getEntryByID(id);
             LittleStructure structure = entry != null ? entry.parser.parseStructure(configs.get(id)) : null;
             if (structure != null) {
@@ -549,10 +557,8 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
                 nbt.setTag("structure", structureNBT);
             }
             syncManager.callSyncedAction(SYNC_STRUCTURE, buffer -> writeNBT(buffer, nbt));
-            panel.closeIfOpen();
-            return true;
-        });
-        panel.child(save);
+        };
+        for (StructureConfigWidget config : configs.values()) config.onChange(save);
 
         IPanelHandler clearDialog = IPanelHandler.simple(panel, (parent, player) -> {
             Dialog<Boolean> dialog = new Dialog<>("recipe_clear", confirmed -> {
@@ -591,7 +597,10 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         typePicker.background(GuiTextures.BUTTON_CLEAN);
         for (int i = 0; i < ids.size(); i++) {
             int index = i;
-            typePicker.addChoice(menu -> selected[0] = index, ids.get(i));
+            typePicker.addChoice(menu -> {
+                selected[0] = index;
+                save.run();
+            }, ids.get(i));
         }
         typePicker.setSelectedIndex(selected[0]);
         panel.child(typePicker);

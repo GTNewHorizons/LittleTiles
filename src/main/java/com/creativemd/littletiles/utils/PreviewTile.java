@@ -112,7 +112,8 @@ public class PreviewTile {
             boolean doAdd) {
         List<LittleTile> overlapping = new ArrayList<>();
         for (LittleTile t : tileNew.te.getTiles()) {
-            if (t.overlapsTile(tileNew)) {
+            // Tiles in its box but outside its shape are left alone
+            if (t.collidesWith(tileNew)) {
                 overlapping.add(t);
             }
         }
@@ -120,7 +121,11 @@ public class PreviewTile {
         List<LittleTile> newTiles = new ArrayList<>();
         for (LittleTile t : overlapping) {
             // Overwriting a structure removes all its tiles
-            if (!t.isStructureBlock) newTiles.addAll(t.splitByTile(tileNew));
+            if (!t.isStructureBlock) {
+                newTiles.addAll(t.splitByTile(tileNew));
+                // Only its shape is cut out, not its whole box
+                newTiles.addAll(t.antiTilesAgainst(tileNew));
+            }
             t.destroy(false);
         }
         if (doAdd) {

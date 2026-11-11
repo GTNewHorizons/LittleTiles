@@ -231,22 +231,22 @@ public final class PlacementHelper {
 
     public static LittleTileBox getTilesBox(LittleTileSize size, LittleTileBlockPos pos, boolean doCenter) {
         LittleTileVec hit = pos.toHitVecRelative();
-        if (doCenter) {
-            LittleTileVec center = size.calculateCenter();
-            LittleTileVec centerInv = size.calculateInvertedCenter();
-            ForgeDirection side = pos.getSide();
-            hit.x += faceShift(side.offsetX, center.x, centerInv.x);
-            hit.y += faceShift(side.offsetY, center.y, centerInv.y);
-            hit.z += faceShift(side.offsetZ, center.z, centerInv.z);
-        }
-        return new LittleTileBox(hit, size, doCenter);
+        if (!doCenter) return new LittleTileBox(hit, size, false);
+        ForgeDirection side = pos.getSide();
+        int minX = tilesMin(hit.x, size.sizeX, side.offsetX);
+        int minY = tilesMin(hit.y, size.sizeY, side.offsetY);
+        int minZ = tilesMin(hit.z, size.sizeZ, side.offsetZ);
+        return new LittleTileBox(minX, minY, minZ, minX + size.sizeX, minY + size.sizeY, minZ + size.sizeZ);
     }
 
-    /** How far the center moves along one axis, so the centered tiles start or end at the hit on the face's axis. */
-    private static int faceShift(int faceOffset, int center, int centerInv) {
-        if (faceOffset > 0) return center;
-        if (faceOffset < 0) return 1 - centerInv;
-        return 0;
+    /**
+     * The min of the tiles along one axis. On the face's axis they start or end at the hit, along the face they are
+     * centered on it.
+     */
+    private static int tilesMin(int hit, int size, int faceOffset) {
+        if (faceOffset > 0) return hit;
+        if (faceOffset < 0) return hit + 1 - size;
+        return hit - size / 2;
     }
 
     /**

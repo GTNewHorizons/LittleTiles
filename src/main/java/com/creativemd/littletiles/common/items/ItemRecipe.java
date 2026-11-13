@@ -63,6 +63,7 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
+import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 
@@ -331,21 +332,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         if (tiles == null) {
             return new LittleTileSize(0, 0, 0);
         }
-        byte minX = LittleTile.maxPos;
-        byte minY = LittleTile.maxPos;
-        byte minZ = LittleTile.maxPos;
-        byte maxX = LittleTile.minPos;
-        byte maxY = LittleTile.minPos;
-        byte maxZ = LittleTile.minPos;
-        for (LittleTilePreview tile : tiles) {
-            minX = (byte) Math.min(minX, tile.box.minX);
-            minY = (byte) Math.min(minY, tile.box.minY);
-            minZ = (byte) Math.min(minZ, tile.box.minZ);
-            maxX = (byte) Math.max(maxX, tile.box.maxX);
-            maxY = (byte) Math.max(maxY, tile.box.maxY);
-            maxZ = (byte) Math.max(maxZ, tile.box.maxZ);
-        }
-        return new LittleTileSize(maxX - minX, maxY - minY, maxZ - minZ);
+        return PlacementHelper.getSize(tiles);
     }
 
     public static ArrayList<LittleTile> loadTiles(TileEntityLittleTiles te, ItemStack stack) {

@@ -239,6 +239,11 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
                 }
             }
         }
+        // Nothing to place, the recipe stays empty to select another area
+        if (tiles.isEmpty()) {
+            player.addChatMessage(new ChatComponentTranslation("littletiles.recipe.no_tiles"));
+            return;
+        }
         // Empty blocks before the tiles are left out, each tile keeps its place in its block
         int tilesMinX = Integer.MAX_VALUE, tilesMinY = Integer.MAX_VALUE, tilesMinZ = Integer.MAX_VALUE;
         for (LittleTile tile : tiles) {

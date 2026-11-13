@@ -501,6 +501,46 @@ public class Mesh3dTests {
         assertTrue("volume=" + volume + " expected=" + expected, Math.abs(volume - expected) <= EXACT_VOLUME);
     }
 
+    /**
+     * Stencil with a round corner slope into another one leaves what the second one doesn't cover, so the second one
+     * fits back in exactly. Its remainder used to collide with it by a rounding error just above collision's tolerance,
+     * so placing it was refused.
+     */
+    @Test
+    public void stencilledRoundCornerSlopeLeavesRoomForTheStencil() {
+        Vector3i size = new Vector3i(16, 16, 16);
+        LittleTileBlock existing = placed(
+                Tile.of(shape(LittleTileShapeMode.SLOPE_CONCAVE_INNER_CORNER, size, new Vector3i(1, 1, 0), 12))
+                        .fittedToMesh());
+        LittleTileBlock stencil = placed(
+                Tile.of(shape(LittleTileShapeMode.SLOPE_CONCAVE_OUTER_CORNER, size, new Vector3i(0, 0, -4), 28))
+                        .fittedToMesh());
+        assertTrue("the stencil doesn't reach into the tile", existing.collidesWith(stencil));
+
+        // What stencil leaves of the tile, see PreviewTile#placeTileModeOverwrite
+        List<LittleTile> remainder = existing.splitByTile(stencil);
+        remainder.addAll(existing.antiTilesAgainst(stencil));
+        assertFalse("nothing is left", remainder.isEmpty());
+        TileEntityLittleTiles block = new TileEntityLittleTiles();
+        for (LittleTile tile : remainder) {
+            LittleTileCutoutInfo cutout = tile.getCutoutInfo();
+            String what = tile.boundingBox + " " + (cutout == null ? "box" : describe(cutout));
+            assertEquals(
+                    what + " shares volume with the stencil",
+                    0,
+                    MeshCollision.sharedVolume(
+                            tile.boundingBox,
+                            tile.getCutoutInfo(),
+                            stencil.boundingBox,
+                            stencil.getCutoutInfo()),
+                    MeshCutter.VOLUME_EPSILON);
+            block.getTiles().add(tile);
+        }
+        assertTrue(
+                "no room for the stencil",
+                block.isSpaceForLittleTile(stencil.boundingBox.copy(), stencil.getCutoutInfo()));
+    }
+
     /** The one tile anti fill makes for {@code filling} against {@code existing}. */
     private static LittleTile onlyAntiTile(String message, LittleTile filling, LittleTile existing) {
         List<LittleTile> tiles = filling.antiTilesAgainst(existing);
@@ -520,6 +560,14 @@ public class Mesh3dTests {
         LittleTileBlock tile = new LittleTileBlock();
         tile.boundingBox = BLOCK.copy();
         tile.setCutoutInfo(cutout);
+        return tile;
+    }
+
+    private static LittleTileBlock placed(Tile shaped) {
+        LittleTileBlock tile = new LittleTileBlock();
+        tile.boundingBox = shaped.box.copy();
+        tile.setCutoutInfo(shaped.shape);
+        tile.updateCorner();
         return tile;
     }
 }

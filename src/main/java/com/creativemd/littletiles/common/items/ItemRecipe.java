@@ -239,6 +239,23 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
                 }
             }
         }
+        // Empty blocks before the tiles are left out, each tile keeps its place in its block
+        int tilesMinX = Integer.MAX_VALUE, tilesMinY = Integer.MAX_VALUE, tilesMinZ = Integer.MAX_VALUE;
+        for (LittleTile tile : tiles) {
+            if (tile.boundingBox == null) continue;
+            tilesMinX = Math.min(tilesMinX, tile.boundingBox.minX);
+            tilesMinY = Math.min(tilesMinY, tile.boundingBox.minY);
+            tilesMinZ = Math.min(tilesMinZ, tile.boundingBox.minZ);
+        }
+        if (tilesMinX != Integer.MAX_VALUE) {
+            LittleTileVec emptyBlocks = new LittleTileVec(
+                    Math.floorDiv(tilesMinX, 16) * 16,
+                    Math.floorDiv(tilesMinY, 16) * 16,
+                    Math.floorDiv(tilesMinZ, 16) * 16);
+            for (LittleTile tile : tiles) {
+                if (tile.boundingBox != null) tile.boundingBox.subOffset(emptyBlocks);
+            }
+        }
         saveTiles(world, tiles, stack);
     }
 

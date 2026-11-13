@@ -60,6 +60,8 @@ public class PreviewRenderer {
         LittleRotatePacket packet = new LittleRotatePacket(direction);
         packet.executeClient(Minecraft.getMinecraft().thePlayer);
         PacketHandler.sendPacketToServer(packet);
+        // Turned already for this frame, not only once the item is seen to have changed
+        heldBounds = null;
     }
 
     /** Up to how many blocks the chisel preview may reach into and still be textured. */
@@ -556,6 +558,7 @@ public class PreviewRenderer {
                         LittleFlipPacket packet = new LittleFlipPacket(direction);
                         packet.executeClient(mc.thePlayer);
                         PacketHandler.sendPacketToServer(packet);
+                        heldBounds = null;
                     }
                 } else if (!GameSettings.isKeyDown(LittleTilesClient.flip)) {
                     LittleTilesClient.pressedFlip = false;

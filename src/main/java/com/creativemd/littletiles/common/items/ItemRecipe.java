@@ -349,7 +349,6 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         List<NBTTagCompound> tileNBTs = new ArrayList<>();
         for (LittleTile tile : tiles) {
             NBTTagCompound nbt = new NBTTagCompound();
-            tile.boundingBox.writeToNBT("bBox", nbt);
             tile.saveTileForItem(nbt);
             tileNBTs.add(nbt);
         }

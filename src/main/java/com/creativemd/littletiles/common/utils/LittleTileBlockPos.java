@@ -51,7 +51,7 @@ public class LittleTileBlockPos {
         return new LittleTileBlockPos(posX, posY, posZ, subX, subY, subZ, side);
     }
 
-    public static LittleTileBlockPos fromMovingObjectPosition(MovingObjectPosition pos, int align) {
+    public static LittleTileBlockPos fromMovingObjectPosition(MovingObjectPosition pos, int align, boolean inset) {
         ForgeDirection side = ForgeDirection.getOrientation(pos.sideHit);
         double x = pos.hitVec.xCoord;
         double y = pos.hitVec.yCoord;
@@ -69,13 +69,15 @@ public class LittleTileBlockPos {
             else z = snapped;
         }
 
-        if (onGridLine && side == ForgeDirection.WEST) {
+        // Behind the face is in front of it, seen from the other side
+        ForgeDirection front = inset ? side.getOpposite() : side;
+        if (onGridLine && front == ForgeDirection.WEST) {
             x -= align / 16f;
         }
-        if (onGridLine && side == ForgeDirection.DOWN) {
+        if (onGridLine && front == ForgeDirection.DOWN) {
             y -= align / 16f;
         }
-        if (onGridLine && side == ForgeDirection.NORTH) {
+        if (onGridLine && front == ForgeDirection.NORTH) {
             z -= align / 16f;
         }
         int subX = (int) Math.floor((x - Math.floor(x)) * 16);

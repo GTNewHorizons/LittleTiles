@@ -60,6 +60,8 @@ public final class MeshCollision {
             for (Piece pieceB : piecesB) {
                 MeshCutter shared = withinA.copy();
                 if (!pieceB.cut(shared)) return Double.POSITIVE_INFINITY;
+                // Too thin to count, like the parts split leaves whole, so their rounding errors don't add up
+                if (isTiny(shared)) continue;
                 sixTimesVolume += pieceA.sign * pieceB.sign * shared.volumeTimesSix();
             }
         }

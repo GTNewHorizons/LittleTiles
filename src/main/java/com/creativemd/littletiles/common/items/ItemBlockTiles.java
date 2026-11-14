@@ -18,6 +18,12 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.cleanroommc.modularui.api.IGuiHolder;
+import com.cleanroommc.modularui.factory.PlayerInventoryGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.ModularScreen;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.CubeObject;
 import com.creativemd.littletiles.LittleTiles;
@@ -26,6 +32,7 @@ import com.creativemd.littletiles.client.render.ITilesRenderer;
 import com.creativemd.littletiles.client.render.LittleDeformedBoxHelper;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.common.blocks.ILittleTile;
+import com.creativemd.littletiles.common.gui.GuiTilePlacement;
 import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
 import com.creativemd.littletiles.common.placement.LittleTilePlacementPlan;
@@ -37,6 +44,7 @@ import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
+import com.creativemd.littletiles.common.utils.PlacementSetting;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import com.creativemd.littletiles.utils.PreviewTile;
 
@@ -44,7 +52,8 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRenderer {
+public class ItemBlockTiles extends ItemBlock
+        implements ILittleTile, ITilesRenderer, IGuiHolder<PlayerInventoryGuiData> {
 
     public ItemBlockTiles(Block block) {
         super(block);
@@ -96,12 +105,16 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
 
         MovingObjectPosition moving = Minecraft.getMinecraft().objectMouseOver;
 
-        int align = 1;
-        LittleTilePlaceMode placeMode = LittleTilePlaceMode.NORMAL;
+        int align;
+        LittleTilePlaceMode placeMode;
         if (stack.getItem() == LittleTiles.chisel) {
             LittleToolHandler handler = new LittleToolHandler(stack);
             align = handler.getGrid();
             placeMode = handler.getPlaceMode();
+        } else {
+            // Tiles aim at the exact pixel, placing moves them by the grid, see PlacementHelper#getTilesBox
+            align = 1;
+            placeMode = PlacementSetting.getPlaceMode(player);
         }
 
         LittleTileBlockPos clickedPos = LittleTileBlockPos
@@ -361,4 +374,14 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         }
     }
 
+    @Override
+    @SideOnly(Side.CLIENT)
+    public ModularScreen createScreen(PlayerInventoryGuiData data, ModularPanel mainPanel) {
+        return new ModularScreen(LittleTiles.modid, mainPanel);
+    }
+
+    @Override
+    public ModularPanel buildUI(PlayerInventoryGuiData data, PanelSyncManager syncManager, UISettings settings) {
+        return GuiTilePlacement.panel(syncManager, data.getPlayer());
+    }
 }

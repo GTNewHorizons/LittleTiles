@@ -612,6 +612,9 @@ public class PreviewRenderer {
                             0,
                             ForgeDirection.UNKNOWN);
                     else pos = LittleTileBlockPos.fromMovingObjectPosition(look, hitAlign, inset);
+                    // Tiles grow away from the side, so inset ones face into the block, see PlacementHelper#getTilesBox
+                    if (inset && !emptyRecipe && mc.thePlayer.getHeldItem().getItem() != LittleTiles.chisel)
+                        pos = pos.withSide(pos.getSide().getOpposite());
                 }
 
                 if (markedHit != null) pos = markedHit;

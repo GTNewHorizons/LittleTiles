@@ -117,8 +117,11 @@ public class ItemBlockTiles extends ItemBlock
             placeMode = PlacementSetting.getPlaceMode(player);
         }
 
-        LittleTileBlockPos clickedPos = LittleTileBlockPos
-                .fromMovingObjectPosition(moving, align, PlacementHelper.insetsHit(player, placeMode, moving));
+        boolean inset = PlacementHelper.insetsHit(player, placeMode, moving);
+        LittleTileBlockPos clickedPos = LittleTileBlockPos.fromMovingObjectPosition(moving, align, inset);
+        // Tiles grow away from the side, so inset ones face into the block, see PlacementHelper#getTilesBox
+        if (inset && stack.getItem() != LittleTiles.chisel)
+            clickedPos = clickedPos.withSide(clickedPos.getSide().getOpposite());
         LittleTileBlockPos pos = clickedPos;
 
         if (PreviewRenderer.markedHit != null) pos = PreviewRenderer.markedHit;

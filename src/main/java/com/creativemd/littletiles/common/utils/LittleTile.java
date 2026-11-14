@@ -165,6 +165,8 @@ public abstract class LittleTile {
         if (isStructureBlock != tile.isStructureBlock) return false;
         if (disableCollision != tile.disableCollision) return false;
         if (disableConnection != tile.disableConnection) return false;
+        // Combining only joins the boxes, which would drop or stretch a shape
+        if (cutoutInfo != null || tile.cutoutInfo != null) return false;
         return !isStructureBlock || structure == tile.structure;
     }
     // public abstract boolean canBeCombined(LittleTile tile);

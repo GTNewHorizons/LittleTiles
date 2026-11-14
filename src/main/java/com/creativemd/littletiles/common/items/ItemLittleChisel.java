@@ -295,8 +295,11 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
             shapePicker.addChoice(x -> sync.setIntValue(id), mode);
         }
 
-        int shape = handler.getShape().ordinal();
+        int shape = handler.getSelectedShape().ordinal();
         shapePicker.setSelectedIndex(shape);
+        shapePicker.lockTo(
+                LittleTileShapeMode.BOX.ordinal(),
+                () -> handler.getPlaceMode() == LittleTilePlaceMode.ANTI_FILL);
 
         return shapePicker;
     }

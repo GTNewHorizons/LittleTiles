@@ -25,6 +25,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
+import com.creativemd.littletiles.client.util3d.MeshCollision;
 import com.creativemd.littletiles.common.material.LittleMaterial;
 import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -565,6 +566,104 @@ public abstract class LittleTile {
             ret.add(tile);
         }
         return ret;
+    }
+
+    /** Whether this tile actually overlaps the other one, taking both of their shapes into account. */
+    public boolean collidesWith(LittleTile other) {
+        return MeshCollision.intersects(boundingBox, cutoutInfo, other.boundingBox, other.cutoutInfo);
+    }
+
+    /**
+     * Copies of this tile filling what it covers of the box both tiles share, less what the other tile covers there.
+     * The other tile is what all of its {@link LittleTileCutoutInfo#conditions} keep, so it leaves free, for each of
+     * them in turn, what that one doesn't keep but those before it do: one copy each, cut to that as well. Conditions
+     * keeping all of the box or none of it are left out, and so is each one a copy already has. Copies keeping nothing
+     * are left out, and so are those that would need more than {@link LittleTileCutoutInfo#MAX_FURTHER_SHAPES}: what
+     * they would fill is left empty, as fill does.
+     */
+    public List<LittleTile> antiTilesAgainst(LittleTile other) {
+        List<LittleTile> tiles = new ArrayList<>();
+        LittleTileBox box = boundingBox.intersection(other.boundingBox);
+        if (box == null || other.cutoutInfo == null) {
+            return tiles;
+        }
+
+        List<LittleTileCutoutInfo> own = new ArrayList<>();
+        if (cutoutInfo != null) {
+            for (LittleTileCutoutInfo condition : movedTo(cutoutInfo, boundingBox, box).conditions()) {
+                Mesh3dUtil.TileCoverage kept = Mesh3dUtil.classifyTile(box, condition);
+                if (kept == Mesh3dUtil.TileCoverage.EMPTY) {
+                    return tiles;
+                }
+                if (kept == Mesh3dUtil.TileCoverage.PARTIAL) {
+                    own.add(condition);
+                }
+            }
+        }
+
+        List<LittleTileCutoutInfo> before = new ArrayList<>();
+        for (LittleTileCutoutInfo condition : movedTo(other.cutoutInfo, other.boundingBox, box).conditions()) {
+            Mesh3dUtil.TileCoverage kept = Mesh3dUtil.classifyTile(box, condition);
+            if (kept == Mesh3dUtil.TileCoverage.FULL) {
+                continue;
+            }
+            List<LittleTileCutoutInfo> conditions = new ArrayList<>(own);
+            conditions.addAll(before);
+            if (kept == Mesh3dUtil.TileCoverage.PARTIAL) {
+                LittleTileCutoutInfo outside = new LittleTileCutoutInfo(condition);
+                outside.inverted = !outside.inverted;
+                conditions.add(outside);
+            }
+            addAntiTile(tiles, box, conditions);
+            // Keeping nothing, it leaves all the rest free already
+            if (kept == Mesh3dUtil.TileCoverage.EMPTY) {
+                break;
+            }
+            before.add(condition);
+        }
+        return tiles;
+    }
+
+    /** Adds a copy of this tile in the box, cut to what all the conditions keep, unless that is nothing. */
+    private void addAntiTile(List<LittleTile> tiles, LittleTileBox box, List<LittleTileCutoutInfo> conditions) {
+        List<LittleTileCutoutInfo> distinct = new ArrayList<>(conditions.size());
+        for (LittleTileCutoutInfo condition : conditions) {
+            LittleTileCutoutInfo same = null;
+            for (LittleTileCutoutInfo added : distinct) {
+                if (added.sameShapeAs(condition)) {
+                    same = added;
+                    break;
+                }
+            }
+            if (same == null) {
+                distinct.add(condition);
+            } else if (same.inverted != condition.inverted) {
+                // Inside and outside of the same shape at once
+                return;
+            }
+        }
+        if (distinct.size() > 1 + LittleTileCutoutInfo.MAX_FURTHER_SHAPES) {
+            return;
+        }
+
+        LittleTileCutoutInfo cutout = distinct.isEmpty() ? null : LittleTileCutoutInfo.fromConditions(distinct);
+        if (cutout != null && Mesh3dUtil.classifyTile(box, cutout) == Mesh3dUtil.TileCoverage.EMPTY) {
+            return;
+        }
+        LittleTile tile = copy();
+        tile.boundingBox = box.copy();
+        tile.setCutoutInfo(cutout);
+        tile.updateCorner();
+        tiles.add(tile);
+    }
+
+    /** A copy of the cutout of a tile in box {@code from}, positioned for a tile in box {@code to}. */
+    private static LittleTileCutoutInfo movedTo(LittleTileCutoutInfo cutout, LittleTileBox from, LittleTileBox to) {
+        LittleTileCutoutInfo moved = new LittleTileCutoutInfo(cutout);
+        moved.pos.x += from.minX - to.minX;
+        moved.pos.y += from.minY - to.minY;
+        moved.pos.z += from.minZ - to.minZ;
+        return moved;
     }
 
     @Deprecated

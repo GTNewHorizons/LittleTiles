@@ -10,7 +10,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 
-import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil;
 import com.creativemd.littletiles.client.util3d.Mesh3dUtil.TileCoverage;
 import com.creativemd.littletiles.common.structure.LittleStructure;
@@ -195,7 +194,8 @@ public class LittleTilePlacementPlan extends BasePlan {
             return new Fragment(placeTile, null);
         }
 
-        TileCoverage coverage = Mesh3dUtil.classifyTile(placeTile.box, cutout);
+        // The box is this plan's own copy from splitting the preview, so it can be shrunk in place
+        TileCoverage coverage = Mesh3dUtil.fitTile(placeTile.box, cutout);
         if (coverage == TileCoverage.EMPTY) {
             return null;
         }
@@ -203,13 +203,6 @@ public class LittleTilePlacementPlan extends BasePlan {
         if (coverage == TileCoverage.FULL) {
             return new Fragment(placeTile, null);
         }
-
-        Mesh3d mesh = Mesh3dUtil.meshFromTile(placeTile.box, cutout);
-        if (mesh.getTriangles().isEmpty()) {
-            return null;
-        }
-        // The box is this plan's own copy from splitting the preview, so it can be shrunk in place
-        Mesh3dUtil.fitToMesh(placeTile.box, cutout, mesh);
         return new Fragment(placeTile, cutout);
     }
 

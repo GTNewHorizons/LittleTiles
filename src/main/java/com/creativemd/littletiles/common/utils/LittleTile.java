@@ -555,11 +555,13 @@ public abstract class LittleTile {
                 remappedCutout.pos.y += originalBox.minY - box.minY;
                 remappedCutout.pos.z += originalBox.minZ - box.minZ;
 
-                Mesh3d clippedMesh = Mesh3dUtil.meshFromTile(box, remappedCutout);
-                if (clippedMesh.getTriangles().isEmpty()) {
+                // The box is a fresh one from splitting, so it can be shrunk in place
+                Mesh3dUtil.TileCoverage coverage = Mesh3dUtil.fitTile(box, remappedCutout);
+                if (coverage == Mesh3dUtil.TileCoverage.EMPTY) {
                     continue;
                 }
-                tile.setCutoutInfo(remappedCutout);
+                // Pieces the shape fills completely look the same as a plain box tile, see placement
+                tile.setCutoutInfo(coverage == Mesh3dUtil.TileCoverage.FULL ? null : remappedCutout);
             }
 
             tile.updateCorner();
@@ -647,11 +649,18 @@ public abstract class LittleTile {
         }
 
         LittleTileCutoutInfo cutout = distinct.isEmpty() ? null : LittleTileCutoutInfo.fromConditions(distinct);
-        if (cutout != null && Mesh3dUtil.classifyTile(box, cutout) == Mesh3dUtil.TileCoverage.EMPTY) {
-            return;
+        LittleTileBox fitted = box.copy();
+        if (cutout != null) {
+            // A thin sliver of the box left free would otherwise keep the whole box, see placement
+            Mesh3dUtil.TileCoverage coverage = Mesh3dUtil.fitTile(fitted, cutout);
+            if (coverage == Mesh3dUtil.TileCoverage.EMPTY) {
+                return;
+            }
+            // Only partial conditions can't fill the box, but a plain box would look the same if they did
+            if (coverage == Mesh3dUtil.TileCoverage.FULL) cutout = null;
         }
         LittleTile tile = copy();
-        tile.boundingBox = box.copy();
+        tile.boundingBox = fitted;
         tile.setCutoutInfo(cutout);
         tile.updateCorner();
         tiles.add(tile);

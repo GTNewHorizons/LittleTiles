@@ -40,6 +40,7 @@ import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTileBounds;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
+import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
@@ -60,10 +61,13 @@ public class PreviewRenderer {
         LittleRotatePacket packet = new LittleRotatePacket(direction);
         packet.executeClient(Minecraft.getMinecraft().thePlayer);
         PacketHandler.sendPacketToServer(packet);
+        // Turned already for this frame, not only once the item is seen to have changed
+        heldBounds = null;
     }
 
     /** Up to how many blocks the chisel preview may reach into and still be textured. */
     private static final int CHISEL_PREVIEW_LIMIT = 27;
+    private static final Vec3 STENCIL_COLOR = Vec3.createVectorHelper(1, 0, 0);
     /** How far the recipe area is grown past its blocks, in blocks. */
     private static final double RECIPE_AREA_GROW = 0.002;
     /** Opacity of the edges of the recipe area. */
@@ -119,6 +123,14 @@ public class PreviewRenderer {
     /** Whether both corners of an ordinary two-hit chisel preview are fixed and can be selected. */
     public static boolean hasTwoHitCorners() {
         return firstHit != null && markedHit != null;
+    }
+
+    /**
+     * {@link PlacementHelper#insetsHit} for the client player. Common code calls this instead of passing
+     * {@code thePlayer} itself, which would make the verifier load the client only player class on the server.
+     */
+    public static boolean insetsHit(LittleTilePlaceMode placeMode, MovingObjectPosition hit) {
+        return PlacementHelper.insetsHit(Minecraft.getMinecraft().thePlayer, placeMode, hit);
     }
 
     /** The pickable cubes of the two fixed chisel corners, {@link #firstHit} first: the grid cell each one names. */
@@ -279,6 +291,11 @@ public class PreviewRenderer {
         return held != null && held.getItem() == LittleTiles.chisel;
     }
 
+    private static boolean holdsStencil() {
+        return holdsChisel() && new LittleToolHandler(Minecraft.getMinecraft().thePlayer.getHeldItem()).getPlaceMode()
+                == LittleTilePlaceMode.STENCIL;
+    }
+
     private static Vector3i sizeInPixels(Vec3 size) {
         return new Vector3i(
                 (int) Math.round(size.xCoord * 16),
@@ -303,6 +320,7 @@ public class PreviewRenderer {
     private static boolean isTexturedPreview(PreviewTile previewTile, Vec3 center, Vec3 size) {
         if (!previewTile.isTextured()) return false;
         if (!holdsChisel()) return true;
+        if (holdsStencil()) return false;
 
         Vector3i min = worldMinPixels(center, size);
         Vector3i pixels = sizeInPixels(size);
@@ -422,7 +440,8 @@ public class PreviewRenderer {
         GL11.glPushMatrix();
         Vec3 center = getPreviewCenter(previewTile, pos, x, y, z, align);
         Vec3 size = previewTile.getPreviewBox().getSizeD();
-        Vec3 color = previewTile.getPreviewColor();
+        // Stencil only removes, so it is shown as what it cuts away rather than as a tile
+        Vec3 color = holdsStencil() ? STENCIL_COLOR : previewTile.getPreviewColor();
 
         LittleToolHandler toolHandler;
 
@@ -556,6 +575,7 @@ public class PreviewRenderer {
                         LittleFlipPacket packet = new LittleFlipPacket(direction);
                         packet.executeClient(mc.thePlayer);
                         PacketHandler.sendPacketToServer(packet);
+                        heldBounds = null;
                     }
                 } else if (!GameSettings.isKeyDown(LittleTilesClient.flip)) {
                     LittleTilesClient.pressedFlip = false;
@@ -564,8 +584,11 @@ public class PreviewRenderer {
                 MovingObjectPosition look = mc.objectMouseOver;
                 LittleTileBlockPos pos = null;
                 int align = 1;
+                boolean inset = false;
                 if (mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel) {
-                    align = new LittleToolHandler(mc.thePlayer.getHeldItem()).getGrid();
+                    LittleToolHandler handler = new LittleToolHandler(mc.thePlayer.getHeldItem());
+                    align = handler.getGrid();
+                    inset = PlacementHelper.insetsHit(mc.thePlayer, handler.getPlaceMode(), look);
                 }
                 if (emptyRecipe) align = ItemRecipe.GRID;
                 if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {
@@ -578,7 +601,7 @@ public class PreviewRenderer {
                             0,
                             0,
                             ForgeDirection.UNKNOWN);
-                    else pos = LittleTileBlockPos.fromMovingObjectPosition(look, align);
+                    else pos = LittleTileBlockPos.fromMovingObjectPosition(look, align, inset);
                 }
 
                 if (markedHit != null) pos = markedHit;
@@ -642,11 +665,13 @@ public class PreviewRenderer {
 
                     ArrayList<PreviewTile> previews;
 
-                    // A multi tile item is drawn from its buffer, so one tile spanning its bounds is enough to place
-                    // it. The bounds are read once instead of every frame.
+                    // A multi tile item or recipe is drawn from its buffer, so one tile spanning its bounds is enough
+                    // to place it. The bounds are read once instead of every frame.
                     TileGeometryBuffer itemBuffer = itemBuffer(held);
+                    Item heldItem = held.getItem();
+                    boolean drawnFromBounds = heldItem == LittleTiles.multiTiles || heldItem == LittleTiles.recipe;
                     if (emptyRecipe) previews = new ArrayList<>();
-                    else if (itemBuffer != null && held.getItem() == LittleTiles.multiTiles) {
+                    else if (itemBuffer != null && drawnFromBounds) {
                         if (heldBounds == null) heldBounds = new LittleTileBounds(ItemRecipe.getPreview(held));
                         LittleTileVec min = heldBounds.min;
                         LittleTileSize size = heldBounds.size;

@@ -420,7 +420,7 @@ public class Mesh3dTests {
             assertFalse(turned + " collides with the first", againstBoth.collidesWith(first));
             assertFalse(turned + " collides with the second", againstBoth.collidesWith(second));
 
-            Tile anti = Tile.of(againstBoth.getCutoutInfo(), againstBoth.boundingBox);
+            Tile anti = Tile.of(againstBoth);
             double volume = anti.volume(), meshVolume = MeshGeometry.volume(anti.mesh());
             assertTrue(turned + " volume=" + volume + " free=" + free, Math.abs(volume - free) <= EXACT_VOLUME);
             assertTrue(
@@ -493,7 +493,7 @@ public class Mesh3dTests {
         for (LittleTile tile : antiOfAnti) {
             String what = describe(tile.getCutoutInfo());
             assertFalse(what + " collides with the anti tile", tile.collidesWith(anti));
-            Tile filled = Tile.of(tile.getCutoutInfo(), tile.boundingBox);
+            Tile filled = Tile.of(tile);
             assertNull(what, MeshGeometry.findOpenEdge(filled.mesh()));
             volume += filled.volume();
         }

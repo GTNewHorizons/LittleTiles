@@ -140,12 +140,15 @@ public final class MeshCollision {
                     if (!within.cut(Triangle3d.planeThrough(face.getP1(), face.getP2(), face.getP3()))) return null;
                     if (isTiny(within)) break;
                 }
+                if (isTiny(within)) {
+                    split.add(part);
+                    splitDepths.add(depths.getInt(i));
+                    continue;
+                }
                 for (MeshCutter outside : beyond) {
                     split.add(outside);
                     splitDepths.add(depths.getInt(i));
                 }
-                // Too thin to count, it is left out rather than counted outside the piece, so it can't overlap it
-                if (isTiny(within)) continue;
                 split.add(within);
                 splitDepths.add(depths.getInt(i) + piece.sign);
             }

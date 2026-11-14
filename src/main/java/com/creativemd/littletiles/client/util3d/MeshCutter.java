@@ -133,6 +133,15 @@ public final class MeshCutter {
         return copy;
     }
 
+    /** The planes of the faces, each once, see {@link Triangle3d#getFacePlane}. */
+    public List<Plane3d> facePlanes() {
+        List<Plane3d> planes = new ArrayList<>();
+        for (Face face : faces) {
+            if (!planes.contains(face.plane)) planes.add(face.plane);
+        }
+        return planes;
+    }
+
     /** Whether nothing is left of the mesh. */
     public boolean isEmpty() {
         return faces.isEmpty();
@@ -195,7 +204,7 @@ public final class MeshCutter {
         // Closes the cut with caps, joined from the open edges in the plane
         List<int[]> loops = loops(edgesInPlane);
         if (loops == null) return false;
-        for (int[] loop : loops) {
+        for (int[] loop : bridgeHoles(loops, plane.getNormal())) {
             addCap(plane, loop);
         }
         return true;
@@ -252,6 +261,131 @@ public final class MeshCutter {
             loops.add(loop.toIntArray());
         }
         return loops;
+    }
+
+    /**
+     * The loops of a cap, each hole joined into the loop around it by a bridge there and back, so that every part of
+     * the cap is a single loop. Loops wound counterclockwise around the normal bound the cap, clockwise ones are holes
+     * in it, like where a solid turned inside out is cut through.
+     */
+    private List<int[]> bridgeHoles(List<int[]> loops, Vector3d normal) {
+        if (loops.size() < 2) return loops;
+        List<IntArrayList> outlines = new ArrayList<>(), holes = new ArrayList<>();
+        for (int[] loop : loops) {
+            IntArrayList list = new IntArrayList(loop);
+            (area(list, normal) >= 0 ? outlines : holes).add(list);
+        }
+        List<int[]> caps = new ArrayList<>(loops.size());
+        while (!holes.isEmpty()) {
+            IntArrayList hole = holes.remove(holes.size() - 1), around = null;
+            // The smallest outline around it, or one touching it, which can only be from inside
+            for (IntArrayList outline : outlines) {
+                if (sharedPoint(outline, hole) >= 0) {
+                    around = outline;
+                    break;
+                }
+                if (encloses(outline, hole, normal) && (around == null || area(outline, normal) < area(around, normal)))
+                    around = outline;
+            }
+            if (around == null) {
+                // Only for meshes folded over themselves: capped on its own, which still keeps the mesh closed
+                caps.add(hole.toIntArray());
+            } else {
+                bridge(around, hole, outlines, holes, normal);
+            }
+        }
+        for (IntArrayList outline : outlines) {
+            caps.add(outline.toIntArray());
+        }
+        return caps;
+    }
+
+    /** Twice the area of the loop, negative if it is wound clockwise around the normal. */
+    private double area(IntArrayList loop, Vector3d normal) {
+        double area = 0;
+        for (int i = 1; i + 1 < loop.size(); i++) {
+            area += cross(loop.getInt(0), loop.getInt(i), loop.getInt(i + 1), normal);
+        }
+        return area;
+    }
+
+    /**
+     * Whether the outline goes around the hole, by the winding number around the points of the hole. A point can lie
+     * right on the outline where the hole touches it, so one point inside is enough, as loops don't cross.
+     */
+    private boolean encloses(IntArrayList outline, IntArrayList hole, Vector3d normal) {
+        // Counts the edges crossing the line through the point along up, any direction in the plane
+        Vector3d up = new Vector3d(Math.abs(normal.x) < 0.5 ? 1 : 0, Math.abs(normal.x) < 0.5 ? 0 : 1, 0);
+        up.cross(normal, up);
+        for (int j = 0; j < hole.size(); j++) {
+            int point = hole.getInt(j);
+            double height = up.dot(points.get(point));
+            int winding = 0;
+            for (int i = 0; i < outline.size(); i++) {
+                int a = outline.getInt(i), b = outline.getInt((i + 1) % outline.size());
+                boolean aBelow = up.dot(points.get(a)) <= height, bBelow = up.dot(points.get(b)) <= height;
+                if (aBelow && !bBelow && cross(a, b, point, normal) > 0) winding++;
+                if (!aBelow && bBelow && cross(a, b, point, normal) < 0) winding--;
+            }
+            if (winding != 0) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Joins the hole into the loop around it, by the shortest bridge between them that crosses no edge of any loop: the
+     * loop runs over to the hole, around it and back. Where they touch, the bridge has no length.
+     */
+    private void bridge(IntArrayList around, IntArrayList hole, List<IntArrayList> outlines, List<IntArrayList> holes,
+            Vector3d normal) {
+        List<IntArrayList> blocking = new ArrayList<>(outlines);
+        blocking.addAll(holes);
+        blocking.add(hole);
+        // Only for caps rounding has tangled up, no bridge is free: any still keeps the cap closed
+        int from = 0, to = 0;
+        double shortest = Double.POSITIVE_INFINITY;
+        for (int i = 0; i < around.size(); i++) {
+            for (int j = 0; j < hole.size(); j++) {
+                double length = Mesh3d.distanceSquared(points.get(around.getInt(i)), points.get(hole.getInt(j)));
+                if (length < shortest && !crossesAny(around.getInt(i), hole.getInt(j), blocking, normal)) {
+                    shortest = length;
+                    from = i;
+                    to = j;
+                }
+            }
+        }
+        // A shared point is passed once on the way there and once on the way back
+        int same = around.getInt(from) == hole.getInt(to) ? 1 : 0;
+        IntArrayList bridged = new IntArrayList(around.size() + hole.size() + 2);
+        bridged.addElements(0, around.elements(), 0, from + 1);
+        for (int j = same; j <= hole.size(); j++) {
+            bridged.add(hole.getInt((to + j) % hole.size()));
+        }
+        bridged.addElements(bridged.size(), around.elements(), from + same, around.size() - from - same);
+        around.clear();
+        around.addAll(bridged);
+    }
+
+    /** A point both loops run through, or -1. */
+    private static int sharedPoint(IntArrayList a, IntArrayList b) {
+        for (int i = 0; i < b.size(); i++) {
+            if (a.contains(b.getInt(i))) return b.getInt(i);
+        }
+        return -1;
+    }
+
+    /** Whether the segment between the points crosses an edge of the loops, other than at its ends. */
+    private boolean crossesAny(int a, int b, List<IntArrayList> loops, Vector3d normal) {
+        for (IntArrayList loop : loops) {
+            for (int i = 0; i < loop.size(); i++) {
+                int c = loop.getInt(i), d = loop.getInt((i + 1) % loop.size());
+                if (c == a || c == b || d == a || d == b) continue;
+                if (cross(a, b, c, normal) * cross(a, b, d, normal) < 0
+                        && cross(c, d, a, normal) * cross(c, d, b, normal) < 0)
+                    return true;
+            }
+        }
+        return false;
     }
 
     /**

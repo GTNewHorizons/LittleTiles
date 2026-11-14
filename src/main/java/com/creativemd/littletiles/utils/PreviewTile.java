@@ -78,11 +78,42 @@ public class PreviewTile {
         return tiles;
     }
 
+    /**
+     * Places as much of the new tile as fits around the existing ones, like {@link #placeTileModeFill}. Where a part of
+     * the new tile runs into an existing shape, or a tile leaving shapes free, it fills what that tile leaves free
+     * instead of leaving the tile's whole box empty, see {@link LittleTile#antiTilesAgainst}. Where the shapes cannot
+     * describe that, the part leaves out its overlap, as the regular fill does.
+     */
+    private List<LittleTile> placeTileModeAntiFill(LittleTile tileNew, EntityPlayer player, ItemStack stack) {
+        List<LittleTile> tiles = new ArrayList<>();
+        tiles.add(tileNew);
+
+        for (LittleTile existing : tileNew.te.getTiles()) {
+            List<LittleTile> newTiles = new ArrayList<>();
+            for (LittleTile t : tiles) {
+                if (!t.collidesWith(existing)) {
+                    newTiles.add(t);
+                    continue;
+                }
+                newTiles.addAll(t.splitByTile(existing));
+                newTiles.addAll(t.antiTilesAgainst(existing));
+            }
+            tiles = newTiles;
+        }
+
+        for (LittleTile tile : tiles) {
+            tile.place();
+            tile.onPlaced(player, stack);
+        }
+        return tiles;
+    }
+
     private List<LittleTile> placeTileModeOverwrite(LittleTile tileNew, EntityPlayer player, ItemStack stack,
             boolean doAdd) {
         List<LittleTile> overlapping = new ArrayList<>();
         for (LittleTile t : tileNew.te.getTiles()) {
-            if (t.overlapsTile(tileNew)) {
+            // Tiles in its box but outside its shape are left alone
+            if (t.collidesWith(tileNew)) {
                 overlapping.add(t);
             }
         }
@@ -90,7 +121,11 @@ public class PreviewTile {
         List<LittleTile> newTiles = new ArrayList<>();
         for (LittleTile t : overlapping) {
             // Overwriting a structure removes all its tiles
-            if (!t.isStructureBlock) newTiles.addAll(t.splitByTile(tileNew));
+            if (!t.isStructureBlock) {
+                newTiles.addAll(t.splitByTile(tileNew));
+                // Only its shape is cut out, not its whole box
+                newTiles.addAll(t.antiTilesAgainst(tileNew));
+            }
             t.destroy(false);
         }
         if (doAdd) {
@@ -134,6 +169,8 @@ public class PreviewTile {
             return ret;
         } else if (placeMode == LittleTilePlaceMode.FILL) {
             return placeTileModeFill(LT, player, stack);
+        } else if (placeMode == LittleTilePlaceMode.ANTI_FILL) {
+            return placeTileModeAntiFill(LT, player, stack);
         } else if (placeMode == LittleTilePlaceMode.OVERWRITE) {
             return placeTileModeOverwrite(LT, player, stack, true);
         } else if (placeMode == LittleTilePlaceMode.STENCIL) {

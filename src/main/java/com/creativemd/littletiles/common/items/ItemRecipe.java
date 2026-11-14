@@ -63,6 +63,7 @@ import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlockPos;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
+import com.creativemd.littletiles.common.utils.PlacementHelper;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 
@@ -239,12 +240,40 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
                 }
             }
         }
+        // Nothing to place, the recipe stays empty to select another area
+        if (tiles.isEmpty()) {
+            player.addChatMessage(new ChatComponentTranslation("littletiles.recipe.no_tiles"));
+            return;
+        }
+        // Empty blocks before the tiles are left out, each tile keeps its place in its block
+        int tilesMinX = Integer.MAX_VALUE, tilesMinY = Integer.MAX_VALUE, tilesMinZ = Integer.MAX_VALUE;
+        for (LittleTile tile : tiles) {
+            if (tile.boundingBox == null) continue;
+            tilesMinX = Math.min(tilesMinX, tile.boundingBox.minX);
+            tilesMinY = Math.min(tilesMinY, tile.boundingBox.minY);
+            tilesMinZ = Math.min(tilesMinZ, tile.boundingBox.minZ);
+        }
+        if (tilesMinX != Integer.MAX_VALUE) {
+            LittleTileVec emptyBlocks = new LittleTileVec(
+                    Math.floorDiv(tilesMinX, 16) * 16,
+                    Math.floorDiv(tilesMinY, 16) * 16,
+                    Math.floorDiv(tilesMinZ, 16) * 16);
+            for (LittleTile tile : tiles) {
+                if (tile.boundingBox != null) tile.boundingBox.subOffset(emptyBlocks);
+            }
+        }
         saveTiles(world, tiles, stack);
     }
 
     @Override
     public ArrayList<LittleTilePreview> getLittlePreview(ItemStack stack) {
         return hasTiles(stack) ? getPreview(stack) : null;
+    }
+
+    /** Checked every frame while held: the tiles only have to be read when they are placed or previewed. */
+    @Override
+    public boolean hasLittlePreview(ItemStack stack) {
+        return hasTiles(stack);
     }
 
     @Override
@@ -303,21 +332,7 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         if (tiles == null) {
             return new LittleTileSize(0, 0, 0);
         }
-        byte minX = LittleTile.maxPos;
-        byte minY = LittleTile.maxPos;
-        byte minZ = LittleTile.maxPos;
-        byte maxX = LittleTile.minPos;
-        byte maxY = LittleTile.minPos;
-        byte maxZ = LittleTile.minPos;
-        for (LittleTilePreview tile : tiles) {
-            minX = (byte) Math.min(minX, tile.box.minX);
-            minY = (byte) Math.min(minY, tile.box.minY);
-            minZ = (byte) Math.min(minZ, tile.box.minZ);
-            maxX = (byte) Math.max(maxX, tile.box.maxX);
-            maxY = (byte) Math.max(maxY, tile.box.maxY);
-            maxZ = (byte) Math.max(maxZ, tile.box.maxZ);
-        }
-        return new LittleTileSize(maxX - minX, maxY - minY, maxZ - minZ);
+        return PlacementHelper.getSize(tiles);
     }
 
     public static ArrayList<LittleTile> loadTiles(TileEntityLittleTiles te, ItemStack stack) {

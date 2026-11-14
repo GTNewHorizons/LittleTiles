@@ -123,6 +123,14 @@ public class PreviewRenderer {
         return firstHit != null && markedHit != null;
     }
 
+    /**
+     * {@link PlacementHelper#insetsHit} for the client player. Common code calls this instead of passing
+     * {@code thePlayer} itself, which would make the verifier load the client only player class on the server.
+     */
+    public static boolean insetsHit(LittleTilePlaceMode placeMode, MovingObjectPosition hit) {
+        return PlacementHelper.insetsHit(Minecraft.getMinecraft().thePlayer, placeMode, hit);
+    }
+
     /** The pickable cubes of the two fixed chisel corners, {@link #firstHit} first: the grid cell each one names. */
     static AxisAlignedBB[] twoHitCornerBoxes(int grid) {
         return new AxisAlignedBB[] { firstHit.getHitBox(grid), markedHit.getHitBox(grid) };

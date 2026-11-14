@@ -1,7 +1,13 @@
 package com.creativemd.littletiles.common.utils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.joml.Vector3i;
@@ -11,6 +17,9 @@ import com.creativemd.littletiles.client.util3d.OrientationMapper;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 public class LittleTileCutoutInfo {
+
+    /** At most this many {@link #furtherShapes}, so that a tile stays cheap to cut, and so do cutouts from clients. */
+    public static final int MAX_FURTHER_SHAPES = 16;
 
     public LittleTileShapeMode type;
     public Vector3i size;
@@ -25,6 +34,18 @@ public class LittleTileCutoutInfo {
      * described by <code>Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT</code>. Null for every other shape.
      */
     public Vector3i[] corners;
+    /**
+     * Whether the tile is the anti mesh of its shape: everything inside the tile box the shape itself does not cover.
+     * {@link LittleTilePlaceMode#ANTI_FILL} creates these to fill against existing shapes.
+     */
+    public boolean inverted;
+    /**
+     * Further shapes the tile is cut by: like its own shape, each keeps what lies within it, or what lies outside it if
+     * it is {@link #inverted}, so the tile is what all of its {@link #conditions} keep. Anti fill against several
+     * shapes, or against tiles cut by several, needs them. Their {@link #pos} is relative to this one's, so moving this
+     * cutout moves them along. They have no further shapes of their own.
+     */
+    public final List<LittleTileCutoutInfo> furtherShapes = new ArrayList<>();
 
     public LittleTileCutoutInfo() {
         size = new Vector3i();
@@ -42,6 +63,53 @@ public class LittleTileCutoutInfo {
         negY = other.negY;
         negZ = other.negZ;
         corners = copyCorners(other.corners);
+        inverted = other.inverted;
+        for (LittleTileCutoutInfo shape : other.furtherShapes) {
+            furtherShapes.add(new LittleTileCutoutInfo(shape));
+        }
+    }
+
+    /**
+     * Its own shape and then the {@link #furtherShapes}, each positioned relative to the tile box like this one and
+     * without further shapes: the tile is what all of them keep, each its inside, or its outside if it is
+     * {@link #inverted}.
+     */
+    public List<LittleTileCutoutInfo> conditions() {
+        List<LittleTileCutoutInfo> conditions = new ArrayList<>(1 + furtherShapes.size());
+        LittleTileCutoutInfo own = new LittleTileCutoutInfo(this);
+        own.furtherShapes.clear();
+        conditions.add(own);
+        for (LittleTileCutoutInfo shape : furtherShapes) {
+            LittleTileCutoutInfo further = new LittleTileCutoutInfo(shape);
+            further.pos.add(pos);
+            conditions.add(further);
+        }
+        return conditions;
+    }
+
+    /** The cutout keeping what all the {@link #conditions} keep, the first one its own shape. */
+    public static LittleTileCutoutInfo fromConditions(List<LittleTileCutoutInfo> conditions) {
+        LittleTileCutoutInfo cutout = new LittleTileCutoutInfo(conditions.get(0));
+        for (int i = 1; i < conditions.size(); i++) {
+            LittleTileCutoutInfo further = new LittleTileCutoutInfo(conditions.get(i));
+            further.pos.sub(cutout.pos);
+            cutout.furtherShapes.add(further);
+        }
+        return cutout;
+    }
+
+    /** Whether both are the very same shape in the very same place, whichever side of it they keep. */
+    public boolean sameShapeAs(LittleTileCutoutInfo other) {
+        return type == other.type && size.equals(other.size)
+                && pos.equals(other.pos)
+                && orientation == other.orientation
+                && thickness == other.thickness
+                && faceStart == other.faceStart
+                && faceEnd == other.faceEnd
+                && negX == other.negX
+                && negY == other.negY
+                && negZ == other.negZ
+                && Arrays.equals(corners, other.corners);
     }
 
     public static Vector3i[] copyCorners(Vector3i[] corners) {
@@ -108,6 +176,11 @@ public class LittleTileCutoutInfo {
     }
 
     public static LittleTileCutoutInfo loadFromNBT(NBTTagCompound nbt) {
+        return loadFromNBT(nbt, true);
+    }
+
+    /** @param withFurtherShapes false for a further shape, which has none of its own */
+    private static LittleTileCutoutInfo loadFromNBT(NBTTagCompound nbt, boolean withFurtherShapes) {
         if (nbt == null || !nbt.hasKey("cutoutType")) {
             return null;
         }
@@ -143,6 +216,14 @@ public class LittleTileCutoutInfo {
         cutoutInfo.negX = nbt.getBoolean("cutoutNegX");
         cutoutInfo.negY = nbt.getBoolean("cutoutNegY");
         cutoutInfo.negZ = nbt.getBoolean("cutoutNegZ");
+        cutoutInfo.inverted = nbt.getBoolean("cutoutInverted");
+        NBTTagList furtherShapes = nbt.getTagList("cutoutFurtherShapes", Constants.NBT.TAG_COMPOUND);
+        if (furtherShapes.tagCount() > (withFurtherShapes ? MAX_FURTHER_SHAPES : 0)) return null;
+        for (int i = 0; i < furtherShapes.tagCount(); i++) {
+            LittleTileCutoutInfo shape = loadFromNBT(furtherShapes.getCompoundTagAt(i), false);
+            if (shape == null) return null;
+            cutoutInfo.furtherShapes.add(shape);
+        }
         if (cutoutInfo.type == LittleTileShapeMode.DEFORMED_BOX) {
             cutoutInfo.corners = new Vector3i[Mesh3dUtil.DEFORMED_BOX_CORNER_COUNT];
             for (int i = 0; i < cutoutInfo.corners.length; i++) {
@@ -183,6 +264,18 @@ public class LittleTileCutoutInfo {
             for (int i = 0; i < corners.length; i++) {
                 writeVec(nbt, "cutoutCorner" + i, corners[i]);
             }
+        }
+        if (inverted) {
+            nbt.setBoolean("cutoutInverted", true);
+        }
+        if (!furtherShapes.isEmpty()) {
+            NBTTagList list = new NBTTagList();
+            for (LittleTileCutoutInfo shape : furtherShapes) {
+                NBTTagCompound tag = new NBTTagCompound();
+                shape.writeToNBT(tag);
+                list.appendTag(tag);
+            }
+            nbt.setTag("cutoutFurtherShapes", list);
         }
     }
 }

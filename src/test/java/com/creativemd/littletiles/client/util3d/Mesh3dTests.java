@@ -1,15 +1,23 @@
 package com.creativemd.littletiles.client.util3d;
 
 import static com.creativemd.littletiles.client.util3d.BlockSpace.BLOCK;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.EXACT_VOLUME;
+import static com.creativemd.littletiles.client.util3d.MeshAssertions.ROUNDING_VOLUME;
 import static com.creativemd.littletiles.client.util3d.Shapes.describe;
 import static com.creativemd.littletiles.client.util3d.Shapes.shape;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
+import java.util.List;
 
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.common.util.ForgeDirection;
+
+import org.joml.Matrix3f;
 import org.joml.Vector3i;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -17,10 +25,13 @@ import org.junit.Test;
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.client.util3d.MeshGeometry.FaceFilter;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
+import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
+import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 
 /** Always-run regression tests for the meshes of tiles. */
 public class Mesh3dTests {
@@ -376,5 +387,187 @@ public class Mesh3dTests {
         double visible = MeshGeometry
                 .area(MeshGeometry.visiblePart(faceMesh, new Mesh3d(Collections.singletonList(alongIt))));
         assertTrue("area=" + area + " visible=" + visible, Math.abs(visible - area) <= area * 1.0E-6);
+    }
+
+    /**
+     * Two round slopes filling the block, the second turned a quarter about an axis, leave free what neither of them
+     * covers. Anti fill against both has to fill exactly that: the tile filling against the first one used to be left
+     * out where it ran into the second.
+     */
+    @Test
+    public void antiFillAgainstTwoTurnedRoundSlopesFillsWhatBothLeaveFree() {
+        Vector3i size = new Vector3i(16, 16, 16), pos = new Vector3i();
+        LittleTileBlock first = placed(shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, 0));
+        float quarter = (float) Math.PI / 2;
+        for (Matrix3f turn : new Matrix3f[] { new Matrix3f().rotateX(quarter), new Matrix3f().rotateY(quarter),
+                new Matrix3f().rotateZ(quarter) }) {
+            LittleTileBlock second = placed(
+                    shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, OrientationMapper.toId(turn)));
+            String turned = describe(second.getCutoutInfo());
+            double free = BlockSpace.volume(BLOCK) - Tile.of(first.getCutoutInfo()).volume()
+                    - Tile.of(second.getCutoutInfo()).volume()
+                    + MeshCollision.sharedVolume(BLOCK, first.getCutoutInfo(), BLOCK, second.getCutoutInfo())
+                            * BlockSpace.PIXELS
+                            * BlockSpace.PIXELS
+                            * BlockSpace.PIXELS;
+            assertTrue(turned + " leaves nothing free", free > 1);
+
+            LittleTileBlock filling = new LittleTileBlock();
+            filling.boundingBox = BLOCK.copy();
+            filling.updateCorner();
+            LittleTile againstFirst = onlyAntiTile(turned, filling, first);
+            LittleTile againstBoth = onlyAntiTile(turned, againstFirst, second);
+            assertFalse(turned + " collides with the first", againstBoth.collidesWith(first));
+            assertFalse(turned + " collides with the second", againstBoth.collidesWith(second));
+
+            Tile anti = Tile.of(againstBoth.getCutoutInfo(), againstBoth.boundingBox);
+            double volume = anti.volume(), meshVolume = MeshGeometry.volume(anti.mesh());
+            assertTrue(turned + " volume=" + volume + " free=" + free, Math.abs(volume - free) <= EXACT_VOLUME);
+            assertTrue(
+                    turned + " mesh volume=" + meshVolume + " free=" + free,
+                    Math.abs(meshVolume - free) <= ROUNDING_VOLUME);
+            assertNull(turned, MeshGeometry.findOpenEdge(anti.mesh()));
+        }
+    }
+
+    /**
+     * An anti tile filling against two shapes, picked up and turned, still fills what the two shapes leave free when
+     * they are turned the same way: its further shapes have to turn along with its own.
+     */
+    @Test
+    public void antiTileAgainstTwoShapesTurnsWithThem() {
+        Vector3i size = new Vector3i(16, 16, 16), pos = new Vector3i();
+        LittleTileBlock first = placed(shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, 0));
+        Matrix3f quarter = new Matrix3f().rotateY((float) Math.PI / 2);
+        LittleTileBlock second = placed(
+                shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, OrientationMapper.toId(quarter)));
+        LittleTileBlock filling = new LittleTileBlock();
+        filling.boundingBox = BLOCK.copy();
+        filling.updateCorner();
+        LittleTile anti = onlyAntiTile("", onlyAntiTile("", filling, first), second);
+        double volume = Tile.of(anti.getCutoutInfo(), BLOCK).volume();
+
+        for (ForgeDirection direction : new ForgeDirection[] { ForgeDirection.UP, ForgeDirection.NORTH,
+                ForgeDirection.EAST }) {
+            LittleTileCutoutInfo turnedAnti = turnedInBlock(anti.getCutoutInfo(), direction);
+            String turned = "turned " + direction;
+            LittleTileCutoutInfo turnedFirst = turnedInBlock(first.getCutoutInfo(), direction);
+            LittleTileCutoutInfo turnedSecond = turnedInBlock(second.getCutoutInfo(), direction);
+            assertFalse(
+                    turned + " collides with the first",
+                    MeshCollision.intersects(BLOCK, turnedAnti, BLOCK, turnedFirst));
+            assertFalse(
+                    turned + " collides with the second",
+                    MeshCollision.intersects(BLOCK, turnedAnti, BLOCK, turnedSecond));
+            double turnedVolume = Tile.of(turnedAnti, BLOCK).volume();
+            assertTrue(
+                    turned + " volume=" + turnedVolume + " expected=" + volume,
+                    Math.abs(turnedVolume - volume) <= EXACT_VOLUME);
+        }
+    }
+
+    /**
+     * Anti fill against a tile that itself fills against two round slopes, the second turned a quarter, fills what the
+     * two slopes cover: one tile can't, so the first slope fills one and the second, less the first, another.
+     */
+    @Test
+    public void antiFillAgainstAnAntiTileOfTwoShapesFillsBoth() {
+        Vector3i size = new Vector3i(16, 16, 16), pos = new Vector3i();
+        LittleTileBlock first = placed(shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, 0));
+        Matrix3f quarter = new Matrix3f().rotateY((float) Math.PI / 2);
+        LittleTileBlock second = placed(
+                shape(LittleTileShapeMode.SLOPE_CONCAVE, size, pos, OrientationMapper.toId(quarter)));
+        LittleTileBlock filling = new LittleTileBlock();
+        filling.boundingBox = BLOCK.copy();
+        filling.updateCorner();
+        LittleTile anti = onlyAntiTile("", onlyAntiTile("", filling, first), second);
+
+        List<LittleTile> antiOfAnti = filling.antiTilesAgainst(anti);
+        assertEquals(2, antiOfAnti.size());
+        double expected = Tile.of(first.getCutoutInfo()).volume() + Tile.of(second.getCutoutInfo()).volume()
+                - MeshCollision.sharedVolume(BLOCK, first.getCutoutInfo(), BLOCK, second.getCutoutInfo())
+                        * BlockSpace.PIXELS
+                        * BlockSpace.PIXELS
+                        * BlockSpace.PIXELS;
+        double volume = 0;
+        for (LittleTile tile : antiOfAnti) {
+            String what = describe(tile.getCutoutInfo());
+            assertFalse(what + " collides with the anti tile", tile.collidesWith(anti));
+            Tile filled = Tile.of(tile.getCutoutInfo(), tile.boundingBox);
+            assertNull(what, MeshGeometry.findOpenEdge(filled.mesh()));
+            volume += filled.volume();
+        }
+        assertFalse("the two collide", antiOfAnti.get(0).collidesWith(antiOfAnti.get(1)));
+        assertTrue("volume=" + volume + " expected=" + expected, Math.abs(volume - expected) <= EXACT_VOLUME);
+    }
+
+    /**
+     * Stencil with a round corner slope into another one leaves what the second one doesn't cover, so the second one
+     * fits back in exactly. Its remainder used to collide with it by a rounding error just above collision's tolerance,
+     * so placing it was refused.
+     */
+    @Test
+    public void stencilledRoundCornerSlopeLeavesRoomForTheStencil() {
+        Vector3i size = new Vector3i(16, 16, 16);
+        LittleTileBlock existing = placed(
+                Tile.of(shape(LittleTileShapeMode.SLOPE_CONCAVE_INNER_CORNER, size, new Vector3i(1, 1, 0), 12))
+                        .fittedToMesh());
+        LittleTileBlock stencil = placed(
+                Tile.of(shape(LittleTileShapeMode.SLOPE_CONCAVE_OUTER_CORNER, size, new Vector3i(0, 0, -4), 28))
+                        .fittedToMesh());
+        assertTrue("the stencil doesn't reach into the tile", existing.collidesWith(stencil));
+
+        // What stencil leaves of the tile, see PreviewTile#placeTileModeOverwrite
+        List<LittleTile> remainder = existing.splitByTile(stencil);
+        remainder.addAll(existing.antiTilesAgainst(stencil));
+        assertFalse("nothing is left", remainder.isEmpty());
+        TileEntityLittleTiles block = new TileEntityLittleTiles();
+        for (LittleTile tile : remainder) {
+            LittleTileCutoutInfo cutout = tile.getCutoutInfo();
+            String what = tile.boundingBox + " " + (cutout == null ? "box" : describe(cutout));
+            assertEquals(
+                    what + " shares volume with the stencil",
+                    0,
+                    MeshCollision.sharedVolume(
+                            tile.boundingBox,
+                            tile.getCutoutInfo(),
+                            stencil.boundingBox,
+                            stencil.getCutoutInfo()),
+                    MeshCutter.VOLUME_EPSILON);
+            block.getTiles().add(tile);
+        }
+        assertTrue(
+                "no room for the stencil",
+                block.isSpaceForLittleTile(stencil.boundingBox.copy(), stencil.getCutoutInfo()));
+    }
+
+    /** The one tile anti fill makes for {@code filling} against {@code existing}. */
+    private static LittleTile onlyAntiTile(String message, LittleTile filling, LittleTile existing) {
+        List<LittleTile> tiles = filling.antiTilesAgainst(existing);
+        assertEquals(message, 1, tiles.size());
+        return tiles.get(0);
+    }
+
+    /** The cutout of a tile filling the block, turned the way picking it up and rotating it turns it. */
+    private static LittleTileCutoutInfo turnedInBlock(LittleTileCutoutInfo cutout, ForgeDirection direction) {
+        NBTTagCompound nbt = new NBTTagCompound();
+        cutout.writeToNBT(nbt);
+        new LittleToolHandler(nbt).handleRotation(direction, new LittleTileSize(16, 16, 16));
+        return LittleTileCutoutInfo.loadFromNBT(nbt);
+    }
+
+    private static LittleTileBlock placed(LittleTileCutoutInfo cutout) {
+        LittleTileBlock tile = new LittleTileBlock();
+        tile.boundingBox = BLOCK.copy();
+        tile.setCutoutInfo(cutout);
+        return tile;
+    }
+
+    private static LittleTileBlock placed(Tile shaped) {
+        LittleTileBlock tile = new LittleTileBlock();
+        tile.boundingBox = shaped.box.copy();
+        tile.setCutoutInfo(shaped.shape);
+        tile.updateCorner();
+        return tile;
     }
 }

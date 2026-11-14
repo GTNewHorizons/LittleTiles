@@ -9,6 +9,7 @@ import java.util.List;
 import org.joml.Vector3i;
 
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.LittleTileShapeMode;
@@ -39,6 +40,12 @@ public final class Tile {
         LittleTileCutoutInfo stored = new LittleTileCutoutInfo(shape);
         stored.pos = new Vector3i(shape.pos).sub(BlockSpace.min(box));
         return new Tile(box, stored);
+    }
+
+    /** The tile as the game holds it, its shape already relative to its own box. */
+    public static Tile of(LittleTile tile) {
+        LittleTileCutoutInfo shape = tile.getCutoutInfo();
+        return new Tile(tile.boundingBox.copy(), shape == null ? null : new LittleTileCutoutInfo(shape));
     }
 
     public static Tile plainBox(LittleTileBox box) {

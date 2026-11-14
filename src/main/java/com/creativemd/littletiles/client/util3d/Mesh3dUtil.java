@@ -458,6 +458,21 @@ public class Mesh3dUtil {
     }
 
     /**
+     * Gets a tile in {@code box} with {@code cutoutInfo} ready to be placed: {@link TileCoverage#EMPTY} when there is
+     * nothing to place, {@link TileCoverage#FULL} when it should be a plain box tile instead, and otherwise
+     * {@link TileCoverage#PARTIAL} with both shrunk to the shape, see {@link #fitToMesh}.
+     */
+    public static TileCoverage fitTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {
+        TileCoverage coverage = classifyTile(box, cutoutInfo);
+        if (coverage != TileCoverage.PARTIAL) return coverage;
+
+        Mesh3d mesh = meshFromTile(box, cutoutInfo);
+        if (mesh.getTriangles().isEmpty()) return TileCoverage.EMPTY;
+        fitToMesh(box, cutoutInfo, mesh);
+        return TileCoverage.PARTIAL;
+    }
+
+    /**
      * Shrinks {@code box} to the tile pixels {@code mesh} reaches and moves the cutout along, so both still describe
      * the same shape. A cut can leave a thin sliver of a big shape in a tile, which would otherwise keep the whole box.
      *

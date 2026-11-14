@@ -400,7 +400,7 @@ public class PreviewRenderer {
 
     /**
      * Draws the item's geometry in place of its textured preview tiles. They are all moved by the same offset, so the
-     * lowest corners of the item and of the preview match.
+     * lowest corners of the item and of the preview match. Stencil draws it untextured, like the other previews.
      */
     private static void renderItemBuffer(TileGeometryBuffer buffer, ArrayList<PreviewTile> previews,
             LittleTileBlockPos pos, double x, double y, double z, int align, double alpha) {
@@ -415,13 +415,18 @@ public class PreviewRenderer {
         }
         if (minX == Double.MAX_VALUE) return;
 
+        boolean stencil = holdsStencil();
         boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
         GL11.glDisable(GL11.GL_LIGHTING);
-        // The vertices carry their own colors, so the fading comes from the blending instead
-        GL14.glBlendColor(0, 0, 0, (float) alpha);
-        GL11.glBlendFunc(GL11.GL_CONSTANT_ALPHA, GL11.GL_ONE_MINUS_CONSTANT_ALPHA);
+        if (stencil) {
+            GL11.glColor4d(STENCIL_COLOR.xCoord, STENCIL_COLOR.yCoord, STENCIL_COLOR.zCoord, alpha);
+        } else {
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+            // The vertices carry their own colors, so the fading comes from the blending instead
+            GL14.glBlendColor(0, 0, 0, (float) alpha);
+            GL11.glBlendFunc(GL11.GL_CONSTANT_ALPHA, GL11.GL_ONE_MINUS_CONSTANT_ALPHA);
+        }
         // The buffer cannot be pulled towards the camera like the immediate preview, so it is offset in depth instead
         GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
         GL11.glPolygonOffset(-1, -1);
@@ -429,13 +434,18 @@ public class PreviewRenderer {
         Vec3 bufferMin = buffer.getMin();
         GL11.glPushMatrix();
         GL11.glTranslated(minX - bufferMin.xCoord, minY - bufferMin.yCoord, minZ - bufferMin.zCoord);
-        buffer.render();
+        if (stencil) buffer.renderUntextured();
+        else buffer.render();
         GL11.glPopMatrix();
 
         GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
-        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+        if (stencil) {
+            GL11.glColor4f(1, 1, 1, 1);
+        } else {
+            OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
+        }
         if (lightingWasEnabled) GL11.glEnable(GL11.GL_LIGHTING);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
     }
 
     /** The shape of the preview tile: textured like its item, or untextured in its preview color. */
@@ -680,8 +690,7 @@ public class PreviewRenderer {
 
                     // A multi tile item or recipe is drawn from its buffer, so one tile spanning its bounds is enough
                     // to place it. The bounds are read once instead of every frame.
-                    // Stencil is shown untextured, which the buffer cannot do
-                    TileGeometryBuffer itemBuffer = holdsStencil() ? null : itemBuffer(held);
+                    TileGeometryBuffer itemBuffer = itemBuffer(held);
                     Item heldItem = held.getItem();
                     boolean drawnFromBounds = heldItem == LittleTiles.multiTiles || heldItem == LittleTiles.recipe;
                     if (emptyRecipe) previews = new ArrayList<>();

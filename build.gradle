@@ -28,6 +28,7 @@ def optionalPermutationTests = [
     'TEST_PERMUTATIONS_BOX_CAPS',
     'TEST_PERMUTATIONS_FRAGMENTS',
     'TEST_PERMUTATIONS_ANTI_MESH',
+    'TEST_BENCHMARK_STENCIL',
 ]
 
 tasks.register('listOptionalPermutationTests') {

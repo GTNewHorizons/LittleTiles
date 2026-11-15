@@ -1,11 +1,16 @@
 package com.creativemd.littletiles.client.util3d;
 
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import com.creativemd.creativecore.lib.Vector3d;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -18,6 +23,17 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
  * add up to the volume the tiles share.
  */
 public final class MeshCollision {
+
+    private static final int CACHE_SIZE = 1024;
+
+    /**
+     * The {@link #disjointPieces} of the tiles seen lately, keyed by copies of their box and cutout: the same tile is
+     * asked for again and again, by collision, fitting and its mesh, and working them out is costly. A tile that
+     * changes simply gets another key. Empty if a cut could not be closed. Shared between the server and the client's
+     * threads, so the pieces must only be read.
+     */
+    private static final Cache<SimpleImmutableEntry<LittleTileBox, LittleTileCutoutInfo>, Optional<List<MeshCutter>>> disjointPiecesCache = CacheBuilder
+            .newBuilder().maximumSize(CACHE_SIZE).build();
 
     private MeshCollision() {}
 
@@ -100,11 +116,26 @@ public final class MeshCollision {
 
     /**
      * The tile, its cutout having {@link LittleTileCutoutInfo#furtherShapes}, as convex pieces that don't overlap: what
-     * of its box all its {@link LittleTileCutoutInfo#conditions} keep.
+     * of its box all its {@link LittleTileCutoutInfo#conditions} keep. Shared with everyone asking for the same tile,
+     * so they must only be read, see {@link MeshCutter#copy}.
      *
      * @return null if a cut could not be closed
      */
     public static List<MeshCutter> disjointPieces(LittleTileBox box, LittleTileCutoutInfo cutout) {
+        SimpleImmutableEntry<LittleTileBox, LittleTileCutoutInfo> key = new SimpleImmutableEntry<>(
+                box.copy(),
+                new LittleTileCutoutInfo(cutout));
+        Optional<List<MeshCutter>> pieces = disjointPiecesCache.getIfPresent(key);
+        if (pieces == null) {
+            // Two threads asking at once both work them out, which only costs time
+            List<MeshCutter> calculated = calculateDisjointPieces(box, cutout);
+            pieces = Optional.ofNullable(calculated == null ? null : Collections.unmodifiableList(calculated));
+            disjointPiecesCache.put(key, pieces);
+        }
+        return pieces.orElse(null);
+    }
+
+    private static List<MeshCutter> calculateDisjointPieces(LittleTileBox box, LittleTileCutoutInfo cutout) {
         List<MeshCutter> parts = new ArrayList<>();
         parts.add(MeshCutter.box(box));
         for (LittleTileCutoutInfo condition : cutout.conditions()) {

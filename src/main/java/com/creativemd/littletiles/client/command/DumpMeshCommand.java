@@ -63,12 +63,12 @@ public class DumpMeshCommand extends CommandBase {
         Minecraft mc = Minecraft.getMinecraft();
         EntityPlayer player = mc.thePlayer;
 
-        TileEntityLittleTiles te = findTileEntity(player, mc.objectMouseOver);
-        if (te == null) {
+        LittleTile tile = findTile(player, mc.objectMouseOver);
+        if (tile == null) {
             sender.addChatMessage(new ChatComponentTranslation(ERROR_KEY));
             return;
         }
-        LittleTile tile = te.loadedTile;
+        TileEntityLittleTiles te = tile.te;
         boolean dumped = false;
         // the full and the culled dump share their index, so they can be matched up
         int dumpIndex = Mesh3d.nextDumpIndex();
@@ -119,7 +119,7 @@ public class DumpMeshCommand extends CommandBase {
         }
     }
 
-    private static TileEntityLittleTiles findTileEntity(EntityPlayer player, MovingObjectPosition look) {
+    private static LittleTile findTile(EntityPlayer player, MovingObjectPosition look) {
         if (look == null || look.typeOfHit != MovingObjectType.BLOCK) {
             return null;
         }
@@ -127,11 +127,7 @@ public class DumpMeshCommand extends CommandBase {
         if (!(te instanceof TileEntityLittleTiles)) {
             return null;
         }
-        TileEntityLittleTiles teLT = (TileEntityLittleTiles) te;
-        if (!teLT.updateLoadedTile(player)) {
-            return null;
-        }
-        return teLT;
+        return ((TileEntityLittleTiles) te).getHitTile(player);
     }
 
     /** Writes the tile state beside the OBJ, or on its own when the mesh cannot be dumped. */

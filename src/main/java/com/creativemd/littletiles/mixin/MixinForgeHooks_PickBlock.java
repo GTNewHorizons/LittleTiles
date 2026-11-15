@@ -21,6 +21,7 @@ import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.packet.LittleBlockPacket;
 import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -49,9 +50,12 @@ public class MixinForgeHooks_PickBlock {
                 && !ItemRecipe.isLocked(stack)
                 && instance == LittleTiles.blockTile) {
             final TileEntity tileEntity = world.getTileEntity(x, y, z);
-            if (tileEntity instanceof TileEntityLittleTiles littleTile && littleTile.updateLoadedTile(player)) {
+            final LittleTile tile = tileEntity instanceof TileEntityLittleTiles littleTile
+                    ? littleTile.getHitTile(player)
+                    : null;
+            if (tile != null) {
                 NBTTagCompound nbt = new NBTTagCompound();
-                boolean entireBlock = BlockTile.takesEntireBlock(player, littleTile.loadedTile);
+                boolean entireBlock = BlockTile.takesEntireBlock(player, tile);
                 nbt.setBoolean(LittleBlockPacket.ENTIRE_BLOCK, entireBlock);
                 PacketHandler.sendPacketToServer(
                         new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.RECIPE_PICK, nbt));
@@ -66,12 +70,10 @@ public class MixinForgeHooks_PickBlock {
             }
             if (instance == LittleTiles.blockTile) {
                 final TileEntity tileEntity = world.getTileEntity(x, y, z);
-                if (tileEntity instanceof TileEntityLittleTiles littleTile && littleTile.updateLoadedTile(player)) {
-                    final LittleTileBlock tileBlock = (LittleTileBlock) littleTile.loadedTile;
-                    try {
-                        littletiles$setBlock(stack, tileBlock.block, tileBlock.meta);
-                        return null;
-                    } catch (Exception ignored) {}
+                if (tileEntity instanceof TileEntityLittleTiles littleTile
+                        && littleTile.getHitTile(player) instanceof LittleTileBlock tileBlock) {
+                    littletiles$setBlock(stack, tileBlock.block, tileBlock.meta);
+                    return null;
                 }
             }
         }
@@ -79,11 +81,12 @@ public class MixinForgeHooks_PickBlock {
         // getPickBlock refuses an entire block with too many tiles silently, so only this actual pick tells why.
         if (picked == null && instance == LittleTiles.blockTile
                 && player.capabilities.isCreativeMode
-                && world.getTileEntity(x, y, z) instanceof TileEntityLittleTiles littleTile
-                && littleTile.loadedTile != null
-                && BlockTile.takesEntireBlock(player, littleTile.loadedTile)
-                && !BlockTile.fitsOneItem(BlockTile.selectEntireBlock(littleTile)))
-            BlockTile.tellTooManyTiles(player);
+                && world.getTileEntity(x, y, z) instanceof TileEntityLittleTiles littleTile) {
+            final LittleTile tile = littleTile.getHitTile(player);
+            if (tile != null && BlockTile.takesEntireBlock(player, tile)
+                    && !BlockTile.fitsOneItem(BlockTile.selectEntireBlock(littleTile)))
+                BlockTile.tellTooManyTiles(player);
+        }
         return picked;
     }
 }

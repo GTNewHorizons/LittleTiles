@@ -161,7 +161,8 @@ public class LittleTilePlacementPlan extends BasePlan {
         }
 
         for (LittleTile littleTile : tiles) {
-            if (structure != null) {
+            // Overwrite also returns what is left of the tiles it cut, which stay outside the structure
+            if (structure != null && littleTile.structure == structure) {
                 if (structureMainPosition == null) {
                     structure.mainTile = littleTile;
                     littleTile.isMainBlock = true;

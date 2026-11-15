@@ -37,6 +37,21 @@ public class Mesh3dUtil {
         TEMPLATES.put(LittleTileShapeMode.SLOPE_TRIANGLE_ALT, Mesh3dTemplateLoader.load("slope_triangle_alternate"));
         TEMPLATES.put(LittleTileShapeMode.SLOPE_OUTER_CORNER, Mesh3dTemplateLoader.load("slope_outer"));
         TEMPLATES.put(LittleTileShapeMode.SLOPE_INNER_CORNER, Mesh3dTemplateLoader.load("slope_inner"));
+
+        // Concave round slopes split into many pyramids, but are the cube less their convex complement
+        lessComplement(LittleTileShapeMode.SLOPE_CONCAVE, LittleTileShapeMode.SLOPE_CONVEX);
+        lessComplement(LittleTileShapeMode.SLOPE_CONCAVE_INNER_CORNER, LittleTileShapeMode.SLOPE_CONVEX_OUTER_CORNER);
+        lessComplement(LittleTileShapeMode.SLOPE_CONCAVE_OUTER_CORNER, LittleTileShapeMode.SLOPE_CONVEX_INNER_CORNER);
+    }
+
+    /** The turn that makes each round slope fill the unit cube together with its complement. */
+    private static final int COMPLEMENT_ORIENTATION = 34;
+
+    private static void lessComplement(LittleTileShapeMode shape, LittleTileShapeMode complement) {
+        TEMPLATES.put(
+                shape,
+                Mesh3dTemplateLoader
+                        .lessComplement(TEMPLATES.get(shape), TEMPLATES.get(complement), COMPLEMENT_ORIENTATION));
     }
 
     public static Mesh3d meshFromTile(LittleTileBox box, LittleTileCutoutInfo cutoutInfo) {

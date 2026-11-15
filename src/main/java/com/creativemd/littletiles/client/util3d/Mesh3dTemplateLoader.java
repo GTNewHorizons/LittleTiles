@@ -66,6 +66,27 @@ public final class Mesh3dTemplateLoader {
         return new Template(surface, pieces);
     }
 
+    /**
+     * The template with its solid as the unit cube less the complement's, turned by the orientation, where that takes
+     * fewer pieces: the cube, and the complement's pieces wound inside out so that they count negatively. A concave
+     * round slope is many pyramids, but the cube less a convex one.
+     *
+     * @param complement  the template whose solid, turned, fills the unit cube together with this one's
+     * @param orientation the turn, see {@link OrientationMapper}
+     */
+    public static Template lessComplement(Template template, Template complement, int orientation) {
+        if (complement.pieces.size() + 1 >= template.pieces.size()) return template;
+        List<Mesh3d> pieces = new ArrayList<>();
+        pieces.add(new Mesh3d(groupByPlane(Mesh3dUtil.createBoxMesh().getTriangles())));
+        for (Mesh3d piece : complement.pieces) {
+            Mesh3d turned = piece.copy();
+            turned.rotate(orientation, new Vector3d(1, 1, 1));
+            turned.flipWindingOrder();
+            pieces.add(turned);
+        }
+        return new Template(template.surface, pieces);
+    }
+
     /** The triangles each convex piece is the pyramid over, merged greedily from one pyramid per triangle. */
     private static List<List<Triangle3d>> pyramidBases(List<Triangle3d> triangles, Vector3d apex) {
         List<List<Triangle3d>> bases = new ArrayList<>();

@@ -173,7 +173,7 @@ public class LittleTilePlacementPlan extends BasePlan {
                     littleTile.coord = new LittleTileCoord(
                             tile,
                             structureMainPosition.coord,
-                            structureMainPosition.position);
+                            structureMainPosition.position).withCutout(structure.mainTile.getCutoutInfo());
                 }
             }
             if (!soundsToBePlayed.contains(littleTile.getSound())) soundsToBePlayed.add(littleTile.getSound());

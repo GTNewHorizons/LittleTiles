@@ -197,11 +197,8 @@ public class StencilBenchmark {
         long start = System.nanoTime();
         boolean space = true;
         for (LittleTile tile : tiles) {
-            if (MeshCollision.intersects(
-                    stencil.boundingBox,
-                    stencil.getCutoutInfo(),
-                    tile.boundingBox,
-                    tile.getCutoutInfo())) {
+            if (MeshCollision
+                    .intersects(stencil.boundingBox, stencil.getCutoutInfo(), tile.boundingBox, tile.getCutoutInfo())) {
                 space = false;
                 break;
             }

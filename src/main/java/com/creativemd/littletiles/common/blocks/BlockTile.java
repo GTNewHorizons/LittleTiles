@@ -187,11 +187,7 @@ public class BlockTile extends BlockContainer implements IFacade {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
         final LittleTile tile = littleTile != null ? littleTile.getHitTile(Minecraft.getMinecraft().thePlayer) : null;
         if (tile != null) {
-            try { // Why try? because the number of tiles can change while this method is called
-                return tile.getSelectedBox().getOffsetBoundingBox(x, y, z);
-            } catch (Exception ignored) {
-
-            }
+            return tile.getSelectedBox().getOffsetBoundingBox(x, y, z);
         }
         return AxisAlignedBB.getBoundingBox(x, y, z, x, y, z);
     }
@@ -257,13 +253,8 @@ public class BlockTile extends BlockContainer implements IFacade {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
         final LittleTile tile = littleTile != null && world.isRemote ? littleTile.getHitTile(player) : null;
         if (tile != null) {
-            try {
-                PacketHandler
-                        .sendPacketToServer(new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.ACTIVATE));
-                return tile.onBlockActivated(world, x, y, z, player, side, moveX, moveY, moveZ);
-            } catch (Exception ignored) {
-
-            }
+            PacketHandler.sendPacketToServer(new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.ACTIVATE));
+            return tile.onBlockActivated(world, x, y, z, player, side, moveX, moveY, moveZ);
         }
         if (cancelNext) {
             cancelNext = false;
@@ -298,15 +289,11 @@ public class BlockTile extends BlockContainer implements IFacade {
 
     @Override
     public int getLightValue(IBlockAccess world, int x, int y, int z) {
-        try { // Why try? because the number of tiles can change while this method is called
-            final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
-            if (littleTile != null) {
-                return littleTile.getMaxLightValue();
-            }
-            return 0;
-        } catch (Exception e) {
-            return 0;
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null) {
+            return littleTile.getMaxLightValue();
         }
+        return 0;
     }
 
     @Override
@@ -321,27 +308,23 @@ public class BlockTile extends BlockContainer implements IFacade {
             final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
             final LittleTile tile = littleTile != null ? littleTile.getHitTile(player) : null;
             if (tile != null) {
-                try {
-                    boolean entireBlock = takesEntireBlock(player, tile);
-                    if (entireBlock) {
-                        List<LittleTile> tiles = selectEntireBlock(littleTile);
-                        // Only survival gets the tiles as an item, creative just removes them.
-                        if (!player.capabilities.isCreativeMode && !fitsOneItem(tiles)) {
-                            tellTooManyTiles(player);
-                            return false;
-                        }
-                        littleTile.removeTiles(tiles);
-                    } else tile.destroy();
-                    NBTTagCompound nbt = new NBTTagCompound();
-                    littleTile.writeToNBT(nbt);
-                    NBTTagCompound packetNbt = new NBTTagCompound();
-                    packetNbt.setBoolean(LittleBlockPacket.ENTIRE_BLOCK, entireBlock);
-                    PacketHandler.sendPacketToServer(
-                            new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.DESTROY, packetNbt));
-                    littleTile.updateRender();
-                } catch (Exception ignored) {
-
-                }
+                boolean entireBlock = takesEntireBlock(player, tile);
+                if (entireBlock) {
+                    List<LittleTile> tiles = selectEntireBlock(littleTile);
+                    // Only survival gets the tiles as an item, creative just removes them.
+                    if (!player.capabilities.isCreativeMode && !fitsOneItem(tiles)) {
+                        tellTooManyTiles(player);
+                        return false;
+                    }
+                    littleTile.removeTiles(tiles);
+                } else tile.destroy();
+                NBTTagCompound nbt = new NBTTagCompound();
+                littleTile.writeToNBT(nbt);
+                NBTTagCompound packetNbt = new NBTTagCompound();
+                packetNbt.setBoolean(LittleBlockPacket.ENTIRE_BLOCK, entireBlock);
+                PacketHandler.sendPacketToServer(
+                        new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.DESTROY, packetNbt));
+                littleTile.updateRender();
             }
             return true;
         }
@@ -445,18 +428,14 @@ public class BlockTile extends BlockContainer implements IFacade {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
         final LittleTile tile = littleTile != null ? littleTile.getHitTile(player) : null;
         if (tile != null) {
-            try {
-                // Survival picks from the inventory and could never find the item, so only creative gets the block
-                if (player.capabilities.isCreativeMode && takesEntireBlock(player, tile)) {
-                    List<LittleTile> tiles = selectEntireBlock(littleTile);
-                    // Silent, as tooltips like NEI's call this every frame. The actual pick tells the player.
-                    return fitsOneItem(tiles) ? getEntireBlockDrop(world, tiles) : null;
-                }
-                ArrayList<ItemStack> drops = tile.getDrops();
-                if (!drops.isEmpty()) return drops.get(0);
-            } catch (Exception ignored) {
-
+            // Survival picks from the inventory and could never find the item, so only creative gets the block
+            if (player.capabilities.isCreativeMode && takesEntireBlock(player, tile)) {
+                List<LittleTile> tiles = selectEntireBlock(littleTile);
+                // Silent, as tooltips like NEI's call this every frame. The actual pick tells the player.
+                return fitsOneItem(tiles) ? getEntireBlockDrop(world, tiles) : null;
             }
+            ArrayList<ItemStack> drops = tile.getDrops();
+            if (!drops.isEmpty()) return drops.get(0);
         }
         return null;
     }
@@ -487,62 +466,52 @@ public class BlockTile extends BlockContainer implements IFacade {
     @Override
     @SideOnly(Side.CLIENT)
     public boolean addHitEffects(World world, MovingObjectPosition target, EffectRenderer effectRenderer) {
-        try { // Why try? because the loaded tile can change while setting this icon
-            final TileEntityLittleTiles littleTile = getTileEntityAt(
-                    world,
-                    target.blockX,
-                    target.blockY,
-                    target.blockZ);
-            final LittleTile tile = littleTile != null ? littleTile.getHitTile(Minecraft.getMinecraft().thePlayer)
-                    : null;
-            if (tile != null) {
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, target.blockX, target.blockY, target.blockZ);
+        final LittleTile tile = littleTile != null ? littleTile.getHitTile(Minecraft.getMinecraft().thePlayer) : null;
+        if (tile != null) {
+            AxisAlignedBB box = tile.getSelectedBox();
 
-                AxisAlignedBB box = tile.getSelectedBox();
-
-                int meta = 0;
-                if (tile.boundingBox != null) {
-                    meta = tile.boundingBox.getCube().meta;
-                }
-
-                float f = 0.1F;
-                double d0 = target.blockX + rand.nextDouble() * (box.maxX - box.minX - (f * 2.0)) + f + box.minX;
-                double d1 = target.blockY + rand.nextDouble() * (box.maxY - box.minY - (f * 2.0)) + f + box.minY;
-                double d2 = target.blockZ + rand.nextDouble() * (box.maxZ - box.minZ - (f * 2.0)) + f + box.minZ;
-
-                switch (target.sideHit) {
-                    case 0:
-                        d1 = target.blockY + box.minY - f;
-                        break;
-                    case 1:
-                        d1 = target.blockY + box.maxY + f;
-                        break;
-                    case 2:
-                        d2 = target.blockZ + box.minZ - f;
-                        break;
-                    case 3:
-                        d2 = target.blockZ + box.maxZ + f;
-                        break;
-                    case 4:
-                        d0 = target.blockX + box.minX - f;
-                        break;
-                    case 5:
-                        d0 = target.blockX + box.maxX + f;
-                        break;
-                }
-
-                EntityDiggingFX fx = new EntityDiggingFX(world, d0, d1, d2, 0, 0, 0, this, meta);
-                fx.applyColourMultiplier(target.blockX, target.blockY, target.blockZ);
-                fx.multiplyVelocity(0.2F);
-                // Shrink particles for smaller tiles
-                float size = getSizeForSide(box, target.sideHit);
-                fx.multipleParticleScaleBy(0.6F * size);
-                fx.setParticleIcon(tile.getIcon(0));
-                effectRenderer.addEffect(fx);
-
-                return true;
+            int meta = 0;
+            if (tile.boundingBox != null) {
+                meta = tile.boundingBox.getCube().meta;
             }
-        } catch (Exception ignored) {
 
+            float f = 0.1F;
+            double d0 = target.blockX + rand.nextDouble() * (box.maxX - box.minX - (f * 2.0)) + f + box.minX;
+            double d1 = target.blockY + rand.nextDouble() * (box.maxY - box.minY - (f * 2.0)) + f + box.minY;
+            double d2 = target.blockZ + rand.nextDouble() * (box.maxZ - box.minZ - (f * 2.0)) + f + box.minZ;
+
+            switch (target.sideHit) {
+                case 0:
+                    d1 = target.blockY + box.minY - f;
+                    break;
+                case 1:
+                    d1 = target.blockY + box.maxY + f;
+                    break;
+                case 2:
+                    d2 = target.blockZ + box.minZ - f;
+                    break;
+                case 3:
+                    d2 = target.blockZ + box.maxZ + f;
+                    break;
+                case 4:
+                    d0 = target.blockX + box.minX - f;
+                    break;
+                case 5:
+                    d0 = target.blockX + box.maxX + f;
+                    break;
+            }
+
+            EntityDiggingFX fx = new EntityDiggingFX(world, d0, d1, d2, 0, 0, 0, this, meta);
+            fx.applyColourMultiplier(target.blockX, target.blockY, target.blockZ);
+            fx.multiplyVelocity(0.2F);
+            // Shrink particles for smaller tiles
+            float size = getSizeForSide(box, target.sideHit);
+            fx.multipleParticleScaleBy(0.6F * size);
+            fx.setParticleIcon(tile.getIcon(0));
+            effectRenderer.addEffect(fx);
+
+            return true;
         }
         return false;
     }
@@ -550,45 +519,40 @@ public class BlockTile extends BlockContainer implements IFacade {
     @Override
     @SideOnly(Side.CLIENT)
     public boolean addDestroyEffects(World world, int x, int y, int z, int meta, EffectRenderer effectRenderer) {
-        try { // Why try? because the loaded tile can change while setting this icon
-            final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
-            final LittleTile tile = littleTile != null ? littleTile.getHitTile(Minecraft.getMinecraft().thePlayer)
-                    : null;
-            if (tile != null) {
-                AxisAlignedBB box = tile.getSelectedBox();
-                meta = 0;
-                if (tile.boundingBox != null) {
-                    meta = tile.boundingBox.getCube().meta;
-                }
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        final LittleTile tile = littleTile != null ? littleTile.getHitTile(Minecraft.getMinecraft().thePlayer) : null;
+        if (tile != null) {
+            AxisAlignedBB box = tile.getSelectedBox();
+            meta = 0;
+            if (tile.boundingBox != null) {
+                meta = tile.boundingBox.getCube().meta;
+            }
 
-                byte b0 = 4;
+            byte b0 = 4;
 
-                for (int i1 = 0; i1 < b0; ++i1) {
-                    for (int j1 = 0; j1 < b0; ++j1) {
-                        for (int k1 = 0; k1 < b0; ++k1) {
-                            double radiusX = (box.maxX - box.minX);
-                            double radiusY = (box.maxY - box.minY);
-                            double radiusZ = (box.maxZ - box.minZ);
-                            double f1 = (i1 + 0.5) / b0 * radiusX;
-                            double f2 = (i1 + 0.5) / b0 * radiusY;
-                            double f3 = (i1 + 0.5) / b0 * radiusZ;
-                            double d0 = x + box.minX + f1;
-                            double d1 = y + box.minY + f2;
-                            double d2 = z + box.minZ + f3;
-                            EntityDiggingFX fx = new EntityDiggingFX(world, d0, d1, d2, f1, f2, f3, this, meta);
-                            fx.applyColourMultiplier(x, y, z);
-                            // Shrink particles for smaller tiles
-                            float size = getSizeForSide(box, -1);
-                            fx.multipleParticleScaleBy(size);
-                            fx.setParticleIcon(tile.getIcon(0));
-                            effectRenderer.addEffect(fx);
-                        }
+            for (int i1 = 0; i1 < b0; ++i1) {
+                for (int j1 = 0; j1 < b0; ++j1) {
+                    for (int k1 = 0; k1 < b0; ++k1) {
+                        double radiusX = (box.maxX - box.minX);
+                        double radiusY = (box.maxY - box.minY);
+                        double radiusZ = (box.maxZ - box.minZ);
+                        double f1 = (i1 + 0.5) / b0 * radiusX;
+                        double f2 = (i1 + 0.5) / b0 * radiusY;
+                        double f3 = (i1 + 0.5) / b0 * radiusZ;
+                        double d0 = x + box.minX + f1;
+                        double d1 = y + box.minY + f2;
+                        double d2 = z + box.minZ + f3;
+                        EntityDiggingFX fx = new EntityDiggingFX(world, d0, d1, d2, f1, f2, f3, this, meta);
+                        fx.applyColourMultiplier(x, y, z);
+                        // Shrink particles for smaller tiles
+                        float size = getSizeForSide(box, -1);
+                        fx.multipleParticleScaleBy(size);
+                        fx.setParticleIcon(tile.getIcon(0));
+                        effectRenderer.addEffect(fx);
                     }
                 }
-                return true;
             }
-        } catch (Exception ignored) {
-
+            return true;
         }
         return false;
     }
@@ -605,26 +569,22 @@ public class BlockTile extends BlockContainer implements IFacade {
     @Override
     public boolean canSustainPlant(IBlockAccess world, int x, int y, int z, ForgeDirection direction,
             IPlantable plantable) {
-        try { // Why try? because the number of tiles can change while this method is called
-            final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
-            if (littleTile != null) {
-                int coveredArea = 0;
+        final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
+        if (littleTile != null) {
+            int coveredArea = 0;
 
-                for (LittleTile tile : littleTile.getTiles()) {
-                    if (!tile.contributesToTopFace()) continue;
-                    if (!tile.canSustainPlant(world, x, y, z, direction, plantable)) return false;
+            for (LittleTile tile : littleTile.getTiles()) {
+                if (!tile.contributesToTopFace()) continue;
+                if (!tile.canSustainPlant(world, x, y, z, direction, plantable)) return false;
 
-                    // tiles never overlap, so their areas simply add up to the full face
-                    coveredArea += (tile.boundingBox.maxX - tile.boundingBox.minX)
-                            * (tile.boundingBox.maxZ - tile.boundingBox.minZ);
-                }
-
-                return coveredArea == LittleTile.maxPos * LittleTile.maxPos;
+                // tiles never overlap, so their areas simply add up to the full face
+                coveredArea += (tile.boundingBox.maxX - tile.boundingBox.minX)
+                        * (tile.boundingBox.maxZ - tile.boundingBox.minZ);
             }
-            return false;
-        } catch (Exception e) {
-            return false;
+
+            return coveredArea == LittleTile.maxPos * LittleTile.maxPos;
         }
+        return false;
     }
 
     /*
@@ -666,17 +626,13 @@ public class BlockTile extends BlockContainer implements IFacade {
     public MovingObjectPosition collisionRayTrace(World world, int x, int y, int z, Vec3 vec1, Vec3 vec2) {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
         if (littleTile != null) {
-            try { // Why try? because the number of tiles can change while this method is called
-                final MovingObjectPosition moving = littleTile.getMoving(vec1, vec2);
+            final MovingObjectPosition moving = littleTile.getMoving(vec1, vec2);
 
-                if (moving != null) {
-                    moving.blockX = x;
-                    moving.blockY = y;
-                    moving.blockZ = z;
-                    return moving;
-                }
-            } catch (Exception e) {
-                return null;
+            if (moving != null) {
+                moving.blockX = x;
+                moving.blockY = y;
+                moving.blockZ = z;
+                return moving;
             }
         }
         return null;

@@ -35,15 +35,11 @@ public class WailaLittleTileHandler implements IWailaDataProvider {
         TileEntity te = accessor.getTileEntity();
         if (te instanceof TileEntityLittleTiles) {
             LittleTile tile = ((TileEntityLittleTiles) te).getHitTile(accessor.getPlayer());
-
-            try {
-                ArrayList<ItemStack> drops = tile.getDrops();
-                if (drops.isEmpty()) return currenttip;
-                ItemStack stack = drops.get(0);
-                currenttip.add(stack.getDisplayName());
-            } catch (Exception ignored) {
-
-            }
+            if (tile == null) return currenttip;
+            ArrayList<ItemStack> drops = tile.getDrops();
+            if (drops.isEmpty()) return currenttip;
+            ItemStack stack = drops.get(0);
+            currenttip.add(stack.getDisplayName());
         }
         return currenttip;
     }

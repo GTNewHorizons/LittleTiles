@@ -72,10 +72,8 @@ public class MixinForgeHooks_PickBlock {
                 final TileEntity tileEntity = world.getTileEntity(x, y, z);
                 if (tileEntity instanceof TileEntityLittleTiles littleTile
                         && littleTile.getHitTile(player) instanceof LittleTileBlock tileBlock) {
-                    try {
-                        littletiles$setBlock(stack, tileBlock.block, tileBlock.meta);
-                        return null;
-                    } catch (Exception ignored) {}
+                    littletiles$setBlock(stack, tileBlock.block, tileBlock.meta);
+                    return null;
                 }
             }
         }

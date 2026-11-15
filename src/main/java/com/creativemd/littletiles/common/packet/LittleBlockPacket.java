@@ -185,74 +185,52 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                         recorder.finish().createPlan()));
                         break;
                     case SAW:
-                        try {
-                            int side = nbt.getInteger("side");
-                            ForgeDirection direction = ForgeDirection.getOrientation(side);
-                            TileEntityLittleTiles te = (TileEntityLittleTiles) tileEntity;
-                            if (tile.canSawResizeTile(direction, player)) {
-                                LittleTileBox box;
-                                if (player.isSneaking()) box = tile.boundingBox.shrink(direction);
-                                else box = tile.boundingBox.expand(direction);
+                        ForgeDirection direction = ForgeDirection.getOrientation(nbt.getInteger("side"));
+                        if (tile instanceof LittleTileBlock tileBlock && tile.canSawResizeTile(direction, player)) {
+                            LittleTileBox box;
+                            if (player.isSneaking()) box = tile.boundingBox.shrink(direction);
+                            else box = tile.boundingBox.expand(direction);
 
-                                if (box.isBoxInsideBlock() && box.isValidBox()
-                                        && te.isSpaceForLittleTile(box.getBox(), tile)) {
-                                    float ammount = tile.boundingBox.getSize().getPercentVolume()
-                                            - box.getSize().getPercentVolume();
-                                    boolean success = false;
-                                    if (player.isSneaking()) {
-                                        if (ItemTileContainer.addBlock(
-                                                player,
-                                                ((LittleTileBlock) tile).block,
-                                                ((LittleTileBlock) tile).meta,
-                                                ammount))
-                                            success = true;
-                                    } else {
-                                        if (ItemTileContainer.drainBlock(
-                                                player,
-                                                ((LittleTileBlock) tile).block,
-                                                ((LittleTileBlock) tile).meta,
-                                                -ammount))
-                                            success = true;
-                                    }
+                            if (box.isBoxInsideBlock() && box.isValidBox()
+                                    && littleEntity.isSpaceForLittleTile(box.getBox(), tile)) {
+                                float ammount = tile.boundingBox.getSize().getPercentVolume()
+                                        - box.getSize().getPercentVolume();
+                                boolean success = false;
+                                if (player.isSneaking()) {
+                                    if (ItemTileContainer.addBlock(player, tileBlock.block, tileBlock.meta, ammount))
+                                        success = true;
+                                } else {
+                                    if (ItemTileContainer.drainBlock(player, tileBlock.block, tileBlock.meta, -ammount))
+                                        success = true;
+                                }
 
-                                    if (player.capabilities.isCreativeMode || success) {
-                                        tile.boundingBox = box;
-                                        tile.updateCorner();
-                                        te.update();
-                                    }
+                                if (player.capabilities.isCreativeMode || success) {
+                                    tile.boundingBox = box;
+                                    tile.updateCorner();
+                                    littleEntity.update();
                                 }
                             }
-
-                        } catch (Exception e) {
-                            System.out.println("Failed to use saw!");
-                            e.printStackTrace();
                         }
                         break;
                     case COLOR:
-                        try {
-                            TileEntityLittleTiles te = (TileEntityLittleTiles) tileEntity;
-                            if (tile.getClass() == LittleTileBlock.class || tile instanceof LittleTileBlockColored) {
-                                int color = nbt.getInteger("color");
-                                LittleTile currentTile = tile;
+                        if (tile.getClass() == LittleTileBlock.class || tile instanceof LittleTileBlockColored) {
+                            int color = nbt.getInteger("color");
+                            LittleTile currentTile = tile;
 
-                                int index = te.getTiles().indexOf(currentTile);
-                                if (player.isSneaking()) {
-                                    color = ColorUtils.WHITE;
-                                    if (currentTile instanceof LittleTileBlockColored)
-                                        color = ((LittleTileBlockColored) currentTile).color;
-                                    ItemColorTube.setColor(player.getCurrentEquippedItem(), color);
-                                } else {
+                            int index = littleEntity.getTiles().indexOf(currentTile);
+                            if (player.isSneaking()) {
+                                color = ColorUtils.WHITE;
+                                if (currentTile instanceof LittleTileBlockColored)
+                                    color = ((LittleTileBlockColored) currentTile).color;
+                                ItemColorTube.setColor(player.getCurrentEquippedItem(), color);
+                            } else {
 
-                                    LittleTile newTile = LittleTileBlockColored
-                                            .setColor((LittleTileBlock) currentTile, color);
+                                LittleTile newTile = LittleTileBlockColored
+                                        .setColor((LittleTileBlock) currentTile, color);
 
-                                    if (newTile != null) te.getTiles().set(index, newTile);
-                                    te.update();
-                                }
+                                if (newTile != null) littleEntity.getTiles().set(index, newTile);
+                                littleEntity.update();
                             }
-                        } catch (Exception e) {
-                            System.out.println("Failed to use color tube!");
-                            e.printStackTrace();
                         }
                         break;
                     case SPLIT:

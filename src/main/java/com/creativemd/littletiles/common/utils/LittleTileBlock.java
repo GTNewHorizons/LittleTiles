@@ -140,7 +140,12 @@ public class LittleTileBlock extends LittleTile {
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float moveX,
             float moveY, float moveZ) {
         if (super.onBlockActivated(world, x, y, z, player, side, moveX, moveY, moveZ)) return true;
-        return block.onBlockActivated(world, x, y, z, player, side, moveX, moveY, moveZ);
+        // The block's own code runs at the position of the whole tile block, which it may not expect, as in onPlaced
+        try {
+            return block.onBlockActivated(world, x, y, z, player, side, moveX, moveY, moveZ);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     @Override
@@ -176,6 +181,9 @@ public class LittleTileBlock extends LittleTile {
             blockAccessFake.setWorld(world, x, y, z);
             blockAccessFake.setBlock(block, meta);
             return block.canSustainPlant(blockAccessFake, x, y, z, direction, plantable);
+        } catch (Exception ignored) {
+            // The block and the plant only see a fake world, which their own code may not expect
+            return false;
         } finally {
             blockAccessFake.reset();
         }

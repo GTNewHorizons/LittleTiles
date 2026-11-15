@@ -273,6 +273,8 @@ public class ItemBlockTiles extends ItemBlock
             structure = ((ILittleTile) Block.getBlockFromItem(stack.getItem())).getLittleStructure(stack);
         }
 
+        // Stencil places nothing, so there is no structure, only its shape to cut out
+        if (placeMode == LittleTilePlaceMode.STENCIL) structure = null;
         if (structure != null) {
             // Placed from a recipe, the structure still drops as the multi tiles item it used to be crafted into.
             structure.dropStack = isRecipe ? new ItemStack(LittleTiles.multiTiles) : stack.copy();

@@ -1,5 +1,9 @@
 package com.creativemd.littletiles.common.gui;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BooleanSupplier;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumChatFormatting;
 
@@ -13,6 +17,7 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
+import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.DropDownMenu;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
@@ -35,6 +40,8 @@ public class GuiTilePlacement {
     private final EntityPlayer player;
     private final IntSyncValue grid;
     private final IntSyncValue placeMode;
+    /** Whether a structure is placed, which not every place mode can, see {@link PlacementSetting#getPlaceMode}. */
+    private BooleanSupplier structure;
 
     /** A panel with only the section, for tiles with nothing else to configure. */
     public static ModularPanel panel(PanelSyncManager syncManager, EntityPlayer player) {
@@ -47,6 +54,7 @@ public class GuiTilePlacement {
     /** Registers what the section syncs. The server has to do that as well, even if it builds no widgets. */
     public GuiTilePlacement(PanelSyncManager syncManager, EntityPlayer player) {
         this.player = player;
+        structure = () -> PlacementSetting.placesStructure(player.getHeldItem());
         grid = SyncHandlers
                 .intNumber(() -> PlacementSetting.getGrid(player), value -> PlacementSetting.setGrid(player, value))
                 .allowC2S();
@@ -55,6 +63,17 @@ public class GuiTilePlacement {
                 value -> PlacementSetting.setPlaceMode(player, value)).allowC2S();
         syncManager.syncValue("lt_tiles_grid", grid);
         syncManager.syncValue("lt_tiles_place_mode", placeMode);
+    }
+
+    /** Replaces when a structure is placed, by default while holding one. */
+    public GuiTilePlacement structureIf(BooleanSupplier when) {
+        structure = when;
+        return this;
+    }
+
+    /** The place mode as the section shows it. */
+    private LittleTilePlaceMode shownPlaceMode() {
+        return PlacementSetting.getPlaceMode(player, structure.getAsBoolean());
     }
 
     /**
@@ -109,18 +128,45 @@ public class GuiTilePlacement {
     private Flow placeModeSelector() {
         Flow flow = new Flow(GuiAxis.X);
         flow.size(120, 40);
-        DropDownMenu picker = new DropDownMenu();
-        picker.size(120, 20).background(GuiTextures.BUTTON_CLEAN);
-        IKey info = new DynamicKey(() -> IKey.str(PlacementSetting.getPlaceMode(player).getInfo()));
+        IKey info = new DynamicKey(() -> IKey.str(shownPlaceMode().getInfo()));
 
+        // A DropDownMenu can't hide choices, so structures get their own one without the modes which can't place them
+        List<LittleTilePlaceMode> structureModes = new ArrayList<>();
         for (LittleTilePlaceMode mode : LittleTilePlaceMode.values()) {
-            int id = mode.ordinal();
-            picker.addChoice(menu -> placeMode.setIntValue(id), mode.getName());
+            if (mode.canPlaceStructures()) structureModes.add(mode);
         }
-        picker.setSelectedIndex(PlacementSetting.getPlaceMode(player).ordinal());
+        DropDownMenu all = new DropDownMenu();
+        DropDownMenu forStructures = new DropDownMenu();
+        all.size(120, 20).background(GuiTextures.BUTTON_CLEAN);
+        forStructures.size(120, 20).background(GuiTextures.BUTTON_CLEAN);
+        for (LittleTilePlaceMode mode : LittleTilePlaceMode.values()) {
+            all.addChoice(menu -> selectPlaceMode(mode, all, forStructures, structureModes), mode.getName());
+        }
+        for (LittleTilePlaceMode mode : structureModes) {
+            forStructures.addChoice(menu -> selectPlaceMode(mode, all, forStructures, structureModes), mode.getName());
+        }
+        showPlaceMode(PlacementSetting.getPlaceMode(player), all, forStructures, structureModes);
+        all.setEnabledIf(menu -> !structure.getAsBoolean());
+        forStructures.setEnabledIf(menu -> structure.getAsBoolean());
 
-        flow.child(picker);
+        ParentWidget<?> pickers = new ParentWidget<>();
+        pickers.size(120, 20).child(all).child(forStructures);
+        flow.child(pickers);
         flow.child(info.asWidget().marginLeft(MARGIN));
         return flow;
+    }
+
+    private void selectPlaceMode(LittleTilePlaceMode mode, DropDownMenu all, DropDownMenu forStructures,
+            List<LittleTilePlaceMode> structureModes) {
+        placeMode.setIntValue(mode.ordinal());
+        showPlaceMode(mode, all, forStructures, structureModes);
+    }
+
+    /** Both menus show the mode, the one for structures what it places them with, see {@link #shownPlaceMode}. */
+    private static void showPlaceMode(LittleTilePlaceMode mode, DropDownMenu all, DropDownMenu forStructures,
+            List<LittleTilePlaceMode> structureModes) {
+        all.setSelectedIndex(mode.ordinal());
+        LittleTilePlaceMode structureMode = mode.canPlaceStructures() ? mode : LittleTilePlaceMode.NORMAL;
+        forStructures.setSelectedIndex(structureModes.indexOf(structureMode));
     }
 }

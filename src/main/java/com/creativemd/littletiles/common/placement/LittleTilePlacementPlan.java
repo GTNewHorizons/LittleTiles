@@ -50,8 +50,9 @@ public class LittleTilePlacementPlan extends BasePlan {
             canApplyPlan = false;
             return;
         }
+        // A structure is placed whole, so only a single tile may be placed where it fits
         boolean partial = placeMode != LittleTilePlaceMode.NORMAL && structure == null;
-        boolean ignoreCollisions = placeMode != LittleTilePlaceMode.NORMAL && structure == null;
+        boolean ignoreCollisions = placeMode != LittleTilePlaceMode.NORMAL;
         canApplyPlan = tryFillPlan(world, x, y, z, previews, partial, ignoreCollisions);
     }
 
@@ -82,8 +83,8 @@ public class LittleTilePlacementPlan extends BasePlan {
         return recorder.finish();
     }
 
-    private boolean tryFillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews,
-            boolean partial, boolean ignoreCollisions) {
+    private boolean tryFillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews, boolean partial,
+            boolean ignoreCollisions) {
         entries.clear();
 
         SplitPreviewMap splittedTiles = getSplittedTiles(previews, x, y, z);

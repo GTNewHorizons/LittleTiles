@@ -2,9 +2,11 @@ package com.creativemd.littletiles.common.utils;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
 import com.creativemd.creativecore.common.packet.PacketHandler;
+import com.creativemd.littletiles.common.blocks.ILittleTile;
 import com.creativemd.littletiles.common.packet.LittlePlacementSettingPacket;
 
 /**
@@ -32,6 +34,24 @@ public final class PlacementSetting {
         NBTTagCompound nbt = load(player);
         return nbt.hasKey("placeMode") ? LittleTilePlaceMode.fromOrdinal(nbt.getByte("placeMode"))
                 : LittleTilePlaceMode.NORMAL;
+    }
+
+    /**
+     * The place mode for placing {@code stack}. A structure is placed with {@link LittleTilePlaceMode#NORMAL} instead
+     * of a mode which {@link LittleTilePlaceMode#canPlaceStructures can't place it}.
+     */
+    public static LittleTilePlaceMode getPlaceMode(EntityPlayer player, ItemStack stack) {
+        return getPlaceMode(player, placesStructure(stack));
+    }
+
+    public static LittleTilePlaceMode getPlaceMode(EntityPlayer player, boolean structure) {
+        LittleTilePlaceMode mode = getPlaceMode(player);
+        return structure && !mode.canPlaceStructures() ? LittleTilePlaceMode.NORMAL : mode;
+    }
+
+    public static boolean placesStructure(ItemStack stack) {
+        return stack != null && stack.getItem() instanceof ILittleTile
+                && ((ILittleTile) stack.getItem()).getLittleStructure(stack) != null;
     }
 
     /** Sets it on the side it is called on, the gui sets both. */

@@ -604,6 +604,8 @@ public class ItemRecipe extends Item implements ITilesRenderer, ILittleTile, IGu
         }
         typePicker.setSelectedIndex(selected[0]);
         panel.child(typePicker);
+        // The held recipe only gets the structure from the server, follow the selection right away instead
+        placement.structureIf(() -> LittleStructure.getEntryByID(ids.get(selected[0])) != null);
         placement.addTo(panel, width);
         return panel;
     }

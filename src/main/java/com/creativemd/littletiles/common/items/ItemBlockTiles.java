@@ -114,7 +114,7 @@ public class ItemBlockTiles extends ItemBlock
         } else {
             // Tiles aim at the exact pixel, placing moves them by the grid, see PlacementHelper#getTilesBox
             align = 1;
-            placeMode = PlacementSetting.getPlaceMode(player);
+            placeMode = PlacementSetting.getPlaceMode(player, stack);
         }
 
         boolean inset = PlacementHelper.insetsHit(player, placeMode, moving);

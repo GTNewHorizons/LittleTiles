@@ -91,7 +91,7 @@ public class LittlePlacePacket extends CreativeCorePacket {
         if (placementStack != null) {
             LittleTilePlaceMode serverPlaceMode = heldStack.getItem() == LittleTiles.chisel
                     ? new LittleToolHandler(heldStack).getPlaceMode()
-                    : PlacementSetting.getPlaceMode(player);
+                    : PlacementSetting.getPlaceMode(player, placementStack);
             ((ItemBlockTiles) Item.getItemFromBlock(LittleTiles.blockTile))
                     .placeBlockAt(player, placementStack, player.worldObj, pos, customPlacement, serverPlaceMode);
 

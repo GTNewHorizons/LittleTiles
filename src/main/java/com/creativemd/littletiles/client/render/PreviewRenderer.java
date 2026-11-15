@@ -296,7 +296,7 @@ public class PreviewRenderer {
     private static boolean holdsStencil() {
         EntityPlayer player = Minecraft.getMinecraft().thePlayer;
         LittleTilePlaceMode mode = holdsChisel() ? new LittleToolHandler(player.getHeldItem()).getPlaceMode()
-                : PlacementSetting.getPlaceMode(player);
+                : PlacementSetting.getPlaceMode(player, player.getHeldItem());
         return mode == LittleTilePlaceMode.STENCIL;
     }
 
@@ -608,7 +608,10 @@ public class PreviewRenderer {
                     inset = PlacementHelper.insetsHit(mc.thePlayer, handler.getPlaceMode(), look);
                 } else {
                     align = PlacementSetting.getGrid(mc.thePlayer);
-                    inset = PlacementHelper.insetsHit(mc.thePlayer, PlacementSetting.getPlaceMode(mc.thePlayer), look);
+                    inset = PlacementHelper.insetsHit(
+                            mc.thePlayer,
+                            PlacementSetting.getPlaceMode(mc.thePlayer, mc.thePlayer.getHeldItem()),
+                            look);
                 }
                 if (emptyRecipe) align = ItemRecipe.GRID;
                 if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {

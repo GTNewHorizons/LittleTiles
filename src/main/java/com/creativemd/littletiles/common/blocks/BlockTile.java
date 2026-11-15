@@ -318,8 +318,6 @@ public class BlockTile extends BlockContainer implements IFacade {
                     }
                     littleTile.removeTiles(tiles);
                 } else tile.destroy();
-                NBTTagCompound nbt = new NBTTagCompound();
-                littleTile.writeToNBT(nbt);
                 NBTTagCompound packetNbt = new NBTTagCompound();
                 packetNbt.setBoolean(LittleBlockPacket.ENTIRE_BLOCK, entireBlock);
                 PacketHandler.sendPacketToServer(

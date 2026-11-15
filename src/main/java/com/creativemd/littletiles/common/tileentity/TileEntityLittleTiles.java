@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
@@ -239,9 +238,6 @@ public class TileEntityLittleTiles extends TileEntity {
         return AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
-    /** Used for **/
-    public LittleTile loadedTile = null;
-
     /** Used for placing a tile and can be used if a "cable" can connect to a direction */
     public boolean isSpaceForLittleTile(CubeObject cube) {
         return isSpaceForLittleTile(cube.getAxis());
@@ -353,21 +349,27 @@ public class TileEntityLittleTiles extends TileEntity {
         updateTiles();
     }
 
-    public MovingObjectPosition getMoving(EntityPlayer player) {
-        return getMoving(player, false);
+    /** The tile the player looks at, null if none. */
+    public LittleTile getHitTile(EntityPlayer player) {
+        return getHitTile(getMoving(player));
     }
 
-    public MovingObjectPosition getMoving(EntityPlayer player, boolean loadTile) {
-        MovingObjectPosition hit = null;
+    /** The tile a hit of {@link #getMoving} is on, null for no hit. */
+    public static LittleTile getHitTile(MovingObjectPosition hit) {
+        return hit == null ? null : (LittleTile) hit.hitInfo;
+    }
 
+    /** Where the player looks at the tiles, see {@link #getMoving(Vec3, Vec3)}. */
+    public MovingObjectPosition getMoving(EntityPlayer player) {
         Vec3 pos = player.getPosition(1);
         double d0 = player.capabilities.isCreativeMode ? 5.0F : 4.5F;
         Vec3 look = player.getLook(1.0F);
         Vec3 vec32 = pos.addVector(look.xCoord * d0, look.yCoord * d0, look.zCoord * d0);
-        return getMoving(pos, vec32, loadTile);
+        return getMoving(pos, vec32);
     }
 
-    public MovingObjectPosition getMoving(Vec3 pos, Vec3 look, boolean loadTile) {
+    /** Where the ray hits the tiles first, null if it misses them. The hit tile is the {@code hitInfo}. */
+    public MovingObjectPosition getMoving(Vec3 pos, Vec3 look) {
         MovingObjectPosition hit = null;
         float EPSILON = 0.0001f; // Need to check overlapping tiles with exactly the same box distance too.
         float lastCutoutDistance = Float.POSITIVE_INFINITY;
@@ -402,33 +404,13 @@ public class TileEntityLittleTiles extends TileEntity {
                         }
                         if (isHit) {
                             hit = Temphit;
-                            if (loadTile) loadedTile = tile;
+                            hit.hitInfo = tile;
                         }
                     }
                 }
             }
         }
         return hit;
-    }
-
-    public boolean updateLoadedTile(EntityPlayer player) {
-        if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) return false;
-        loadedTile = null;
-        getMoving(player, true);
-        return loadedTile != null;
-    }
-
-    public boolean updateLoadedTileServer(Vec3 pos, Vec3 look) {
-        loadedTile = null;
-        getMoving(pos, look, true);
-        return loadedTile != null;
-    }
-
-    @SideOnly(Side.CLIENT)
-    public void checkClientLoadedTile(double distance) {
-        Minecraft mc = Minecraft.getMinecraft();
-        Vec3 pos = mc.thePlayer.getPosition(1);
-        if (mc.objectMouseOver.hitVec.distanceTo(pos) < distance) loadedTile = null;
     }
 
     @Override

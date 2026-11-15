@@ -165,6 +165,8 @@ public abstract class LittleTile {
         if (isStructureBlock != tile.isStructureBlock) return false;
         if (disableCollision != tile.disableCollision) return false;
         if (disableConnection != tile.disableConnection) return false;
+        // Combining only joins the boxes, which would drop or stretch a shape
+        if (cutoutInfo != null || tile.cutoutInfo != null) return false;
         return !isStructureBlock || structure == tile.structure;
     }
     // public abstract boolean canBeCombined(LittleTile tile);
@@ -468,10 +470,12 @@ public abstract class LittleTile {
         if (!(chunk instanceof EmptyChunk)) {
             TileEntity tileEntity = world.getTileEntity(absoluteCoord.posX, absoluteCoord.posY, absoluteCoord.posZ);
             if (tileEntity instanceof TileEntityLittleTiles) {
-                LittleTile tile = ((TileEntityLittleTiles) tileEntity).getTile(coord.position);
+                LittleTile tile = ((TileEntityLittleTiles) tileEntity).getTile(coord);
                 if (tile != null && tile.isStructureBlock) {
                     if (tile.isMainBlock) {
                         this.structure = tile.structure;
+                        // Saved before coords knew the cutout, from now on it is told apart by it as well
+                        coord.withCutout(tile.getCutoutInfo());
                         if (this.structure != null && this.structure.getTiles() != null
                                 && !this.structure.getTiles().contains(this))
                             this.structure.getTiles().add(this);

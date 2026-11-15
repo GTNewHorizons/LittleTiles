@@ -50,8 +50,10 @@ public class LittleTilePlacementPlan extends BasePlan {
             canApplyPlan = false;
             return;
         }
-        boolean specialPlaceMode = placeMode != LittleTilePlaceMode.NORMAL && structure == null;
-        canApplyPlan = tryFillPlan(world, x, y, z, previews, specialPlaceMode);
+        // A structure is placed whole, so only a single tile may be placed where it fits
+        boolean partial = placeMode != LittleTilePlaceMode.NORMAL && structure == null;
+        boolean ignoreCollisions = placeMode != LittleTilePlaceMode.NORMAL;
+        canApplyPlan = tryFillPlan(world, x, y, z, previews, partial, ignoreCollisions);
     }
 
     public boolean canApplyPlan() {
@@ -81,20 +83,20 @@ public class LittleTilePlacementPlan extends BasePlan {
         return recorder.finish();
     }
 
-    private boolean tryFillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews,
-            boolean specialPlaceMode) {
+    private boolean tryFillPlan(World world, int x, int y, int z, ArrayList<PreviewTile> previews, boolean partial,
+            boolean ignoreCollisions) {
         entries.clear();
 
         SplitPreviewMap splittedTiles = getSplittedTiles(previews, x, y, z);
         if (splittedTiles == null) return false;
 
-        // specialPlaceMode means: place what fits, handle overlaps in a custom fashion
-        // Otherwise placement is atomic — any unplaceable coord rejects the whole plan
+        // partial means: place what fits. Otherwise placement is atomic — any unplaceable coord rejects the whole plan
+        // ignoreCollisions means: handle overlaps in a custom fashion
         for (var entry : splittedTiles.object2ObjectEntrySet()) {
             ChunkCoordinates coord = entry.getKey();
             ArrayList<PreviewTile> placeTiles = entry.getValue();
             if (!areStructuresLoaded(world, coord)) {
-                if (specialPlaceMode) continue;
+                if (partial) continue;
                 return false;
             }
             TileEntityLittleTiles tile = getTileEntity(world, coord);
@@ -105,7 +107,7 @@ public class LittleTilePlacementPlan extends BasePlan {
             if (placeMode == LittleTilePlaceMode.STENCIL && tile == null) continue;
 
             if (!canHoldTiles(block, tile)) {
-                if (specialPlaceMode) continue;
+                if (partial) continue;
                 return false;
             }
 
@@ -122,9 +124,9 @@ public class LittleTilePlacementPlan extends BasePlan {
             // Only mesh-backed fragments the shape misses entirely, nothing to place here.
             if (fragments.isEmpty()) continue;
 
-            // Collision check against an existing LittleTiles TE. Special place mode bypasses this on
-            // purpose — overriding collisions is its whole reason to exist.
-            if (!specialPlaceMode && !isSpaceForTiles(tile, fragments)) {
+            // Collision check against an existing LittleTiles TE. The other place modes bypass this on
+            // purpose — overriding collisions is their whole reason to exist.
+            if (!ignoreCollisions && !isSpaceForTiles(tile, fragments)) {
                 return false;
             }
 
@@ -160,7 +162,8 @@ public class LittleTilePlacementPlan extends BasePlan {
         }
 
         for (LittleTile littleTile : tiles) {
-            if (structure != null) {
+            // Overwrite also returns what is left of the tiles it cut, which stay outside the structure
+            if (structure != null && littleTile.structure == structure) {
                 if (structureMainPosition == null) {
                     structure.mainTile = littleTile;
                     littleTile.isMainBlock = true;
@@ -170,7 +173,7 @@ public class LittleTilePlacementPlan extends BasePlan {
                     littleTile.coord = new LittleTileCoord(
                             tile,
                             structureMainPosition.coord,
-                            structureMainPosition.position);
+                            structureMainPosition.position).withCutout(structure.mainTile.getCutoutInfo());
                 }
             }
             if (!soundsToBePlayed.contains(littleTile.getSound())) soundsToBePlayed.add(littleTile.getSound());

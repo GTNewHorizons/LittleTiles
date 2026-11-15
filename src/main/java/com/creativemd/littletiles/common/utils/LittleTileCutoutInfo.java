@@ -3,6 +3,7 @@ package com.creativemd.littletiles.common.utils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -124,6 +125,30 @@ public class LittleTileCutoutInfo {
             if (!sameCutout(a.furtherShapes.get(i), b.furtherShapes.get(i))) return false;
         }
         return true;
+    }
+
+    /** The same shape in the same place, keeping the same side of it, with the same further shapes. */
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof LittleTileCutoutInfo other && sameCutout(this, other);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                type,
+                size,
+                pos,
+                orientation,
+                thickness,
+                faceStart,
+                faceEnd,
+                negX,
+                negY,
+                negZ,
+                Arrays.hashCode(corners),
+                inverted,
+                furtherShapes);
     }
 
     public static Vector3i[] copyCorners(Vector3i[] corners) {

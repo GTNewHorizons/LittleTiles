@@ -446,7 +446,8 @@ public class Mesh3dUtil {
         List<Triangle3d> triangles = new ArrayList<>();
         if (pieces == null) return new Mesh3d(triangles);
         for (MeshCutter piece : pieces) {
-            triangles.addAll(piece.toTriangles());
+            // Rounding the points changes the cutter, and the pieces are shared
+            triangles.addAll(piece.copy().toTriangles());
         }
         return new Mesh3d(triangles);
     }

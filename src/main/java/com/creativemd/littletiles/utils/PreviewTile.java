@@ -112,6 +112,8 @@ public class PreviewTile {
             boolean doAdd) {
         List<LittleTile> overlapping = new ArrayList<>();
         for (LittleTile t : tileNew.te.getTiles()) {
+            // The structure being placed doesn't overwrite itself, that would destroy the tiles placed so far
+            if (t.isStructureBlock && t.structure != null && t.structure == tileNew.structure) continue;
             // Tiles in its box but outside its shape are left alone
             if (t.collidesWith(tileNew)) {
                 overlapping.add(t);

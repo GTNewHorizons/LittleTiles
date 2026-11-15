@@ -12,8 +12,8 @@ public class LittleTileCoord {
     private final ChunkCoordinates coord;
     public LittleTileVec position;
     /**
-     * The cutout of the tile, as tiles can share their {@link #position}, null for a plain box. Unknown for coords saved
-     * before, which then only match by the position.
+     * The cutout of the tile, as tiles can share their {@link #position}, null for a plain box. Unknown for coords
+     * saved before, which then only match by the position.
      */
     private LittleTileCutoutInfo cutout;
     private boolean knowsCutout;

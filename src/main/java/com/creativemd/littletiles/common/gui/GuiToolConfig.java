@@ -16,7 +16,8 @@ public class GuiToolConfig {
 
     public static void show(ItemStack itemStack) {
         Item item = itemStack.getItem();
-        if (item == LittleTiles.chisel || (item == LittleTiles.recipe && ItemRecipe.hasTiles(itemStack))) {
+        boolean tiles = item == LittleTiles.multiTiles || item == Item.getItemFromBlock(LittleTiles.blockTile);
+        if (item == LittleTiles.chisel || tiles || (item == LittleTiles.recipe && ItemRecipe.hasTiles(itemStack))) {
             EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
             GuiManager.openFromClient(
                     GuiFactories.playerInventory(),

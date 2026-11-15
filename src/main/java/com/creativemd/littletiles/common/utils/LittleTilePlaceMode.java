@@ -28,6 +28,11 @@ public enum LittleTilePlaceMode {
         return StatCollector.translateToLocal(name + "_info");
     }
 
+    /** Structures are always placed whole, fill and anti fill only place what fits. */
+    public boolean canPlaceStructures() {
+        return this != FILL && this != ANTI_FILL;
+    }
+
     public static LittleTilePlaceMode fromOrdinal(int ordinal) {
         LittleTilePlaceMode[] values = values();
         if (ordinal < 0 || ordinal >= values.length) {

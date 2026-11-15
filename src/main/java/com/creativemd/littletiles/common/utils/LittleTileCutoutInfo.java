@@ -112,6 +112,20 @@ public class LittleTileCutoutInfo {
                 && Arrays.equals(corners, other.corners);
     }
 
+    /**
+     * Whether both cut a tile the very same way, null being a plain box. Tiles in a block can share their min corner
+     * and still differ by this, but not both, as they would overlap otherwise.
+     */
+    public static boolean sameCutout(LittleTileCutoutInfo a, LittleTileCutoutInfo b) {
+        if (a == null || b == null) return a == b;
+        if (!a.sameShapeAs(b) || a.inverted != b.inverted || a.furtherShapes.size() != b.furtherShapes.size())
+            return false;
+        for (int i = 0; i < a.furtherShapes.size(); i++) {
+            if (!sameCutout(a.furtherShapes.get(i), b.furtherShapes.get(i))) return false;
+        }
+        return true;
+    }
+
     public static Vector3i[] copyCorners(Vector3i[] corners) {
         if (corners == null) {
             return null;

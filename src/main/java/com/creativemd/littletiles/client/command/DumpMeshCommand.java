@@ -21,6 +21,7 @@ import org.joml.Vector3i;
 import com.creativemd.littletiles.client.render.LittleTilesFaceCuller;
 import com.creativemd.littletiles.client.util3d.Mesh3d;
 import com.creativemd.littletiles.client.util3d.Triangle3d;
+import com.creativemd.littletiles.common.structure.LittleStructure;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileCutoutInfo;
@@ -35,6 +36,7 @@ public class DumpMeshCommand extends CommandBase {
     private static final String CULLED_HIDDEN_KEY = "littletiles.command.dumpmesh.culled.hidden";
     private static final String PLAIN_BOX_KEY = "littletiles.command.dumpmesh.plainbox";
     private static final String INVALID_MESH_KEY = "littletiles.command.dumpmesh.invalid";
+    private static final String STRUCTURE_KEY = "littletiles.command.dumpmesh.structure";
 
     @Override
     public String getCommandName() {
@@ -70,6 +72,13 @@ public class DumpMeshCommand extends CommandBase {
         boolean dumped = false;
         // the full and the culled dump share their index, so they can be matched up
         int dumpIndex = Mesh3d.nextDumpIndex();
+
+        if (tile.isLoaded()) {
+            File structureFile = dumpStructure(mc, dumpIndex, tile.structure);
+            if (structureFile != null) {
+                sender.addChatMessage(new ChatComponentTranslation(STRUCTURE_KEY, "logs/" + structureFile.getName()));
+            }
+        }
 
         Mesh3d mesh = tile.getSimpleMesh();
         if (tile.getCutoutInfo() != null && mesh != null && mesh.getTriangles().isEmpty()) {
@@ -131,11 +140,40 @@ public class DumpMeshCommand extends CommandBase {
         String baseName = objName.endsWith(".obj") ? objName.substring(0, objName.length() - 4) : objName;
         File metaFile = new File(objFile.getParentFile(), baseName + ".meta");
 
-        LittleTileBox box = tile.boundingBox;
-        LittleTileCutoutInfo cutout = tile.getCutoutInfo();
         StringBuilder meta = new StringBuilder();
         meta.append("format=LittleTiles mesh debug metadata v1\n");
         meta.append("mesh.triangleCount=").append(mesh == null ? 0 : mesh.getTriangles().size()).append('\n');
+        appendTile(meta, tile);
+        write(metaFile, meta);
+        return metaFile;
+    }
+
+    /**
+     * Writes the state of every tile of the structure, as {@link #dumpMetadata} does for one, into
+     * {@code logs/littleTilesDumpMesh<index>.structure.meta}. Null if its tiles aren't all loaded.
+     */
+    private static File dumpStructure(Minecraft mc, int dumpIndex, LittleStructure structure) {
+        List<LittleTile> tiles = structure.getTiles();
+        if (tiles == null) return null;
+        File structureFile = new File(
+                new File(mc.mcDataDir, "logs"),
+                "littleTilesDumpMesh" + dumpIndex + ".structure.meta");
+
+        StringBuilder meta = new StringBuilder();
+        meta.append("format=LittleTiles structure debug metadata v1\n");
+        meta.append("structure.class=").append(structure.getClass().getName()).append('\n');
+        meta.append("structure.tileCount=").append(tiles.size()).append('\n');
+        for (int i = 0; i < tiles.size(); i++) {
+            meta.append("tile.index=").append(i).append('\n');
+            appendTile(meta, tiles.get(i));
+        }
+        write(structureFile, meta);
+        return structureFile;
+    }
+
+    private static void appendTile(StringBuilder meta, LittleTile tile) {
+        LittleTileBox box = tile.boundingBox;
+        LittleTileCutoutInfo cutout = tile.getCutoutInfo();
         meta.append("tile.class=").append(tile.getClass().getName()).append('\n');
         NBTTagCompound tileNbt = new NBTTagCompound();
         tile.saveTile(tileNbt);
@@ -171,13 +209,14 @@ public class DumpMeshCommand extends CommandBase {
         } else {
             meta.append("cutout=null\n");
         }
+    }
 
-        try (FileWriter writer = new FileWriter(metaFile)) {
-            writer.write(meta.toString());
+    private static void write(File file, StringBuilder content) {
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write(content.toString());
         } catch (IOException e) {
-            throw new RuntimeException("Failed to dump mesh metadata to " + metaFile.getAbsolutePath(), e);
+            throw new RuntimeException("Failed to dump mesh metadata to " + file.getAbsolutePath(), e);
         }
-        return metaFile;
     }
 
     private static void appendCutout(StringBuilder meta, String prefix, LittleTileCutoutInfo cutout) {

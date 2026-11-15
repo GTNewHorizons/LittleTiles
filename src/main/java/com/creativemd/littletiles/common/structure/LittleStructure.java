@@ -182,7 +182,7 @@ public abstract class LittleStructure {
                 if (tiles.get(i).isStructureBlock) {
                     tiles.get(i).updateCorner();
                     new LittleTileCoord(mainTile.te, tiles.get(i).te.getCoord(), tiles.get(i).cornerVec.copy())
-                            .writeToNBT("i" + i, nbt);
+                            .withCutout(tiles.get(i).getCutoutInfo()).writeToNBT("i" + i, nbt);
                     // new LittleTilePosition().writeToNBT("i" + i, nbt);
                 }
                 // tiles.get(i).pos.writeToNBT("i" + i, nbt);
@@ -212,7 +212,7 @@ public abstract class LittleStructure {
             // chunk.isChunkLoaded
             TileEntity tileEntity = world.getTileEntity(coord.posX, coord.posY, coord.posZ);
             if (tileEntity instanceof TileEntityLittleTiles) {
-                LittleTile tile = ((TileEntityLittleTiles) tileEntity).getTile(pos.position);
+                LittleTile tile = ((TileEntityLittleTiles) tileEntity).getTile(pos);
                 if (tile != null && tile.isStructureBlock) {
                     if (!tiles.contains(tile)) tiles.add(tile);
                     tile.structure = this;

@@ -121,7 +121,7 @@ public class BlockTile extends BlockContainer implements IFacade {
         for (int y2 = mY; y2 < bb.maxY; y2++) {
             for (int x2 = mX; x2 < bb.maxX; x2++) {
                 for (int z2 = mZ; z2 < bb.maxZ; z2++) {
-                    TileEntity te = world.getTileEntity(x, y, z2);
+                    TileEntity te = world.getTileEntity(x2, y2, z2);
                     if (te instanceof TileEntityLittleTiles) {
                         TileEntityLittleTiles littleTE = (TileEntityLittleTiles) te;
                         List<LittleTile> tiles = littleTE.getTiles();

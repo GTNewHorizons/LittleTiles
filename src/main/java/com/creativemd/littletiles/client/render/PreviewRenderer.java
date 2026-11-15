@@ -44,6 +44,7 @@ import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
 import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.LittleToolHandler;
 import com.creativemd.littletiles.common.utils.PlacementHelper;
+import com.creativemd.littletiles.common.utils.PlacementSetting;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileSize;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
@@ -291,9 +292,12 @@ public class PreviewRenderer {
         return held != null && held.getItem() == LittleTiles.chisel;
     }
 
+    /** Whether the held tiles are placed in stencil mode: the chisel's own, or the one all other tiles share. */
     private static boolean holdsStencil() {
-        return holdsChisel() && new LittleToolHandler(Minecraft.getMinecraft().thePlayer.getHeldItem()).getPlaceMode()
-                == LittleTilePlaceMode.STENCIL;
+        EntityPlayer player = Minecraft.getMinecraft().thePlayer;
+        LittleTilePlaceMode mode = holdsChisel() ? new LittleToolHandler(player.getHeldItem()).getPlaceMode()
+                : PlacementSetting.getPlaceMode(player, player.getHeldItem());
+        return mode == LittleTilePlaceMode.STENCIL;
     }
 
     private static Vector3i sizeInPixels(Vec3 size) {
@@ -319,8 +323,8 @@ public class PreviewRenderer {
     /** The chisel is drawn block by block, so it is only textured while it reaches into a few. */
     private static boolean isTexturedPreview(PreviewTile previewTile, Vec3 center, Vec3 size) {
         if (!previewTile.isTextured()) return false;
-        if (!holdsChisel()) return true;
         if (holdsStencil()) return false;
+        if (!holdsChisel()) return true;
 
         Vector3i min = worldMinPixels(center, size);
         Vector3i pixels = sizeInPixels(size);
@@ -396,7 +400,7 @@ public class PreviewRenderer {
 
     /**
      * Draws the item's geometry in place of its textured preview tiles. They are all moved by the same offset, so the
-     * lowest corners of the item and of the preview match.
+     * lowest corners of the item and of the preview match. Stencil draws it untextured, like the other previews.
      */
     private static void renderItemBuffer(TileGeometryBuffer buffer, ArrayList<PreviewTile> previews,
             LittleTileBlockPos pos, double x, double y, double z, int align, double alpha) {
@@ -411,13 +415,18 @@ public class PreviewRenderer {
         }
         if (minX == Double.MAX_VALUE) return;
 
+        boolean stencil = holdsStencil();
         boolean lightingWasEnabled = GL11.glIsEnabled(GL11.GL_LIGHTING);
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
         GL11.glDisable(GL11.GL_LIGHTING);
-        // The vertices carry their own colors, so the fading comes from the blending instead
-        GL14.glBlendColor(0, 0, 0, (float) alpha);
-        GL11.glBlendFunc(GL11.GL_CONSTANT_ALPHA, GL11.GL_ONE_MINUS_CONSTANT_ALPHA);
+        if (stencil) {
+            GL11.glColor4d(STENCIL_COLOR.xCoord, STENCIL_COLOR.yCoord, STENCIL_COLOR.zCoord, alpha);
+        } else {
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+            // The vertices carry their own colors, so the fading comes from the blending instead
+            GL14.glBlendColor(0, 0, 0, (float) alpha);
+            GL11.glBlendFunc(GL11.GL_CONSTANT_ALPHA, GL11.GL_ONE_MINUS_CONSTANT_ALPHA);
+        }
         // The buffer cannot be pulled towards the camera like the immediate preview, so it is offset in depth instead
         GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
         GL11.glPolygonOffset(-1, -1);
@@ -425,13 +434,18 @@ public class PreviewRenderer {
         Vec3 bufferMin = buffer.getMin();
         GL11.glPushMatrix();
         GL11.glTranslated(minX - bufferMin.xCoord, minY - bufferMin.yCoord, minZ - bufferMin.zCoord);
-        buffer.render();
+        if (stencil) buffer.renderUntextured();
+        else buffer.render();
         GL11.glPopMatrix();
 
         GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
-        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+        if (stencil) {
+            GL11.glColor4f(1, 1, 1, 1);
+        } else {
+            OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
+        }
         if (lightingWasEnabled) GL11.glEnable(GL11.GL_LIGHTING);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
     }
 
     /** The shape of the preview tile: textured like its item, or untextured in its preview color. */
@@ -584,11 +598,20 @@ public class PreviewRenderer {
                 MovingObjectPosition look = mc.objectMouseOver;
                 LittleTileBlockPos pos = null;
                 int align = 1;
+                // Tiles aim at the exact pixel, placing moves them by the grid, see PlacementHelper#getTilesBox
+                int hitAlign = 1;
                 boolean inset = false;
                 if (mc.thePlayer.getHeldItem().getItem() == LittleTiles.chisel) {
                     LittleToolHandler handler = new LittleToolHandler(mc.thePlayer.getHeldItem());
                     align = handler.getGrid();
+                    hitAlign = align;
                     inset = PlacementHelper.insetsHit(mc.thePlayer, handler.getPlaceMode(), look);
+                } else {
+                    align = PlacementSetting.getGrid(mc.thePlayer);
+                    inset = PlacementHelper.insetsHit(
+                            mc.thePlayer,
+                            PlacementSetting.getPlaceMode(mc.thePlayer, mc.thePlayer.getHeldItem()),
+                            look);
                 }
                 if (emptyRecipe) align = ItemRecipe.GRID;
                 if (look != null && look.typeOfHit == MovingObjectType.BLOCK) {
@@ -601,7 +624,10 @@ public class PreviewRenderer {
                             0,
                             0,
                             ForgeDirection.UNKNOWN);
-                    else pos = LittleTileBlockPos.fromMovingObjectPosition(look, align, inset);
+                    else pos = LittleTileBlockPos.fromMovingObjectPosition(look, hitAlign, inset);
+                    // Tiles grow away from the side, so inset ones face into the block, see PlacementHelper#getTilesBox
+                    if (inset && !emptyRecipe && mc.thePlayer.getHeldItem().getItem() != LittleTiles.chisel)
+                        pos = pos.withSide(pos.getSide().getOpposite());
                 }
 
                 if (markedHit != null) pos = markedHit;

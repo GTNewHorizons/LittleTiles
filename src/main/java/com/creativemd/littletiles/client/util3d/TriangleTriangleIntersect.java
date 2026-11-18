@@ -17,6 +17,7 @@
 package com.creativemd.littletiles.client.util3d;
 
 import org.joml.Vector2f;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 public class TriangleTriangleIntersect {
@@ -53,8 +54,8 @@ public class TriangleTriangleIntersect {
      *         separate or only touch at a shared surface/edge/vertex.
      */
     public static boolean meshIntersection(Mesh3d mesh1, Mesh3d mesh2) {
-        Vector3f[] vertA = mesh1.getVertices();
-        Vector3f[] vertB = mesh2.getVertices();
+        Vector3f[] vertA = toFloats(mesh1.getVertices());
+        Vector3f[] vertB = toFloats(mesh2.getVertices());
 
         for (int i = 0; i < mesh1.getTriangles().size(); i++) {
             for (int j = 0; j < mesh2.getTriangles().size(); j++) {
@@ -77,6 +78,15 @@ public class TriangleTriangleIntersect {
         if (vertB.length > 0 && mesh1.containsPoint(mesh2.getInteriorSamplePoint())) return true;
 
         return false;
+    }
+
+    /** The vertices rounded to floats, which the triangle tests work in. */
+    private static Vector3f[] toFloats(Vector3d[] vertices) {
+        Vector3f[] floats = new Vector3f[vertices.length];
+        for (int i = 0; i < vertices.length; i++) {
+            floats[i] = new Vector3f((float) vertices[i].x, (float) vertices[i].y, (float) vertices[i].z);
+        }
+        return floats;
     }
 
     /**

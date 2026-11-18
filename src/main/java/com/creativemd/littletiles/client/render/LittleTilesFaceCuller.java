@@ -448,7 +448,7 @@ public final class LittleTilesFaceCuller {
     }
 
     /** Builds the two outward-facing triangles of one box face. */
-    private static List<Triangle3d> boxFaceTriangles(LittleTilesCubeObject cube, ForgeDirection side) {
+    public static List<Triangle3d> boxFaceTriangles(LittleTilesCubeObject cube, ForgeDirection side) {
         double minX = cube.gridMinX / 16.0;
         double minY = cube.gridMinY / 16.0;
         double minZ = cube.gridMinZ / 16.0;
@@ -501,7 +501,7 @@ public final class LittleTilesFaceCuller {
      * Cuts a triangle and returns whatever is left of the triangle once all occluding triangles are subtracted from it,
      * empty when it is covered entirely. The triangle counterpart of {@link #coverSide}.
      */
-    private static List<Triangle3d> cutTriangle(Triangle3d triangle, List<Triangle3d> occludingTriangles) {
+    public static List<Triangle3d> cutTriangle(Triangle3d triangle, List<Triangle3d> occludingTriangles) {
         List<Triangle3d> remaining = Collections.singletonList(triangle.copy());
         for (Triangle3d occludingTriangle : occludingTriangles) {
             // Quick check to avoid unnecessary work. We're O(n2) already...

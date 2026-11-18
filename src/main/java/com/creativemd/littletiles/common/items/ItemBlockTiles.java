@@ -163,6 +163,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
             return false;
         } else if (y == 255) {
             return false;
+        } else if (!PlacementHelper.hasOnlyValidMaterials(stack)) {
+            return false;
         } else {
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
                 PacketHandler.sendPacketToServer(new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null));

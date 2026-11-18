@@ -1,0 +1,298 @@
+package com.creativemd.littletiles.client.util3d;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import com.creativemd.creativecore.lib.Vector3d;
+
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+
+/**
+ * Cuts a closed mesh by planes, closing each cut with a cap.
+ * <p>
+ * While cutting, faces refer to their corners by index into one shared list of points. A plane crossing an edge makes
+ * one new point, which both faces along that edge use, and caps are joined from edges by index. So which faces fit
+ * together never depends on comparing positions, and a closed mesh stays closed.
+ */
+public final class MeshCutter {
+
+    /**
+     * The grid the points of the cut mesh are rounded to, in blocks, far finer than anything visible. Points cuts make
+     * right next to each other become one rather than making slivers, and points on the plane of a pixel stay on it.
+     */
+    public static final double RENDER_GRID = 0x1p-17;
+
+    private final List<Vector3d> points = new ArrayList<>();
+    /** Convex polygons wound counterclockwise around their outward normal. */
+    private List<Face> faces = new ArrayList<>();
+
+    private static final class Face {
+
+        /** Indices into the cutter's shared list of points. */
+        final int[] corners;
+        /** The block plane the face is textured from, see {@link Triangle3d#getPlane}. */
+        final Plane3d plane;
+
+        Face(int[] corners, Plane3d plane) {
+            this.corners = corners;
+            this.plane = plane;
+        }
+    }
+
+    /** @param mesh a closed mesh */
+    public MeshCutter(List<Triangle3d> mesh) {
+        // Corners at the same position are the same point: the triangles of a mesh get them from the same vertex
+        Object2IntOpenHashMap<Vector3d> indices = new Object2IntOpenHashMap<>();
+        indices.defaultReturnValue(-1);
+        for (Triangle3d triangle : mesh) {
+            int a = index(indices, triangle.getP1()), b = index(indices, triangle.getP2()),
+                    c = index(indices, triangle.getP3());
+            // A triangle without a side has its other two cancel out
+            if (a == b || b == c || c == a) continue;
+            faces.add(new Face(new int[] { a, b, c }, triangle.getPlane()));
+        }
+    }
+
+    private int index(Object2IntOpenHashMap<Vector3d> indices, Vector3d point) {
+        // + 0.0 turns -0.0 into 0.0, which equals it but hashes differently
+        Vector3d key = new Vector3d(point.x + 0.0, point.y + 0.0, point.z + 0.0);
+        int index = indices.getInt(key);
+        if (index < 0) {
+            index = points.size();
+            points.add(key);
+            indices.put(key, index);
+        }
+        return index;
+    }
+
+    /**
+     * Cuts the mesh down to the side of the plane its normal points away from.
+     *
+     * @return false if the cut could not be closed, which only happens to meshes that weren't closed
+     */
+    public boolean cut(Plane3d plane) {
+        int corners = 0;
+        for (Face polygon : faces) {
+            corners += polygon.corners.length;
+        }
+        // With room for the points the cut makes, which all lie in the plane
+        double[] distances = new double[points.size() + corners];
+        // Worked out once per point, so the faces sharing it agree on its side whatever the rounding
+        for (int i = 0; i < points.size(); i++) {
+            distances[i] = plane.getDistance(points.get(i));
+        }
+
+        List<Face> keptFaces = new ArrayList<>(faces.size());
+        // The edges crossing the plane, each making the point after the points of the uncut mesh at its position
+        int firstCrossing = points.size();
+        LongArrayList crossed = new LongArrayList();
+        // The edges in the plane the kept faces walk, less those walked both ways
+        LongArrayList edgesInPlane = new LongArrayList();
+        for (Face polygon : faces) {
+            int[] face = polygon.corners;
+            if (isBelow(face, distances)) {
+                keptFaces.add(polygon);
+                continue;
+            }
+            // Sutherland-Hodgman: the corners on the kept side, and where the edges cross the plane
+            int[] kept = new int[face.length * 2];
+            int size = 0;
+            boolean inPlane = true;
+            for (int i = 0; i < face.length; i++) {
+                int from = face[i], to = face[(i + 1) % face.length];
+                if (distances[from] <= 0) kept[size++] = from;
+                if (distances[from] < 0 && distances[to] > 0 || distances[from] > 0 && distances[to] < 0) {
+                    kept[size++] = crossing(crossed, firstCrossing, plane, from, to);
+                }
+                inPlane &= distances[from] == 0;
+            }
+            // A face lying in the plane is left to the cap
+            if (size < 3 || inPlane) continue;
+
+            keptFaces.add(new Face(size == kept.length ? kept : Arrays.copyOf(kept, size), polygon.plane));
+            for (int i = 0; i < size; i++) {
+                int from = kept[i], to = kept[(i + 1) % size];
+                if (distances[from] == 0 && distances[to] == 0) {
+                    // The cap walks them the other way round
+                    walk(edgesInPlane, to, from);
+                }
+            }
+        }
+        faces = keptFaces;
+        // Closes the cut with caps, joined from the open edges in the plane
+        List<int[]> loops = loops(edgesInPlane);
+        if (loops == null) return false;
+        for (int[] loop : loops) {
+            addCap(plane, loop);
+        }
+        return true;
+    }
+
+    /** Whether all corners of the face lie below the plane, rather than in or above it. */
+    private static boolean isBelow(int[] face, double[] distances) {
+        for (int corner : face) {
+            if (distances[corner] >= 0) return false;
+        }
+        return true;
+    }
+
+    private static long key(int from, int to) {
+        return (long) from << 32 | to;
+    }
+
+    /** Adds the edge, unless it cancels out against the same edge walked the other way. */
+    private static void walk(LongArrayList edges, int from, int to) {
+        int reverse = edges.indexOf(key(to, from));
+        if (reverse < 0) {
+            edges.add(key(from, to));
+        } else {
+            edges.removeLong(reverse);
+        }
+    }
+
+    /** The point where the plane crosses the edge, made once per edge. */
+    private int crossing(LongArrayList crossed, int firstCrossing, Plane3d plane, int from, int to) {
+        // The same way round from both faces along the edge
+        long key = from < to ? key(from, to) : key(to, from);
+        int index = crossed.indexOf(key);
+        if (index < 0) {
+            index = crossed.size();
+            crossed.add(key);
+            points.add(plane.intersect(points.get(Math.min(from, to)), points.get(Math.max(from, to))));
+        }
+        return firstCrossing + index;
+    }
+
+    /** Joins the edges into loops, using them up, or null if they don't close. */
+    private static List<int[]> loops(LongArrayList edges) {
+        List<int[]> loops = new ArrayList<>();
+        while (!edges.isEmpty()) {
+            IntArrayList loop = new IntArrayList();
+            int start = (int) (edges.getLong(0) >>> 32), current = start;
+            do {
+                int edge = 0;
+                while (edge < edges.size() && (int) (edges.getLong(edge) >>> 32) != current) edge++;
+                if (edge == edges.size()) return null;
+                loop.add(current);
+                current = (int) edges.removeLong(edge);
+            } while (current != start);
+            loops.add(loop.toIntArray());
+        }
+        return loops;
+    }
+
+    /**
+     * Adds the cap as convex faces: clips ears off it until what is left is convex. Keeps every point of the loop, so
+     * that the cap meets the faces around it in the very same points: earcut would leave out points lying in line with
+     * their neighbours. Clips the ear with the shortest diagonal first, which keeps the triangles from getting thin.
+     */
+    private void addCap(Plane3d plane, int[] loop) {
+        Vector3d normal = plane.getNormal();
+        // The cap lies in the cutting plane, so it takes the block plane of that, whatever rounding does to its normal
+        Plane3d blockPlane = Plane3d.getPlaneForNormal(normal);
+        IntArrayList remaining = new IntArrayList(loop);
+        while (remaining.size() > 3) {
+            int size = remaining.size();
+            double[] turns = new double[size];
+            boolean convex = true;
+            for (int i = 0; i < size; i++) {
+                turns[i] = cross(
+                        remaining.getInt((i + size - 1) % size),
+                        remaining.getInt(i),
+                        remaining.getInt((i + 1) % size),
+                        normal);
+                convex &= turns[i] >= 0;
+            }
+            if (convex) break;
+            int ear = -1, mostConvex = 0;
+            double shortest = Double.POSITIVE_INFINITY;
+            for (int i = 0; i < size; i++) {
+                if (turns[i] > turns[mostConvex]) mostConvex = i;
+                double diagonal = Mesh3d.distanceSquared(
+                        points.get(remaining.getInt((i + size - 1) % size)),
+                        points.get(remaining.getInt((i + 1) % size)));
+                if (turns[i] >= 0 && diagonal < shortest && isEar(remaining, turns, i, normal)) {
+                    shortest = diagonal;
+                    ear = i;
+                }
+            }
+            // Only for caps rounding has tangled up: clipping the most convex corner still keeps the cap closed
+            if (ear < 0) ear = mostConvex;
+            faces.add(
+                    new Face(
+                            new int[] { remaining.getInt((ear + size - 1) % size), remaining.getInt(ear),
+                                    remaining.getInt((ear + 1) % size) },
+                            blockPlane));
+            remaining.removeInt(ear);
+        }
+        faces.add(new Face(remaining.toIntArray(), blockPlane));
+    }
+
+    /** Twice the signed area of the triangle, positive when it turns counterclockwise around the normal. */
+    private double cross(int a, int b, int c, Vector3d normal) {
+        Vector3d pa = points.get(a), pb = points.get(b), pc = points.get(c);
+        double bx = pb.x - pa.x, by = pb.y - pa.y, bz = pb.z - pa.z;
+        double cx = pc.x - pa.x, cy = pc.y - pa.y, cz = pc.z - pa.z;
+        return normal.x * (by * cz - bz * cy) + normal.y * (bz * cx - bx * cz) + normal.z * (bx * cy - by * cx);
+    }
+
+    /**
+     * Whether no other point of the loop lies in the triangle the corner makes with its neighbours. Only corners
+     * turning right or going straight on can: the loop can only come into the triangle and leave it again through the
+     * same side by turning right in it, or by running along the side from one corner to the other.
+     */
+    private boolean isEar(IntArrayList loop, double[] turns, int corner, Vector3d normal) {
+        int size = loop.size();
+        int a = loop.getInt((corner + size - 1) % size), b = loop.getInt(corner), c = loop.getInt((corner + 1) % size);
+        for (int i = 0; i < size; i++) {
+            int point = loop.getInt(i);
+            if (turns[i] > 0 || point == a || point == b || point == c) continue;
+            if (cross(a, b, point, normal) >= 0 && cross(b, c, point, normal) >= 0 && cross(c, a, point, normal) >= 0)
+                return false;
+        }
+        return true;
+    }
+
+    /** The faces as triangles, with the points rounded to {@link #RENDER_GRID}. */
+    public List<Triangle3d> toTriangles() {
+        // Points rounded to the same position become one
+        int[] merged = new int[points.size()];
+        Object2IntOpenHashMap<Vector3d> indices = new Object2IntOpenHashMap<>();
+        indices.defaultReturnValue(-1);
+        for (int i = 0; i < merged.length; i++) {
+            points.set(i, round(points.get(i)));
+            int first = indices.getInt(points.get(i));
+            if (first < 0) indices.put(points.get(i), first = i);
+            merged[i] = first;
+        }
+
+        List<Triangle3d> triangles = new ArrayList<>(faces.size() * 2);
+        for (Face polygon : faces) {
+            int[] face = polygon.corners;
+            for (int i = 1; i < face.length - 1; i++) {
+                int a = merged[face[0]], b = merged[face[i]], c = merged[face[i + 1]];
+                // A triangle losing a side leaves its other two sides to cancel out against each other
+                if (a == b || b == c || c == a) continue;
+                // new Vectors, as the triangles of a mesh must not share points
+                Triangle3d triangle = new Triangle3d(
+                        new Vector3d(points.get(a)),
+                        new Vector3d(points.get(b)),
+                        new Vector3d(points.get(c)));
+                triangle.setPlane(polygon.plane);
+                triangles.add(triangle);
+            }
+        }
+        return triangles;
+    }
+
+    private static Vector3d round(Vector3d point) {
+        // + 0.0 turns -0.0 into 0.0, which equals it but hashes differently
+        return new Vector3d(
+                Math.rint(point.x / RENDER_GRID) * RENDER_GRID + 0.0,
+                Math.rint(point.y / RENDER_GRID) * RENDER_GRID + 0.0,
+                Math.rint(point.z / RENDER_GRID) * RENDER_GRID + 0.0);
+    }
+}

@@ -6,6 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
+import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.BlockValidator;
 
 /**
@@ -33,6 +34,16 @@ public class LittleMaterial {
         return blockName == null ? null : Block.getBlockFromName(blockName);
     }
 
+    /**
+     * This material after the block migrations registered to Postea, e.g. for a block of a removed mod that was
+     * replaced by the one of another mod. Returns this material itself if no migration applies.
+     */
+    public LittleMaterial migrate() {
+        if (LittleTiles.posteaCompat == null || blockName == null || blockName.isEmpty()) return this;
+        LittleMaterial migrated = LittleTiles.posteaCompat.transformBlock(blockName, meta);
+        return migrated != null ? migrated : this;
+    }
+
     /** Whether this material can be stored at all, see {@link BlockValidator}. */
     public boolean isValid() {
         return BlockValidator.isBlockValid(getBlock());
@@ -50,8 +61,20 @@ public class LittleMaterial {
         return blockName + "@" + meta;
     }
 
+    /** Reads the material and applies the block migrations to it, see {@link #migrate()}. */
     public static LittleMaterial readFromNBT(NBTTagCompound nbt) {
-        return new LittleMaterial(nbt.getString(BLOCK_TAG), nbt.getInteger(META_TAG));
+        return new LittleMaterial(nbt.getString(BLOCK_TAG), nbt.getInteger(META_TAG)).migrate();
+    }
+
+    /**
+     * Rewrites the block and meta stored in the given nbt, e.g. of a tile, if a block migration applies to them, see
+     * {@link #migrate()}.
+     */
+    public static void migrateNBT(NBTTagCompound nbt) {
+        if (!nbt.hasKey(BLOCK_TAG)) return;
+        LittleMaterial original = new LittleMaterial(nbt.getString(BLOCK_TAG), nbt.getInteger(META_TAG));
+        LittleMaterial migrated = original.migrate();
+        if (migrated != original) migrated.writeToNBT(nbt);
     }
 
     public void writeToNBT(NBTTagCompound nbt) {

@@ -72,7 +72,7 @@ public class DumpMeshCommand extends CommandBase {
         int dumpIndex = Mesh3d.nextDumpIndex();
 
         Mesh3d mesh = tile.getSimpleMesh();
-        if (tile.getCutoutInfo() != null && mesh.getTriangles().isEmpty()) {
+        if (tile.getCutoutInfo() != null && mesh != null && mesh.getTriangles().isEmpty()) {
             File objFile = new File(new File(mc.mcDataDir, "logs"), "littleTilesDumpMesh" + dumpIndex + ".obj");
             File metaFile = dumpMetadata(objFile, tile, mesh);
             sender.addChatMessage(new ChatComponentTranslation(INVALID_MESH_KEY, "logs/" + metaFile.getName()));
@@ -82,6 +82,12 @@ public class DumpMeshCommand extends CommandBase {
             File outFile = mesh.dumpMesh("DumpMesh", dumpIndex);
             dumpMetadata(outFile, tile, mesh);
             sender.addChatMessage(new ChatComponentTranslation(SUCCESS_KEY, "logs/" + outFile.getName()));
+            dumped = true;
+        }
+        if (tile.getCutoutInfo() == null) {
+            File objFile = new File(new File(mc.mcDataDir, "logs"), "littleTilesDumpMesh" + dumpIndex + ".obj");
+            File metaFile = dumpMetadata(objFile, tile, mesh);
+            sender.addChatMessage(new ChatComponentTranslation(PLAIN_BOX_KEY, "logs/" + metaFile.getName()));
             dumped = true;
         }
         List<LittleTilesCubeObject> cubes = te.getRenderingCubes();
@@ -96,9 +102,6 @@ public class DumpMeshCommand extends CommandBase {
                 File outFile = new Mesh3d(new ArrayList<>(culled)).dumpMesh("CulledMesh", dumpIndex);
                 sender.addChatMessage(new ChatComponentTranslation(CULLED_SUCCESS_KEY, "logs/" + outFile.getName()));
             }
-            dumped = true;
-        } else if (cube != null && cube.cutoutInfo == null) {
-            sender.addChatMessage(new ChatComponentTranslation(PLAIN_BOX_KEY));
             dumped = true;
         }
 
@@ -132,7 +135,7 @@ public class DumpMeshCommand extends CommandBase {
         LittleTileCutoutInfo cutout = tile.getCutoutInfo();
         StringBuilder meta = new StringBuilder();
         meta.append("format=LittleTiles mesh debug metadata v1\n");
-        meta.append("mesh.triangleCount=").append(mesh.getTriangles().size()).append('\n');
+        meta.append("mesh.triangleCount=").append(mesh == null ? 0 : mesh.getTriangles().size()).append('\n');
         meta.append("tile.class=").append(tile.getClass().getName()).append('\n');
         NBTTagCompound tileNbt = new NBTTagCompound();
         tile.saveTile(tileNbt);

@@ -25,6 +25,12 @@ public final class MeshCutter {
      */
     public static final double RENDER_GRID = 0x1p-17;
 
+    /**
+     * Volume up to which, in cubic blocks, a mesh or what two meshes share counts as none: a millionth of a cubic
+     * pixel. Far above rounding, far below anything a player could see or aim at.
+     */
+    public static final double VOLUME_EPSILON = 1.0E-6 / (16 * 16 * 16);
+
     private final List<Vector3d> points = new ArrayList<>();
     /** Convex polygons wound counterclockwise around their outward normal. */
     private List<Face> faces = new ArrayList<>();
@@ -41,6 +47,8 @@ public final class MeshCutter {
             this.plane = plane;
         }
     }
+
+    private MeshCutter() {}
 
     /** @param mesh a closed mesh */
     public MeshCutter(List<Triangle3d> mesh) {
@@ -66,6 +74,19 @@ public final class MeshCutter {
             indices.put(key, index);
         }
         return index;
+    }
+
+    /** A copy to cut on its own. */
+    public MeshCutter copy() {
+        MeshCutter copy = new MeshCutter();
+        copy.points.addAll(points);
+        copy.faces.addAll(faces);
+        return copy;
+    }
+
+    /** Whether nothing is left of the mesh. */
+    public boolean isEmpty() {
+        return faces.isEmpty();
     }
 
     /**
@@ -256,6 +277,32 @@ public final class MeshCutter {
         return true;
     }
 
+    /**
+     * Six times the enclosed volume. Taken from a corner of the faces, so that it is exactly 0 when their corners, on
+     * the grid, lie in one plane across an axis or along one line.
+     */
+    public double volumeTimesSix() {
+        if (faces.isEmpty()) return 0;
+        Vector3d origin = points.get(faces.get(0).corners[0]);
+        double volume = 0;
+        for (Face polygon : faces) {
+            int[] face = polygon.corners;
+            Vector3d a = points.get(face[0]);
+            for (int i = 1; i < face.length - 1; i++) {
+                volume += det(a, points.get(face[i]), points.get(face[i + 1]), origin);
+            }
+        }
+        return volume;
+    }
+
+    /** Six times the signed volume of the tetrahedron from {@code origin} to the triangle. */
+    public static double det(Vector3d a, Vector3d b, Vector3d c, Vector3d origin) {
+        double ax = a.x - origin.x, ay = a.y - origin.y, az = a.z - origin.z;
+        double bx = b.x - origin.x, by = b.y - origin.y, bz = b.z - origin.z;
+        double cx = c.x - origin.x, cy = c.y - origin.y, cz = c.z - origin.z;
+        return ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx);
+    }
+
     /** The faces as triangles, with the points rounded to {@link #RENDER_GRID}. */
     public List<Triangle3d> toTriangles() {
         // Points rounded to the same position become one
@@ -269,7 +316,10 @@ public final class MeshCutter {
             merged[i] = first;
         }
 
+        // Cuts where the mesh barely reaches past a plane leave a sliver too thin to see or aim at, or, through a
+        // corner, edge or face, nothing but faces rounded flat onto the plane
         List<Triangle3d> triangles = new ArrayList<>(faces.size() * 2);
+        if (volumeTimesSix() <= 6 * VOLUME_EPSILON) return triangles;
         for (Face polygon : faces) {
             int[] face = polygon.corners;
             for (int i = 1; i < face.length - 1; i++) {

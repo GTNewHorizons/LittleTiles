@@ -12,6 +12,8 @@ dependencies {
     compileOnly("com.github.GTNewHorizons:Postea:1.2.8:dev") { transitive = false }
     api("com.github.GTNewHorizons:ModularUI2:2.3.92-1.7.10:dev")
     compileOnly("com.github.GTNewHorizons:Chisel:2.18.1-GTNH:dev")
+    // BlockTile implements Chisel's IFacade, so tests creating tiles need it loaded
+    testRuntimeOnly("com.github.GTNewHorizons:Chisel:2.18.1-GTNH:dev")
     testImplementation('junit:junit:4.13.2')
     testImplementation('org.joml:joml:1.10.8')
     testImplementation('it.unimi.dsi:fastutil:8.5.15')

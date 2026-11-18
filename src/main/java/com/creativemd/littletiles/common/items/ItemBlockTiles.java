@@ -166,8 +166,13 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         } else if (!PlacementHelper.hasOnlyValidMaterials(stack)) {
             return false;
         } else {
-            if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
-                PacketHandler.sendPacketToServer(new LittlePlacePacket(stack, pos, PreviewRenderer.markedHit != null));
+            if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) {
+                // The server places what the player holds, only the tile a chisel makes has to be sent. Anything
+                // else, like a big recipe, would not even fit into a packet.
+                ItemStack held = player.getHeldItem();
+                ItemStack sent = held != null && held.getItem() == LittleTiles.chisel ? stack : null;
+                PacketHandler.sendPacketToServer(new LittlePlacePacket(sent, pos, PreviewRenderer.markedHit != null));
+            }
 
             boolean placed = placeBlockAt(player, stack, world, pos, PreviewRenderer.markedHit != null, placeMode);
 

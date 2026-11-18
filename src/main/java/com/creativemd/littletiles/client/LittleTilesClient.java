@@ -1,5 +1,7 @@
 package com.creativemd.littletiles.client;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.Item;
 import net.minecraftforge.client.ClientCommandHandler;
@@ -11,6 +13,7 @@ import com.creativemd.littletiles.client.command.DumpMeshCommand;
 import com.creativemd.littletiles.client.render.BlockOverlayRenderer;
 import com.creativemd.littletiles.client.render.PreviewRenderer;
 import com.creativemd.littletiles.client.render.SpecialBlockTilesRenderer;
+import com.creativemd.littletiles.client.render.TileGeometryBuffer;
 import com.creativemd.littletiles.client.render.ToolHighlightRenderer;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.server.LittleTilesServer;
@@ -63,6 +66,8 @@ public class LittleTilesClient extends LittleTilesServer {
         MinecraftForgeClient.registerItemRenderer(LittleTiles.recipe, renderer);
         MinecraftForgeClient.registerItemRenderer(LittleTiles.multiTiles, renderer);
         MinecraftForgeClient.registerItemRenderer(LittleTiles.partialTiles, renderer);
+        ((IReloadableResourceManager) Minecraft.getMinecraft().getResourceManager())
+                .registerReloadListener(resourceManager -> TileGeometryBuffer.clearCache());
         FMLCommonHandler.instance().bus().register(new PreviewRenderer());
         MinecraftForge.EVENT_BUS.register(new PreviewRenderer());
         ToolHighlightRenderer collisionHighlight = new ToolHighlightRenderer();

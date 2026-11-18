@@ -4,13 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.server.S23PacketBlockChange;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
+import net.minecraft.world.World;
+import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
@@ -132,10 +138,26 @@ public class LittleBlockPacket extends CreativeCorePacket {
                             BlockTile.cancelNext = true;
                         break;
                     case DESTROY:
+                        // The client removes the tile on its own, so this is the only place the server
+                        // can refuse, as it would a vanilla block break: claims, other protection, or a
+                        // WorldEdit wand. A refused break resends the block to the client.
+                        if (!(player instanceof EntityPlayerMP playerMP)) break;
+                        if (ForgeHooks.onBlockBreakEvent(
+                                player.worldObj,
+                                playerMP.theItemInWorldManager.getGameType(),
+                                playerMP,
+                                x,
+                                y,
+                                z).isCanceled())
+                            break;
+                        boolean entireBlock = nbt.getBoolean(ENTIRE_BLOCK) && BlockTile.takesEntireBlock(player, tile);
+                        // Breaking the entire block leaves structures alone, so only a single tile can reach
+                        // further.
+                        if (!entireBlock && !mayBreakWholeStructure(playerMP, tile, x, y, z)) break;
                         boolean creative = player.capabilities.isCreativeMode;
                         LittleTileChangeRecorder recorder = new LittleTileChangeRecorder(player.worldObj);
                         if (creative) recorder.watch(littleEntity.getCoord());
-                        if (nbt.getBoolean(ENTIRE_BLOCK) && BlockTile.takesEntireBlock(player, tile)) {
+                        if (entireBlock) {
                             List<LittleTile> tiles = BlockTile.selectEntireBlock(littleEntity);
                             // The item is made before the tiles leave the block they are saved from
                             ItemStack drop = creative ? null : BlockTile.getEntireBlockDrop(player.worldObj, tiles);
@@ -301,4 +323,35 @@ public class LittleBlockPacket extends CreativeCorePacket {
         }
     }
 
+    /**
+     * Breaking one tile of a structure removes all of it, possibly across several blocks, so the player must be allowed
+     * to break each of those blocks, not just the clicked one. Otherwise a structure reaching into a protected claim
+     * could be removed from outside it.
+     *
+     * @return false if any block refused, after resending the clicked block to the client
+     */
+    private static boolean mayBreakWholeStructure(EntityPlayerMP player, LittleTile tile, int x, int y, int z) {
+        if (!tile.isStructureBlock || !tile.isLoaded()) return true;
+        World world = player.worldObj;
+        for (ChunkCoordinates coord : tile.structure.getTilesSortedPerBlock().getKeys()) {
+            if (coord.posX == x && coord.posY == y && coord.posZ == z) continue;
+            if (ForgeHooks.onBlockBreakEvent(
+                    world,
+                    player.theItemInWorldManager.getGameType(),
+                    player,
+                    coord.posX,
+                    coord.posY,
+                    coord.posZ).isCanceled()) {
+                // The client already removed the tile it clicked; put it back as Forge does for the other block.
+                player.playerNetServerHandler.sendPacket(new S23PacketBlockChange(x, y, z, world));
+                TileEntity clicked = world.getTileEntity(x, y, z);
+                if (clicked != null) {
+                    Packet description = clicked.getDescriptionPacket();
+                    if (description != null) player.playerNetServerHandler.sendPacket(description);
+                }
+                return false;
+            }
+        }
+        return true;
+    }
 }

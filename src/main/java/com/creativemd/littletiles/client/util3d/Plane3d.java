@@ -130,7 +130,9 @@ public class Plane3d {
      * pieces cut out of a triangle inherit, as their own normals are tilted by the cut.
      */
     public static Plane3d getPlaneForTriangle(Triangle3d triangle) {
-        return getPlaneForNormal(triangle.getNormal());
+        Plane3d plane = getPlaneForNormal(triangle.getNormal());
+        // A triangle without area, kept to keep the mesh closed, has no normal to go by, nor anything to texture
+        return plane != null ? plane : UP;
     }
 
     public static Plane3d getPlaneForNormal(Vector3d normal) {

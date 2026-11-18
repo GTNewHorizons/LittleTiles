@@ -32,8 +32,6 @@ import cpw.mods.fml.common.FMLLog;
  */
 public class Mesh3d {
 
-    private static final double DEGENERATE_EPSILON = 1.0E-8;
-    private static final double DEGENERATE_EPSILON_SQUARED = DEGENERATE_EPSILON * DEGENERATE_EPSILON;
     /** Set in headless tests, where dumping a mesh would initialize FML. A failed cut throws instead. */
     private static final String DISABLE_MESH_DUMPS_PROPERTY = "littletiles.disableMeshDumps";
 
@@ -131,26 +129,28 @@ public class Mesh3d {
         return new Mesh3d(cutter.toTriangles());
     }
 
-    public static boolean isDegenerate(Vector3d p1, Vector3d p2, Vector3d p3) {
-        if (distanceSquared(p1, p2) <= DEGENERATE_EPSILON_SQUARED
-                || distanceSquared(p1, p3) <= DEGENERATE_EPSILON_SQUARED
-                || distanceSquared(p2, p3) <= DEGENERATE_EPSILON_SQUARED) {
-            return true;
-        }
-
-        Vector3d edge1 = new Vector3d(p2);
-        edge1.sub(p1);
-        Vector3d edge2 = new Vector3d(p3);
-        edge2.sub(p1);
-        edge1.cross(edge1, edge2);
-        return edge1.lengthSquared() <= DEGENERATE_EPSILON_SQUARED;
-    }
-
     public static double distanceSquared(Vector3d p1, Vector3d p2) {
         double dx = p1.x - p2.x;
         double dy = p1.y - p2.y;
         double dz = p1.z - p2.z;
         return dx * dx + dy * dy + dz * dz;
+    }
+
+    /** The volume the mesh encloses, negative if it is wound inwards. The mesh has to be closed. */
+    public double volume() {
+        if (triangles.isEmpty()) return 0;
+        Vector3d origin = triangles.get(0).getP1();
+        double volume = 0;
+        for (Triangle3d triangle : triangles) {
+            volume += MeshCutter.det(triangle.getP1(), triangle.getP2(), triangle.getP3(), origin);
+        }
+        return volume / 6;
+    }
+
+    public void flipWindingOrder() {
+        for (Triangle3d triangle : triangles) {
+            triangle.flipWindingOrder();
+        }
     }
 
     public List<Triangle3d> getTriangles() {

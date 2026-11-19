@@ -7,7 +7,7 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
-import com.creativemd.creativecore.common.gui.SubGui;
+import com.creativemd.littletiles.common.gui.StructureConfigWidget;
 import com.creativemd.littletiles.common.utils.LittleTile;
 
 public class LittleBed extends LittleStructure {
@@ -25,13 +25,7 @@ public class LittleBed extends LittleStructure {
     }
 
     @Override
-    public void createControls(SubGui gui, LittleStructure structure) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public LittleStructure parseStructure(SubGui gui) {
+    public LittleStructure parseStructure(StructureConfigWidget config) {
         return new LittleBed();
     }
 

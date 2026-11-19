@@ -41,6 +41,7 @@ import com.creativemd.littletiles.common.packet.LittleCursorBlockUpdatePacket;
 import com.creativemd.littletiles.common.packet.LittleFlipPacket;
 import com.creativemd.littletiles.common.packet.LittleItemUpdatePacket;
 import com.creativemd.littletiles.common.packet.LittlePlacePacket;
+import com.creativemd.littletiles.common.packet.LittleRecipeSelectPacket;
 import com.creativemd.littletiles.common.packet.LittleRotatePacket;
 import com.creativemd.littletiles.common.packet.LittleUndoRedoPacket;
 import com.creativemd.littletiles.common.placement.LittleTilesPlacementHistory;
@@ -172,6 +173,7 @@ public class LittleTiles {
         CreativeCorePacket.registerPacket(LittleItemUpdatePacket.class, "LittleItemUpdate");
         CreativeCorePacket.registerPacket(LittleCursorBlockUpdatePacket.class, "LittleCursorItemUpdate");
         CreativeCorePacket.registerPacket(LittleUndoRedoPacket.class, "LittleUndoRedo");
+        CreativeCorePacket.registerPacket(LittleRecipeSelectPacket.class, "LittleRecipeSelect");
 
         FMLCommonHandler.instance().bus().register(new LittleEvent());
         MinecraftForge.EVENT_BUS.register(new LittleEvent());
@@ -192,10 +194,6 @@ public class LittleTiles {
         GameRegistry.addRecipe(
                 new ItemStack(saw),
                 new Object[] { "AXA", "AXA", "ALA", 'X', Items.iron_ingot, 'L', new ItemStack(Items.dye, 1, 4) });
-
-        GameRegistry.addRecipe(
-                new ItemStack(wrench),
-                new Object[] { "AXA", "ALA", "ALA", 'X', Items.iron_ingot, 'L', new ItemStack(Items.dye, 1, 4) });
 
         GameRegistry.addRecipe(
                 new ItemStack(rubberMallet),

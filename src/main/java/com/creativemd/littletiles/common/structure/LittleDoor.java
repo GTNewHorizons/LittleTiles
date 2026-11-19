@@ -11,14 +11,12 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.creativemd.creativecore.common.gui.SubGui;
-import com.creativemd.creativecore.common.gui.controls.GuiButton;
-import com.creativemd.creativecore.common.gui.event.ControlClickEvent;
 import com.creativemd.creativecore.common.utils.Rotation;
 import com.creativemd.creativecore.common.utils.RotationUtils;
 import com.creativemd.creativecore.common.utils.RotationUtils.Axis;
-import com.creativemd.littletiles.common.gui.SubGuiStructure;
-import com.creativemd.littletiles.common.gui.controls.GuiTileViewer;
+import com.creativemd.littletiles.common.gui.DoorConfigWidget;
+import com.creativemd.littletiles.common.gui.StructureConfigWidget;
+import com.creativemd.littletiles.common.gui.TileViewerWidget;
 import com.creativemd.littletiles.common.placement.LittleTilePlacementPlan;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTilePlaceMode;
@@ -26,7 +24,6 @@ import com.creativemd.littletiles.common.utils.LittleTilePreview;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 import com.creativemd.littletiles.utils.PreviewTile;
-import com.n247s.api.eventapi.eventsystem.CustomEventSubscribe;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -55,38 +52,8 @@ public class LittleDoor extends LittleStructure {
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void createControls(SubGui gui, LittleStructure structure) {
-        LittleDoor door = null;
-        if (structure instanceof LittleDoor) door = (LittleDoor) structure;
-        GuiTileViewer tile = new GuiTileViewer("tileviewer", 5, 30, 100, 100, ((SubGuiStructure) gui).stack);
-        if (door != null) {
-            tile.axisDirection = door.axis;
-            /*
-             * tile.axisX = door.axisPoint.x; tile.axisY = door.axisPoint.y; tile.axisZ = door.axisPoint.z;
-             */
-            tile.axisX = door.axisVec.x;
-            tile.axisY = door.axisVec.y;
-            tile.axisZ = door.axisVec.z;
-            tile.normalAxis = Axis.getAxis(door.normalDirection);
-        }
-        tile.visibleAxis = true;
-        tile.updateViewDirection();
-        gui.controls.add(tile);
-        gui.controls.add(new GuiButton("reset view", 105, 30, 70));
-        // gui.controls.add(new GuiButton("y", 170, 50, 20));
-        gui.controls.add(new GuiButton("flip view", 105, 50, 70));
-
-        gui.controls.add(new GuiButton("swap axis", 105, 10, 70));
-        gui.controls.add(new GuiButton("swap normal", 105, 70, 70));
-        // gui.controls.add(new GuiButton("-->", 150, 50, 20));
-
-        // gui.controls.add(new GuiButton("<-Z", 130, 70, 20));
-        gui.controls.add(new GuiButton("up", "<-", 125, 90, 20).setRotation(90));
-        gui.controls.add(new GuiButton("->", 145, 110, 20));
-        gui.controls.add(new GuiButton("<-", 105, 110, 20));
-        gui.controls.add(new GuiButton("down", "<-", 125, 110, 20).setRotation(-90));
-        // gui.controls.add(new GuiButton("->", 190, 90, 20));
-        // gui.controls.add(new GuiStateButton("direction", 3, 130, 50, 50, 20, "NORTH", "SOUTH", "WEST", "EAST"));
+    public StructureConfigWidget createConfigWidget(ItemStack stack, LittleStructure structure) {
+        return new DoorConfigWidget(stack, structure instanceof LittleDoor ? (LittleDoor) structure : null);
     }
 
     public ForgeDirection normalDirection;
@@ -97,67 +64,6 @@ public class LittleDoor extends LittleStructure {
         LittleTileVec newAxisVec = axisVec.copy();
         newAxisVec.addVec(mainTile.cornerVec);
         return newAxisVec;
-    }
-
-    @CustomEventSubscribe
-    @SideOnly(Side.CLIENT)
-    public void onButtonClicked(ControlClickEvent event) {
-        GuiTileViewer viewer = (GuiTileViewer) event.source.parent.getControl("tileviewer");
-        if (event.source.is("swap axis")) {
-            switch (viewer.axisDirection) {
-                case AxisX:
-                    axis = Axis.AxisY;
-                    break;
-                case AxisY:
-                    axis = Axis.AxisZ;
-                    break;
-                case AxisZ:
-                    axis = Axis.AxisX;
-                    break;
-                default:
-                    break;
-            }
-            viewer.axisDirection = axis;
-            viewer.updateViewDirection();
-
-            viewer.updateNormalAxis();
-            // viewer.axisDirection
-        } else if (event.source.is("reset view")) {
-            viewer.offsetX = 0;
-            viewer.offsetY = 0;
-            viewer.scale = 1;
-            // viewer.viewDirection = ForgeDirection.EAST;
-            // ((GuiStateButton) event.source.parent.getControl("direction")).setState(3);
-        } else if (event.source.is("flip view")) {
-            viewer.viewDirection = viewer.viewDirection.getOpposite();
-
-            // viewer.viewDirection = ForgeDirection.getOrientation(((GuiStateButton) event.source).getState()+2);
-        } else if (event.source instanceof GuiButton) {
-            if (event.source.is("<-")) {
-                if (viewer.axisDirection == Axis.AxisX) viewer.axisZ++;
-                else viewer.axisX--;
-            }
-            if (event.source.is("->")) {
-                if (viewer.axisDirection == Axis.AxisX) viewer.axisZ--;
-                else viewer.axisX++;
-            }
-            if (event.source.is("up")) {
-                if (viewer.axisDirection == Axis.AxisY) viewer.axisZ--;
-                else viewer.axisY++;
-
-            }
-            if (event.source.is("down")) {
-                if (viewer.axisDirection == Axis.AxisY) viewer.axisZ++;
-                else viewer.axisY--;
-            } else if (event.source.is("swap normal")) {
-                viewer.changeNormalAxis();
-            }
-        }
-        /*
-         * if(event.source.is("<--")) { viewer.viewDirection = viewer.viewDirection.getOpposite();
-         * //viewer.viewDirection = ForgeDirection.getOrientation(((GuiStateButton) event.source).getState()+2); }
-         */
-
     }
 
     @Override
@@ -468,9 +374,9 @@ public class LittleDoor extends LittleStructure {
 
     @Override
     @SideOnly(Side.CLIENT)
-    public LittleStructure parseStructure(SubGui gui) {
+    public LittleStructure parseStructure(StructureConfigWidget config) {
         LittleDoor door = new LittleDoor();
-        GuiTileViewer viewer = (GuiTileViewer) gui.getControl("tileviewer");
+        TileViewerWidget viewer = ((DoorConfigWidget) config).viewer;
         door.axisVec = new LittleTileVec(viewer.axisX, viewer.axisY, viewer.axisZ);
         door.axis = viewer.axisDirection;
         door.normalDirection = viewer.normalAxis.getDirection();

@@ -10,6 +10,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTile;
 
 import mcp.mobius.waila.api.IWailaConfigHandler;
 import mcp.mobius.waila.api.IWailaDataAccessor;
@@ -33,17 +34,12 @@ public class WailaLittleTileHandler implements IWailaDataProvider {
             IWailaConfigHandler config) {
         TileEntity te = accessor.getTileEntity();
         if (te instanceof TileEntityLittleTiles) {
-            TileEntityLittleTiles tile = (TileEntityLittleTiles) te;
-            tile.updateLoadedTile(accessor.getPlayer());
-
-            try {
-                ArrayList<ItemStack> drops = tile.loadedTile.getDrops();
-                if (drops.isEmpty()) return currenttip;
-                ItemStack stack = drops.get(0);
-                currenttip.add(stack.getDisplayName());
-            } catch (Exception ignored) {
-
-            }
+            LittleTile tile = ((TileEntityLittleTiles) te).getHitTile(accessor.getPlayer());
+            if (tile == null) return currenttip;
+            ArrayList<ItemStack> drops = tile.getDrops();
+            if (drops.isEmpty()) return currenttip;
+            ItemStack stack = drops.get(0);
+            currenttip.add(stack.getDisplayName());
         }
         return currenttip;
     }

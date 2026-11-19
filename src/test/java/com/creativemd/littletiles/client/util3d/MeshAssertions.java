@@ -33,6 +33,12 @@ public final class MeshAssertions {
      */
     public static final double ROUNDING_VOLUME = 0.5;
 
+    /**
+     * Volume in cubic pixels that two measures of the same solid by collision may differ by. Collision cuts without
+     * rounding, so only the rounding of doubles is left: a billionth of a cubic block.
+     */
+    public static final double EXACT_VOLUME = 1.0E-9 * BlockSpace.PIXELS * BlockSpace.PIXELS * BlockSpace.PIXELS;
+
     private MeshAssertions() {}
 
     public static void assertNotEmpty(Tile tile) {

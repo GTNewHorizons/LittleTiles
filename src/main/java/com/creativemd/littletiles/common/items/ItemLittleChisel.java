@@ -136,7 +136,8 @@ public class ItemLittleChisel extends Item implements ILittleTile, IGuiHolder<Pl
                     if (moving == null) {
                         return null;
                     }
-                    end = LittleTileBlockPos.fromMovingObjectPosition(moving, align);
+                    boolean inset = PreviewRenderer.insetsHit(handler.getPlaceMode(), moving);
+                    end = LittleTileBlockPos.fromMovingObjectPosition(moving, align, inset);
                 }
                 LittleTileBlockPos start = PreviewRenderer.firstHit != null ? PreviewRenderer.firstHit : end;
 

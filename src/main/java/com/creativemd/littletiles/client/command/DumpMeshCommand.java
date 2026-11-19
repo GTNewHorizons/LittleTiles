@@ -160,24 +160,9 @@ public class DumpMeshCommand extends CommandBase {
         }
 
         if (cutout != null) {
-            meta.append("cutout.type=").append(cutout.type).append('\n');
-            appendVector(meta, "cutout.size", cutout.size);
-            appendVector(meta, "cutout.pos", cutout.pos);
-            meta.append("cutout.orientation=").append(cutout.orientation).append('\n');
-            meta.append("cutout.thickness=").append(cutout.thickness).append('\n');
-            meta.append("cutout.faceStart=").append(cutout.faceStart).append('\n');
-            meta.append("cutout.faceEnd=").append(cutout.faceEnd).append('\n');
-            meta.append("cutout.negativeAxes=").append(cutout.negX).append(',').append(cutout.negY).append(',')
-                    .append(cutout.negZ).append('\n');
-            if (cutout.corners != null) {
-                LittleTileBox cornerBounds = LittleTileBox.fromPoints(cutout.corners);
-                meta.append("cutout.cornerBounds.min=").append(cornerBounds.minX).append(',').append(cornerBounds.minY)
-                        .append(',').append(cornerBounds.minZ).append('\n');
-                meta.append("cutout.cornerBounds.max=").append(cornerBounds.maxX).append(',').append(cornerBounds.maxY)
-                        .append(',').append(cornerBounds.maxZ).append('\n');
-                for (int i = 0; i < cutout.corners.length; i++) {
-                    appendVector(meta, "cutout.corner." + i, cutout.corners[i]);
-                }
+            appendCutout(meta, "cutout.", cutout);
+            for (int i = 0; i < cutout.furtherShapes.size(); i++) {
+                appendCutout(meta, "cutout.further." + i + ".", cutout.furtherShapes.get(i));
             }
 
             NBTTagCompound cutoutNbt = new NBTTagCompound();
@@ -193,6 +178,29 @@ public class DumpMeshCommand extends CommandBase {
             throw new RuntimeException("Failed to dump mesh metadata to " + metaFile.getAbsolutePath(), e);
         }
         return metaFile;
+    }
+
+    private static void appendCutout(StringBuilder meta, String prefix, LittleTileCutoutInfo cutout) {
+        meta.append(prefix + "type=").append(cutout.type).append('\n');
+        appendVector(meta, prefix + "size", cutout.size);
+        appendVector(meta, prefix + "pos", cutout.pos);
+        meta.append(prefix + "orientation=").append(cutout.orientation).append('\n');
+        meta.append(prefix + "thickness=").append(cutout.thickness).append('\n');
+        meta.append(prefix + "faceStart=").append(cutout.faceStart).append('\n');
+        meta.append(prefix + "faceEnd=").append(cutout.faceEnd).append('\n');
+        meta.append(prefix + "negativeAxes=").append(cutout.negX).append(',').append(cutout.negY).append(',')
+                .append(cutout.negZ).append('\n');
+        meta.append(prefix + "inverted=").append(cutout.inverted).append('\n');
+        if (cutout.corners != null) {
+            LittleTileBox cornerBounds = LittleTileBox.fromPoints(cutout.corners);
+            meta.append(prefix + "cornerBounds.min=").append(cornerBounds.minX).append(',').append(cornerBounds.minY)
+                    .append(',').append(cornerBounds.minZ).append('\n');
+            meta.append(prefix + "cornerBounds.max=").append(cornerBounds.maxX).append(',').append(cornerBounds.maxY)
+                    .append(',').append(cornerBounds.maxZ).append('\n');
+            for (int i = 0; i < cutout.corners.length; i++) {
+                appendVector(meta, prefix + "corner." + i, cutout.corners[i]);
+            }
+        }
     }
 
     private static void appendVector(StringBuilder output, String name, Vector3i vector) {

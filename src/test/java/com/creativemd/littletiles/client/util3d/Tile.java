@@ -89,6 +89,13 @@ public final class Tile {
         return MeshCollision.sharedVolume(box, shape, box, null) * PIXELS * PIXELS * PIXELS;
     }
 
+    /** The tile with its shape turned inside out within its box, as anti fill places it. */
+    public Tile inverted() {
+        LittleTileCutoutInfo inverted = new LittleTileCutoutInfo(shape);
+        inverted.inverted = !inverted.inverted;
+        return new Tile(box, inverted);
+    }
+
     /** The tile with its box shrunk to its mesh, see {@link Mesh3dUtil#fitToMesh}. */
     public Tile fittedToMesh() {
         LittleTileBox fitted = box.copy();

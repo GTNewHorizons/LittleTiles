@@ -357,6 +357,19 @@ public class Mesh3dUtil {
     /** @param cutoutSize the size of the whole cutout, in tile pixels */
     public static Mesh3d createMesh(LittleTileCutoutInfo cutoutInfo, Vector3i cutoutSize, Vector3i posCutout,
             Vector3i posSubMin, Vector3i posSubMax, Block block, int meta, int orientation) {
+        if (!cutoutInfo.furtherShapes.isEmpty()) {
+            LittleTileCutoutInfo placed = new LittleTileCutoutInfo(cutoutInfo);
+            placed.size = cutoutSize;
+            placed.pos = posCutout;
+            placed.orientation = orientation;
+            Mesh3d mesh = disjointPiecesMesh(
+                    new LittleTileBox(posSubMin.x, posSubMin.y, posSubMin.z, posSubMax.x, posSubMax.y, posSubMax.z),
+                    placed);
+            if (block != null) {
+                mesh.setTextures(block, meta);
+            }
+            return mesh;
+        }
         Mesh3d mesh = shapeMesh(cutoutInfo);
         place(mesh, cutoutInfo, cutoutSize, posCutout, posSubMin, orientation);
 
@@ -364,24 +377,63 @@ public class Mesh3dUtil {
         double[] min = new double[3], max = new double[3];
         pixelBounds(mesh, min, max);
         int[] subMin = { posSubMin.x, posSubMin.y, posSubMin.z }, subMax = { posSubMax.x, posSubMax.y, posSubMax.z };
+        boolean inverted = cutoutInfo.inverted;
         for (int axis = 0; axis < 3; axis++) {
             // Bounds that only touch the box share no volume with it
-            if (min[axis] >= subMax[axis] || max[axis] <= subMin[axis]) return new Mesh3d(new ArrayList<>());
+            if (!inverted && (min[axis] >= subMax[axis] || max[axis] <= subMin[axis]))
+                return new Mesh3d(new ArrayList<>());
         }
+        if (inverted) mesh = antiSolid(mesh, min, max, subMin, subMax);
 
+        // The anti solid reaches past the box everywhere
         List<Plane3d> planes = new ArrayList<>(6);
-        if (max[1] > subMax[1]) planes.add(Plane3d.UP.moveAlongNormal(-(16 - subMax[1]) / 16.0));
-        if (min[1] < subMin[1]) planes.add(Plane3d.DOWN.moveAlongNormal(-subMin[1] / 16.0));
-        if (min[0] < subMin[0]) planes.add(Plane3d.WEST.moveAlongNormal(-subMin[0] / 16.0));
-        if (max[0] > subMax[0]) planes.add(Plane3d.EAST.moveAlongNormal(-(16 - subMax[0]) / 16.0));
-        if (max[2] > subMax[2]) planes.add(Plane3d.SOUTH.moveAlongNormal(-(16 - subMax[2]) / 16.0));
-        if (min[2] < subMin[2]) planes.add(Plane3d.NORTH.moveAlongNormal(-subMin[2] / 16.0));
+        if (inverted || max[1] > subMax[1]) planes.add(Plane3d.UP.moveAlongNormal(-(16 - subMax[1]) / 16.0));
+        if (inverted || min[1] < subMin[1]) planes.add(Plane3d.DOWN.moveAlongNormal(-subMin[1] / 16.0));
+        if (inverted || min[0] < subMin[0]) planes.add(Plane3d.WEST.moveAlongNormal(-subMin[0] / 16.0));
+        if (inverted || max[0] > subMax[0]) planes.add(Plane3d.EAST.moveAlongNormal(-(16 - subMax[0]) / 16.0));
+        if (inverted || max[2] > subMax[2]) planes.add(Plane3d.SOUTH.moveAlongNormal(-(16 - subMax[2]) / 16.0));
+        if (inverted || min[2] < subMin[2]) planes.add(Plane3d.NORTH.moveAlongNormal(-subMin[2] / 16.0));
         mesh = mesh.cutByPlanes(planes);
         if (block != null) {
             mesh.setTextures(block, meta);
         }
 
         return mesh;
+    }
+
+    /**
+     * What the shape leaves free of a box a pixel larger than both the shape and the tile box, as a closed mesh: that
+     * box, with the shape turned inside out in it. Cut to the tile box, it is the anti mesh of the shape there.
+     *
+     * @param shapeMin the bounds of the shape, in pixels
+     */
+    private static Mesh3d antiSolid(Mesh3d shape, double[] shapeMin, double[] shapeMax, int[] subMin, int[] subMax) {
+        double[] min = new double[3], max = new double[3];
+        for (int axis = 0; axis < 3; axis++) {
+            min[axis] = Math.floor(Math.min(shapeMin[axis], subMin[axis]));
+            max[axis] = Math.ceil(Math.max(shapeMax[axis], subMax[axis]));
+        }
+        Mesh3d around = createBoxMesh();
+        around.scale(new Vector3d((max[0] - min[0] + 2) / 16, (max[1] - min[1] + 2) / 16, (max[2] - min[2] + 2) / 16));
+        around.translate(new Vector3d((min[0] - 1) / 16, (min[1] - 1) / 16, (min[2] - 1) / 16));
+        shape.flipWindingOrder();
+        List<Triangle3d> triangles = new ArrayList<>(shape.getTriangles());
+        triangles.addAll(around.getTriangles());
+        return new Mesh3d(triangles);
+    }
+
+    /**
+     * The tile, its cutout having further shapes, see {@link MeshCollision#disjointPieces}. The pieces it is made of
+     * are closed each, so where they meet, faces lie against each other inside it.
+     */
+    private static Mesh3d disjointPiecesMesh(LittleTileBox box, LittleTileCutoutInfo cutout) {
+        List<MeshCutter> pieces = MeshCollision.disjointPieces(box, cutout);
+        List<Triangle3d> triangles = new ArrayList<>();
+        if (pieces == null) return new Mesh3d(triangles);
+        for (MeshCutter piece : pieces) {
+            triangles.addAll(piece.toTriangles());
+        }
+        return new Mesh3d(triangles);
     }
 
     /** How much of its tile box a cutout covers, see {@link #classifyTile}. */

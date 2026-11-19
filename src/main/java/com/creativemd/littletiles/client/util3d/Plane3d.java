@@ -135,8 +135,9 @@ public class Plane3d {
         return plane != null ? plane : UP;
     }
 
+    /** The first plane for the normal of a triangle without area, which has no direction. */
     public static Plane3d getPlaneForNormal(Vector3d normal) {
-        Plane3d ret = null;
+        Plane3d ret = planes[0];
         double biggestDot = -1;
         for (Plane3d plane : planes) {
             double dot = plane.getNormal().dot(normal);

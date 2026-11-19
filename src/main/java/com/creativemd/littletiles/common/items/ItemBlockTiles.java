@@ -334,6 +334,8 @@ public class ItemBlockTiles extends ItemBlock implements ILittleTile, ITilesRend
         if (!stack.hasTagCompound()) return cubes;
         LittleTilePreview preview = LittleTilePreview.getPreviewFromNBT(stack.stackTagCompound);
         if (preview == null) return cubes;
+        // The item shows the tile centered, wherever in its block it came from
+        preview.box = null;
         CubeObject cube = preview.getCubeBlock();
         if (!(cube.block instanceof BlockAir)) cubes.add(cube);
         return cubes;

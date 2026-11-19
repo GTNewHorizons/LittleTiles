@@ -142,6 +142,16 @@ public class PreviewTile {
         return null;
     }
 
+    /** How many blocks {@link #split} spreads this tile over. */
+    public long getBlockCount() {
+        return (long) blocksSpanned(box.minX, box.maxX) * blocksSpanned(box.minY, box.maxY)
+                * blocksSpanned(box.minZ, box.maxZ);
+    }
+
+    private static int blocksSpanned(int min, int max) {
+        return Math.floorDiv(max - 1, 16) - Math.floorDiv(min, 16) + 1;
+    }
+
     public boolean split(SplitPreviewMap tiles, int x, int y, int z) {
         if (preview != null && !preview.canSplit && box.needsMultipleBlocks()) return false;
         LittleTileSize size = box.getSize();

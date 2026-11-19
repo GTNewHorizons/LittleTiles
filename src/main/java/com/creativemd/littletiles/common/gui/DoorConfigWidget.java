@@ -33,17 +33,25 @@ public class DoorConfigWidget extends StructureConfigWidget {
         viewer.updateViewDirection();
         child(viewer.pos(0, 0).size(VIEWER_SIZE, VIEWER_SIZE));
 
-        child(button("Swap axis", 0, this::swapAxis));
-        child(button("Swap normal", 1, viewer::changeNormalAxis));
+        child(button("Swap axis", 0, changing(this::swapAxis)));
+        child(button("Swap normal", 1, changing(viewer::changeNormalAxis)));
         child(button("Reset view", 2, viewer::resetView));
         child(button("Flip view", 3, () -> viewer.viewDirection = viewer.viewDirection.getOpposite()));
 
         int arrowX = BUTTON_X + (BUTTON_WIDTH - ARROW_SIZE) / 2;
         int arrowY = 4 * (BUTTON_HEIGHT + 2) + 4;
-        child(arrow("^", arrowX, arrowY, this::moveUp));
-        child(arrow("<", arrowX - ARROW_SIZE, arrowY + ARROW_SIZE, this::moveLeft));
-        child(arrow("v", arrowX, arrowY + ARROW_SIZE, this::moveDown));
-        child(arrow(">", arrowX + ARROW_SIZE, arrowY + ARROW_SIZE, this::moveRight));
+        child(arrow("^", arrowX, arrowY, changing(this::moveUp)));
+        child(arrow("<", arrowX - ARROW_SIZE, arrowY + ARROW_SIZE, changing(this::moveLeft)));
+        child(arrow("v", arrowX, arrowY + ARROW_SIZE, changing(this::moveDown)));
+        child(arrow(">", arrowX + ARROW_SIZE, arrowY + ARROW_SIZE, changing(this::moveRight)));
+    }
+
+    /** The action, reporting the change of the door after it. The view buttons only move the view. */
+    private Runnable changing(Runnable action) {
+        return () -> {
+            action.run();
+            changed();
+        };
     }
 
     private static ButtonWidget<?> button(String text, int row, Runnable action) {

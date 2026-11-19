@@ -33,6 +33,7 @@ import com.creativemd.littletiles.common.utils.LittleTileFacade;
 import com.creativemd.littletiles.common.utils.LittleTileFacades;
 import com.creativemd.littletiles.common.utils.LittleTilesCubeObject;
 import com.creativemd.littletiles.common.utils.small.LittleTileBox;
+import com.creativemd.littletiles.common.utils.small.LittleTileCoord;
 import com.creativemd.littletiles.common.utils.small.LittleTileVec;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -317,6 +318,14 @@ public class TileEntityLittleTiles extends TileEntity {
         }
         nbt.setInteger("tilesCount", tiles.size());
         return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, blockMetadata, nbt);
+    }
+
+    /** The tile {@code coord} points to, which has to be in this block. */
+    public LittleTile getTile(LittleTileCoord coord) {
+        for (LittleTile tile : tiles) {
+            if (coord.matches(tile)) return tile;
+        }
+        return null;
     }
 
     public LittleTile getTile(LittleTileVec vec) {

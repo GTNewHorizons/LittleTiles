@@ -190,27 +190,42 @@ public class TileGeometryBuffer {
     }
 
     public void render() {
+        draw(true);
+    }
+
+    /** Draws just the shape, without textures and the tiles' colors, in the current color. */
+    public void renderUntextured() {
+        draw(false);
+    }
+
+    private void draw(boolean textured) {
         if (buffer == 0 || vertices == 0) return;
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer);
         GL11.glEnableClientState(GL11.GL_VERTEX_ARRAY);
-        GL11.glEnableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
-        GL11.glEnableClientState(GL11.GL_COLOR_ARRAY);
+        if (textured) {
+            GL11.glEnableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
+            GL11.glEnableClientState(GL11.GL_COLOR_ARRAY);
+        }
         GL11.glEnableClientState(GL11.GL_NORMAL_ARRAY);
         GL11.glVertexPointer(3, GL11.GL_FLOAT, STRIDE, 0);
-        GL11.glTexCoordPointer(2, GL11.GL_FLOAT, STRIDE, TEXTURE_OFFSET);
-        GL11.glColorPointer(4, GL11.GL_UNSIGNED_BYTE, STRIDE, COLOR_OFFSET);
+        if (textured) {
+            GL11.glTexCoordPointer(2, GL11.GL_FLOAT, STRIDE, TEXTURE_OFFSET);
+            GL11.glColorPointer(4, GL11.GL_UNSIGNED_BYTE, STRIDE, COLOR_OFFSET);
+        }
         GL11.glNormalPointer(GL11.GL_FLOAT, STRIDE, NORMAL_OFFSET);
 
         GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, vertices);
 
         GL11.glDisableClientState(GL11.GL_NORMAL_ARRAY);
-        GL11.glDisableClientState(GL11.GL_COLOR_ARRAY);
-        GL11.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
+        if (textured) {
+            GL11.glDisableClientState(GL11.GL_COLOR_ARRAY);
+            GL11.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
+        }
         GL11.glDisableClientState(GL11.GL_VERTEX_ARRAY);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
         // the current color is undefined after drawing with a color array
-        GL11.glColor4f(1, 1, 1, 1);
+        if (textured) GL11.glColor4f(1, 1, 1, 1);
     }
 
     public void delete() {

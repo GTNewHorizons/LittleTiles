@@ -1,5 +1,6 @@
 package com.creativemd.littletiles.common.items;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -7,15 +8,12 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
 
-import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.BlockValidator;
-import com.creativemd.littletiles.common.packet.LittleBlockPacket;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
 import com.creativemd.littletiles.common.utils.LittleTileBlock;
@@ -83,10 +81,45 @@ public class ItemRubberMallet extends Item {
                         player.addChatComponentMessage(
                                 new ChatComponentText("Too much new tiles! Limit=" + LittleTiles.maxNewTiles));
                     }
+                } else {
+                    TileEntityLittleTiles te = (TileEntityLittleTiles) tileEntity;
+                    LittleTile tile = te.getHitTile(player);
+                    ArrayList<LittleTile> newTiles = new ArrayList<>();
+                    if (tile != null
+                            && (tile.getClass() == LittleTileBlock.class || tile instanceof LittleTileBlockColored)
+                            && tile.structure == null) {
+                        LittleTile oldTile = tile;
+                        LittleTileBox box = oldTile.boundingBox;
+                        if (box != null) {
+                            for (int littleX = box.minX; littleX < box.maxX; littleX++) {
+                                for (int littleY = box.minY; littleY < box.maxY; littleY++) {
+                                    for (int littleZ = box.minZ; littleZ < box.maxZ; littleZ++) {
+                                        tile = oldTile.copy();
+                                        tile.boundingBox = new LittleTileBox(
+                                                littleX,
+                                                littleY,
+                                                littleZ,
+                                                littleX + 1,
+                                                littleY + 1,
+                                                littleZ + 1);
+                                        tile.updateCorner();
+                                        tile.te = te;
+                                        newTiles.add(tile);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (LittleTiles.maxNewTiles >= newTiles.size() - 1) {
+                            te.removeTile(oldTile, false);
+                            te.addTiles(newTiles);
+                            te.update();
+                        } else {
+                            player.addChatComponentMessage(
+                                    new ChatComponentText("Too much new tiles! Limit=" + LittleTiles.maxNewTiles));
+                        }
+                    }
                 }
-            } else {
-                PacketHandler.sendPacketToServer(
-                        new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.SPLIT, new NBTTagCompound()));
             }
             return true;
         } else {

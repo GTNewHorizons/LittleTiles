@@ -5,15 +5,14 @@ import java.util.List;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
-import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.littletiles.LittleTiles;
-import com.creativemd.littletiles.common.packet.LittleBlockPacket;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTile;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -37,16 +36,17 @@ public class ItemConnectionTool extends Item {
             float hitX, float hitY, float hitZ) {
         if (!player.capabilities.isCreativeMode) return false;
         TileEntity tileEntity = world.getTileEntity(x, y, z);
-        if (tileEntity instanceof TileEntityLittleTiles) {
-            if (world.isRemote) {
-                PacketHandler.sendPacketToServer(
-                        new LittleBlockPacket(
-                                x,
-                                y,
-                                z,
-                                player,
-                                LittleBlockPacket.Action.TOGGLE_CONNECTION,
-                                new NBTTagCompound()));
+        if (tileEntity instanceof TileEntityLittleTiles littleEntity) {
+            if (!world.isRemote) {
+                LittleTile tile = littleEntity.getHitTile(player);
+                if (tile != null) {
+                    tile.disableConnection = !tile.disableConnection;
+                    littleEntity.update();
+                    player.addChatComponentMessage(
+                            new ChatComponentTranslation(
+                                    tile.disableConnection ? "message.littletiles.tile_connection.disabled"
+                                            : "message.littletiles.tile_connection.enabled"));
+                }
             }
             return true;
         }

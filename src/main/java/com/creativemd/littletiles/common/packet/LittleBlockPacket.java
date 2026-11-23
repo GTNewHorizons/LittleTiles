@@ -1,6 +1,5 @@
 package com.creativemd.littletiles.common.packet;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -11,30 +10,19 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S23PacketBlockChange;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
-import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
-import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.WorldUtils;
-import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.blocks.BlockTile;
-import com.creativemd.littletiles.common.items.ItemColorTube;
 import com.creativemd.littletiles.common.items.ItemRecipe;
-import com.creativemd.littletiles.common.items.ItemTileContainer;
 import com.creativemd.littletiles.common.placement.LittleTileChangeRecorder;
 import com.creativemd.littletiles.common.placement.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
-import com.creativemd.littletiles.common.utils.LittleTileBlock;
-import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
-import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -55,18 +43,12 @@ public class LittleBlockPacket extends CreativeCorePacket {
 
     public enum Action {
 
-        ACTIVATE,
         DESTROY,
-        SAW,
-        COLOR,
-        SPLIT,
-        TOGGLE_COLLISION,
-        TOGGLE_CONNECTION,
         RECIPE_PICK;
 
         public static Action get(int ordinal) {
             if (ordinal >= 0 && ordinal < values().length) return values()[ordinal];
-            return ACTIVATE;
+            return null;
         }
     }
 
@@ -83,10 +65,8 @@ public class LittleBlockPacket extends CreativeCorePacket {
         this.y = y;
         this.z = z;
         this.action = action;
-        this.pos = player.getPosition(1);
-        double d0 = player.capabilities.isCreativeMode ? 5.0F : 4.5F;
-        Vec3 look = player.getLook(1.0F);
-        this.look = pos.addVector(look.xCoord * d0, look.yCoord * d0, look.zCoord * d0);
+        this.pos = TileEntityLittleTiles.getRayStart(player);
+        this.look = TileEntityLittleTiles.getRayEnd(player, pos);
         this.nbt = nbt;
     }
 
@@ -120,26 +100,13 @@ public class LittleBlockPacket extends CreativeCorePacket {
 
     @Override
     public void executeServer(EntityPlayer player) {
+        if (action == null) return;
         TileEntity tileEntity = player.worldObj.getTileEntity(x, y, z);
         if (tileEntity instanceof TileEntityLittleTiles) {
             TileEntityLittleTiles littleEntity = (TileEntityLittleTiles) tileEntity;
-            MovingObjectPosition moving = littleEntity.getMoving(pos, look);
-            LittleTile tile = TileEntityLittleTiles.getHitTile(moving);
+            LittleTile tile = TileEntityLittleTiles.getHitTile(littleEntity.getMoving(pos, look));
             if (tile != null) {
                 switch (action) {
-                    case ACTIVATE:
-                        if (tile.onBlockActivated(
-                                player.worldObj,
-                                x,
-                                y,
-                                z,
-                                player,
-                                moving.sideHit,
-                                (float) moving.hitVec.xCoord,
-                                (float) moving.hitVec.yCoord,
-                                (float) moving.hitVec.zCoord))
-                            BlockTile.cancelNext = true;
-                        break;
                     case DESTROY:
                         // The client removes the tile on its own, so this is the only place the server
                         // can refuse, as it would a vanilla block break: claims, other protection, or a
@@ -184,92 +151,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                         player.worldObj.provider.dimensionId,
                                         recorder.finish().createPlan()));
                         break;
-                    case SAW:
-                        ForgeDirection direction = ForgeDirection.getOrientation(nbt.getInteger("side"));
-                        if (tile instanceof LittleTileBlock tileBlock && tile.canSawResizeTile(direction, player)) {
-                            LittleTileBox box;
-                            if (player.isSneaking()) box = tile.boundingBox.shrink(direction);
-                            else box = tile.boundingBox.expand(direction);
-
-                            if (box.isBoxInsideBlock() && box.isValidBox()
-                                    && littleEntity.isSpaceForLittleTile(box.getBox(), tile)) {
-                                float ammount = tile.boundingBox.getSize().getPercentVolume()
-                                        - box.getSize().getPercentVolume();
-                                boolean success = false;
-                                if (player.isSneaking()) {
-                                    if (ItemTileContainer.addBlock(player, tileBlock.block, tileBlock.meta, ammount))
-                                        success = true;
-                                } else {
-                                    if (ItemTileContainer.drainBlock(player, tileBlock.block, tileBlock.meta, -ammount))
-                                        success = true;
-                                }
-
-                                if (player.capabilities.isCreativeMode || success) {
-                                    tile.boundingBox = box;
-                                    tile.updateCorner();
-                                    littleEntity.update();
-                                }
-                            }
-                        }
-                        break;
-                    case COLOR:
-                        if (tile.getClass() == LittleTileBlock.class || tile instanceof LittleTileBlockColored) {
-                            int color = nbt.getInteger("color");
-                            LittleTile currentTile = tile;
-
-                            int index = littleEntity.getTiles().indexOf(currentTile);
-                            if (player.isSneaking()) {
-                                color = ColorUtils.WHITE;
-                                if (currentTile instanceof LittleTileBlockColored)
-                                    color = ((LittleTileBlockColored) currentTile).color;
-                                ItemColorTube.setColor(player.getCurrentEquippedItem(), color);
-                            } else {
-
-                                LittleTile newTile = LittleTileBlockColored
-                                        .setColor((LittleTileBlock) currentTile, color);
-
-                                if (newTile != null) littleEntity.getTiles().set(index, newTile);
-                                littleEntity.update();
-                            }
-                        }
-                        break;
-                    case SPLIT:
-                        TileEntityLittleTiles te = (TileEntityLittleTiles) tileEntity;
-                        ArrayList<LittleTile> newTiles = new ArrayList<>();
-                        if ((tile.getClass() == LittleTileBlock.class || tile instanceof LittleTileBlockColored)
-                                && tile.structure == null) {
-                            LittleTile oldTile = tile;
-                            LittleTileBox box = oldTile.boundingBox;
-                            if (box != null) {
-                                for (int littleX = box.minX; littleX < box.maxX; littleX++) {
-                                    for (int littleY = box.minY; littleY < box.maxY; littleY++) {
-                                        for (int littleZ = box.minZ; littleZ < box.maxZ; littleZ++) {
-                                            tile = oldTile.copy();
-                                            tile.boundingBox = new LittleTileBox(
-                                                    littleX,
-                                                    littleY,
-                                                    littleZ,
-                                                    littleX + 1,
-                                                    littleY + 1,
-                                                    littleZ + 1);
-                                            tile.updateCorner();
-                                            tile.te = te;
-                                            newTiles.add(tile);
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (LittleTiles.maxNewTiles >= newTiles.size() - 1) {
-                                te.removeTile(oldTile, false);
-                                te.addTiles(newTiles);
-                                te.update();
-                            } else {
-                                player.addChatComponentMessage(
-                                        new ChatComponentText("Too much new tiles! Limit=" + LittleTiles.maxNewTiles));
-                            }
-                        }
-                        break;
                     case RECIPE_PICK:
                         // A structure tile picks the whole structure, like the creative pick
                         if (tile.isStructureBlock) {
@@ -281,28 +162,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
                         List<LittleTile> picked = pickBlock ? BlockTile.selectEntireBlock(littleEntity)
                                 : Collections.singletonList(tile);
                         ItemRecipe.pickTiles(player, player.getHeldItem(), picked);
-                        break;
-                    case TOGGLE_COLLISION:
-                        if (player.getCurrentEquippedItem() == null
-                                || player.getCurrentEquippedItem().getItem() != LittleTiles.collisionTool)
-                            break;
-                        tile.disableCollision = !tile.disableCollision;
-                        littleEntity.update();
-                        player.addChatComponentMessage(
-                                new ChatComponentTranslation(
-                                        tile.disableCollision ? "message.littletiles.tile_collision.disabled"
-                                                : "message.littletiles.tile_collision.enabled"));
-                        break;
-                    case TOGGLE_CONNECTION:
-                        if (!player.capabilities.isCreativeMode || player.getCurrentEquippedItem() == null
-                                || player.getCurrentEquippedItem().getItem() != LittleTiles.connectionTool)
-                            break;
-                        tile.disableConnection = !tile.disableConnection;
-                        littleEntity.update();
-                        player.addChatComponentMessage(
-                                new ChatComponentTranslation(
-                                        tile.disableConnection ? "message.littletiles.tile_connection.disabled"
-                                                : "message.littletiles.tile_connection.enabled"));
                         break;
                 }
             }

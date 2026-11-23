@@ -410,6 +410,11 @@ public abstract class LittleTile {
 
     public void randomDisplayTick(World world, int x, int y, int z, Random random) {}
 
+    /** Whether a right click is taken by the tile, asked by the client, which leaves activating to the server. */
+    public boolean isActivatable() {
+        return isLoaded() && structure.isActivatable();
+    }
+
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float moveX,
             float moveY, float moveZ) {
         if (isLoaded()) return structure.onBlockActivated(world, this, x, y, z, player, side, moveX, moveY, moveZ);

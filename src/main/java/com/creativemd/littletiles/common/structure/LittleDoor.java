@@ -208,6 +208,11 @@ public class LittleDoor extends LittleStructure {
     }
 
     @Override
+    public boolean isActivatable() {
+        return true;
+    }
+
+    @Override
     public boolean onBlockActivated(World world, LittleTile tile, int x, int y, int z, EntityPlayer player, int side,
             float moveX, float moveY, float moveZ) {
         if (axis != null) {

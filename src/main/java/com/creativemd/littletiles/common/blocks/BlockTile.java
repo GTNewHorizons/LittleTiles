@@ -245,22 +245,15 @@ public class BlockTile extends BlockContainer implements IFacade {
         }
     }
 
-    public static boolean cancelNext = false;
-
     @Override
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float moveX,
             float moveY, float moveZ) {
         final TileEntityLittleTiles littleTile = getTileEntityAt(world, x, y, z);
-        final LittleTile tile = littleTile != null && world.isRemote ? littleTile.getHitTile(player) : null;
-        if (tile != null) {
-            PacketHandler.sendPacketToServer(new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.ACTIVATE));
-            return tile.onBlockActivated(world, x, y, z, player, side, moveX, moveY, moveZ);
-        }
-        if (cancelNext) {
-            cancelNext = false;
-            return true;
-        }
-        return false;
+        final LittleTile tile = littleTile != null ? littleTile.getHitTile(player) : null;
+        if (tile == null) return false;
+        // The client only needs to know whether the tile takes the click, otherwise it goes on to use the held item
+        if (world.isRemote) return tile.isActivatable();
+        return tile.onBlockActivated(world, x, y, z, player, side, moveX, moveY, moveZ);
     }
 
     /*

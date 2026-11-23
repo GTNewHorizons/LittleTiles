@@ -15,14 +15,15 @@ import net.minecraft.world.World;
 import com.creativemd.creativecore.common.container.SubContainer;
 import com.creativemd.creativecore.common.gui.IGuiCreator;
 import com.creativemd.creativecore.common.gui.SubGui;
-import com.creativemd.creativecore.common.packet.PacketHandler;
 import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.core.CreativeCore;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.gui.SubContainerColorTube;
 import com.creativemd.littletiles.common.gui.SubGuiColorTube;
-import com.creativemd.littletiles.common.packet.LittleBlockPacket;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
+import com.creativemd.littletiles.common.utils.LittleTile;
+import com.creativemd.littletiles.common.utils.LittleTileBlock;
+import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -88,12 +89,28 @@ public class ItemColorTube extends Item implements IGuiCreator {
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
             float hitX, float hitY, float hitZ) {
         TileEntity tileEntity = world.getTileEntity(x, y, z);
-        if (tileEntity instanceof TileEntityLittleTiles) {
-            if (world.isRemote) {
-                NBTTagCompound nbt = new NBTTagCompound();
-                nbt.setInteger("color", getColor(stack));
-                PacketHandler.sendPacketToServer(
-                        new LittleBlockPacket(x, y, z, player, LittleBlockPacket.Action.COLOR, nbt));
+        if (tileEntity instanceof TileEntityLittleTiles littleEntity) {
+            if (!world.isRemote) {
+                LittleTile tile = littleEntity.getHitTile(player);
+                if (tile != null
+                        && (tile.getClass() == LittleTileBlock.class || tile instanceof LittleTileBlockColored)) {
+                    int color = getColor(stack);
+                    LittleTile currentTile = tile;
+
+                    int index = littleEntity.getTiles().indexOf(currentTile);
+                    if (player.isSneaking()) {
+                        color = ColorUtils.WHITE;
+                        if (currentTile instanceof LittleTileBlockColored)
+                            color = ((LittleTileBlockColored) currentTile).color;
+                        setColor(stack, color);
+                    } else {
+
+                        LittleTile newTile = LittleTileBlockColored.setColor((LittleTileBlock) currentTile, color);
+
+                        if (newTile != null) littleEntity.getTiles().set(index, newTile);
+                        littleEntity.update();
+                    }
+                }
             }
             return true;
         }

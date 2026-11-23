@@ -83,10 +83,8 @@ public class LittleBlockPacket extends CreativeCorePacket {
         this.y = y;
         this.z = z;
         this.action = action;
-        this.pos = player.getPosition(1);
-        double d0 = player.capabilities.isCreativeMode ? 5.0F : 4.5F;
-        Vec3 look = player.getLook(1.0F);
-        this.look = pos.addVector(look.xCoord * d0, look.yCoord * d0, look.zCoord * d0);
+        this.pos = TileEntityLittleTiles.getRayStart(player);
+        this.look = TileEntityLittleTiles.getRayEnd(player, pos);
         this.nbt = nbt;
     }
 

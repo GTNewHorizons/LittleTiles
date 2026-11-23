@@ -361,11 +361,20 @@ public class TileEntityLittleTiles extends TileEntity {
 
     /** Where the player looks at the tiles, see {@link #getMoving(Vec3, Vec3)}. */
     public MovingObjectPosition getMoving(EntityPlayer player) {
-        Vec3 pos = player.getPosition(1);
+        Vec3 pos = getRayStart(player);
+        return getMoving(pos, getRayEnd(player, pos));
+    }
+
+    /** Where the player's line of sight starts. */
+    public static Vec3 getRayStart(EntityPlayer player) {
+        return player.getPosition(1);
+    }
+
+    /** Where the player's line of sight from {@code pos} ends, at the player's reach. */
+    public static Vec3 getRayEnd(EntityPlayer player, Vec3 pos) {
         double d0 = player.capabilities.isCreativeMode ? 5.0F : 4.5F;
         Vec3 look = player.getLook(1.0F);
-        Vec3 vec32 = pos.addVector(look.xCoord * d0, look.yCoord * d0, look.zCoord * d0);
-        return getMoving(pos, vec32);
+        return pos.addVector(look.xCoord * d0, look.yCoord * d0, look.zCoord * d0);
     }
 
     /** Where the ray hits the tiles first, null if it misses them. The hit tile is the {@code hitInfo}. */

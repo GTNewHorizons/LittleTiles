@@ -16,7 +16,6 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
-import net.minecraftforge.common.util.ForgeDirection;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
 import com.creativemd.creativecore.common.utils.ColorUtils;
@@ -25,7 +24,6 @@ import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.items.ItemColorTube;
 import com.creativemd.littletiles.common.items.ItemRecipe;
-import com.creativemd.littletiles.common.items.ItemTileContainer;
 import com.creativemd.littletiles.common.placement.LittleTileChangeRecorder;
 import com.creativemd.littletiles.common.placement.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
@@ -54,7 +52,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
     public enum Action {
 
         DESTROY,
-        SAW,
         COLOR,
         SPLIT,
         RECIPE_PICK;
@@ -163,34 +160,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                 new LittleTilesPlacementHistory.PlacementAction(
                                         player.worldObj.provider.dimensionId,
                                         recorder.finish().createPlan()));
-                        break;
-                    case SAW:
-                        ForgeDirection direction = ForgeDirection.getOrientation(nbt.getInteger("side"));
-                        if (tile instanceof LittleTileBlock tileBlock && tile.canSawResizeTile(direction, player)) {
-                            LittleTileBox box;
-                            if (player.isSneaking()) box = tile.boundingBox.shrink(direction);
-                            else box = tile.boundingBox.expand(direction);
-
-                            if (box.isBoxInsideBlock() && box.isValidBox()
-                                    && littleEntity.isSpaceForLittleTile(box.getBox(), tile)) {
-                                float ammount = tile.boundingBox.getSize().getPercentVolume()
-                                        - box.getSize().getPercentVolume();
-                                boolean success = false;
-                                if (player.isSneaking()) {
-                                    if (ItemTileContainer.addBlock(player, tileBlock.block, tileBlock.meta, ammount))
-                                        success = true;
-                                } else {
-                                    if (ItemTileContainer.drainBlock(player, tileBlock.block, tileBlock.meta, -ammount))
-                                        success = true;
-                                }
-
-                                if (player.capabilities.isCreativeMode || success) {
-                                    tile.boundingBox = box;
-                                    tile.updateCorner();
-                                    littleEntity.update();
-                                }
-                            }
-                        }
                         break;
                     case COLOR:
                         if (tile.getClass() == LittleTileBlock.class || tile instanceof LittleTileBlockColored) {

@@ -255,6 +255,11 @@ public abstract class LittleStructure {
         return dropStack;
     }
 
+    /** Whether {@link #onBlockActivated} takes the click, without doing anything. */
+    public boolean isActivatable() {
+        return false;
+    }
+
     public boolean onBlockActivated(World world, LittleTile tile, int x, int y, int z, EntityPlayer player, int side,
             float moveX, float moveY, float moveZ) {
         return false;

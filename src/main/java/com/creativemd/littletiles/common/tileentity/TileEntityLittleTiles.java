@@ -367,7 +367,11 @@ public class TileEntityLittleTiles extends TileEntity {
 
     /** Where the player's line of sight starts. */
     public static Vec3 getRayStart(EntityPlayer player) {
-        return player.getPosition(1);
+        // The client's position is already at eye height, the server's is at the feet, see
+        // Item#getMovingObjectPositionFromPlayer
+        double eyeHeight = player.worldObj.isRemote ? player.getEyeHeight() - player.getDefaultEyeHeight()
+                : player.getEyeHeight();
+        return Vec3.createVectorHelper(player.posX, player.posY + eyeHeight, player.posZ);
     }
 
     /** Where the player's line of sight from {@code pos} ends, at the player's reach. */

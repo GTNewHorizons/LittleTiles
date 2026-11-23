@@ -14,7 +14,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
@@ -55,7 +54,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
 
     public enum Action {
 
-        ACTIVATE,
         DESTROY,
         SAW,
         COLOR,
@@ -66,7 +64,7 @@ public class LittleBlockPacket extends CreativeCorePacket {
 
         public static Action get(int ordinal) {
             if (ordinal >= 0 && ordinal < values().length) return values()[ordinal];
-            return ACTIVATE;
+            return null;
         }
     }
 
@@ -118,26 +116,13 @@ public class LittleBlockPacket extends CreativeCorePacket {
 
     @Override
     public void executeServer(EntityPlayer player) {
+        if (action == null) return;
         TileEntity tileEntity = player.worldObj.getTileEntity(x, y, z);
         if (tileEntity instanceof TileEntityLittleTiles) {
             TileEntityLittleTiles littleEntity = (TileEntityLittleTiles) tileEntity;
-            MovingObjectPosition moving = littleEntity.getMoving(pos, look);
-            LittleTile tile = TileEntityLittleTiles.getHitTile(moving);
+            LittleTile tile = TileEntityLittleTiles.getHitTile(littleEntity.getMoving(pos, look));
             if (tile != null) {
                 switch (action) {
-                    case ACTIVATE:
-                        if (tile.onBlockActivated(
-                                player.worldObj,
-                                x,
-                                y,
-                                z,
-                                player,
-                                moving.sideHit,
-                                (float) moving.hitVec.xCoord,
-                                (float) moving.hitVec.yCoord,
-                                (float) moving.hitVec.zCoord))
-                            BlockTile.cancelNext = true;
-                        break;
                     case DESTROY:
                         // The client removes the tile on its own, so this is the only place the server
                         // can refuse, as it would a vanilla block break: claims, other protection, or a

@@ -18,11 +18,9 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
-import com.creativemd.creativecore.common.utils.ColorUtils;
 import com.creativemd.creativecore.common.utils.WorldUtils;
 import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.blocks.BlockTile;
-import com.creativemd.littletiles.common.items.ItemColorTube;
 import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.placement.LittleTileChangeRecorder;
 import com.creativemd.littletiles.common.placement.LittleTilesPlacementHistory;
@@ -52,7 +50,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
     public enum Action {
 
         DESTROY,
-        COLOR,
         SPLIT,
         RECIPE_PICK;
 
@@ -160,27 +157,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                 new LittleTilesPlacementHistory.PlacementAction(
                                         player.worldObj.provider.dimensionId,
                                         recorder.finish().createPlan()));
-                        break;
-                    case COLOR:
-                        if (tile.getClass() == LittleTileBlock.class || tile instanceof LittleTileBlockColored) {
-                            int color = nbt.getInteger("color");
-                            LittleTile currentTile = tile;
-
-                            int index = littleEntity.getTiles().indexOf(currentTile);
-                            if (player.isSneaking()) {
-                                color = ColorUtils.WHITE;
-                                if (currentTile instanceof LittleTileBlockColored)
-                                    color = ((LittleTileBlockColored) currentTile).color;
-                                ItemColorTube.setColor(player.getCurrentEquippedItem(), color);
-                            } else {
-
-                                LittleTile newTile = LittleTileBlockColored
-                                        .setColor((LittleTileBlock) currentTile, color);
-
-                                if (newTile != null) littleEntity.getTiles().set(index, newTile);
-                                littleEntity.update();
-                            }
-                        }
                         break;
                     case SPLIT:
                         TileEntityLittleTiles te = (TileEntityLittleTiles) tileEntity;

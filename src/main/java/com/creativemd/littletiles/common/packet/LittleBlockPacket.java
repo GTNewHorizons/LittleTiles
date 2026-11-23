@@ -1,6 +1,5 @@
 package com.creativemd.littletiles.common.packet;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -11,7 +10,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S23PacketBlockChange;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -19,16 +17,12 @@ import net.minecraftforge.common.ForgeHooks;
 
 import com.creativemd.creativecore.common.packet.CreativeCorePacket;
 import com.creativemd.creativecore.common.utils.WorldUtils;
-import com.creativemd.littletiles.LittleTiles;
 import com.creativemd.littletiles.common.blocks.BlockTile;
 import com.creativemd.littletiles.common.items.ItemRecipe;
 import com.creativemd.littletiles.common.placement.LittleTileChangeRecorder;
 import com.creativemd.littletiles.common.placement.LittleTilesPlacementHistory;
 import com.creativemd.littletiles.common.tileentity.TileEntityLittleTiles;
 import com.creativemd.littletiles.common.utils.LittleTile;
-import com.creativemd.littletiles.common.utils.LittleTileBlock;
-import com.creativemd.littletiles.common.utils.LittleTileBlockColored;
-import com.creativemd.littletiles.common.utils.small.LittleTileBox;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -50,7 +44,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
     public enum Action {
 
         DESTROY,
-        SPLIT,
         RECIPE_PICK;
 
         public static Action get(int ordinal) {
@@ -157,43 +150,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
                                 new LittleTilesPlacementHistory.PlacementAction(
                                         player.worldObj.provider.dimensionId,
                                         recorder.finish().createPlan()));
-                        break;
-                    case SPLIT:
-                        TileEntityLittleTiles te = (TileEntityLittleTiles) tileEntity;
-                        ArrayList<LittleTile> newTiles = new ArrayList<>();
-                        if ((tile.getClass() == LittleTileBlock.class || tile instanceof LittleTileBlockColored)
-                                && tile.structure == null) {
-                            LittleTile oldTile = tile;
-                            LittleTileBox box = oldTile.boundingBox;
-                            if (box != null) {
-                                for (int littleX = box.minX; littleX < box.maxX; littleX++) {
-                                    for (int littleY = box.minY; littleY < box.maxY; littleY++) {
-                                        for (int littleZ = box.minZ; littleZ < box.maxZ; littleZ++) {
-                                            tile = oldTile.copy();
-                                            tile.boundingBox = new LittleTileBox(
-                                                    littleX,
-                                                    littleY,
-                                                    littleZ,
-                                                    littleX + 1,
-                                                    littleY + 1,
-                                                    littleZ + 1);
-                                            tile.updateCorner();
-                                            tile.te = te;
-                                            newTiles.add(tile);
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (LittleTiles.maxNewTiles >= newTiles.size() - 1) {
-                                te.removeTile(oldTile, false);
-                                te.addTiles(newTiles);
-                                te.update();
-                            } else {
-                                player.addChatComponentMessage(
-                                        new ChatComponentText("Too much new tiles! Limit=" + LittleTiles.maxNewTiles));
-                            }
-                        }
                         break;
                     case RECIPE_PICK:
                         // A structure tile picks the whole structure, like the creative pick

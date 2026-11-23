@@ -58,7 +58,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
         SAW,
         COLOR,
         SPLIT,
-        TOGGLE_COLLISION,
         TOGGLE_CONNECTION,
         RECIPE_PICK;
 
@@ -264,17 +263,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
                         List<LittleTile> picked = pickBlock ? BlockTile.selectEntireBlock(littleEntity)
                                 : Collections.singletonList(tile);
                         ItemRecipe.pickTiles(player, player.getHeldItem(), picked);
-                        break;
-                    case TOGGLE_COLLISION:
-                        if (player.getCurrentEquippedItem() == null
-                                || player.getCurrentEquippedItem().getItem() != LittleTiles.collisionTool)
-                            break;
-                        tile.disableCollision = !tile.disableCollision;
-                        littleEntity.update();
-                        player.addChatComponentMessage(
-                                new ChatComponentTranslation(
-                                        tile.disableCollision ? "message.littletiles.tile_collision.disabled"
-                                                : "message.littletiles.tile_collision.enabled"));
                         break;
                     case TOGGLE_CONNECTION:
                         if (!player.capabilities.isCreativeMode || player.getCurrentEquippedItem() == null

@@ -12,7 +12,6 @@ import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S23PacketBlockChange;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -58,7 +57,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
         SAW,
         COLOR,
         SPLIT,
-        TOGGLE_CONNECTION,
         RECIPE_PICK;
 
         public static Action get(int ordinal) {
@@ -263,17 +261,6 @@ public class LittleBlockPacket extends CreativeCorePacket {
                         List<LittleTile> picked = pickBlock ? BlockTile.selectEntireBlock(littleEntity)
                                 : Collections.singletonList(tile);
                         ItemRecipe.pickTiles(player, player.getHeldItem(), picked);
-                        break;
-                    case TOGGLE_CONNECTION:
-                        if (!player.capabilities.isCreativeMode || player.getCurrentEquippedItem() == null
-                                || player.getCurrentEquippedItem().getItem() != LittleTiles.connectionTool)
-                            break;
-                        tile.disableConnection = !tile.disableConnection;
-                        littleEntity.update();
-                        player.addChatComponentMessage(
-                                new ChatComponentTranslation(
-                                        tile.disableConnection ? "message.littletiles.tile_connection.disabled"
-                                                : "message.littletiles.tile_connection.enabled"));
                         break;
                 }
             }
